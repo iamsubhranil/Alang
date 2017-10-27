@@ -1,0 +1,13 @@
+Begin
+Set i = i+1
+Print "i is now " i
+If(i > 2)
+Then
+    Set i = i +2
+    While(i < 5)
+        Set i = i+1
+        Break
+    EndWhile
+    Set j = j+1
+EndIf
+End
