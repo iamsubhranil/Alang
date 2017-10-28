@@ -2,7 +2,10 @@
 #include <stdlib.h>
 
 #include "scanner.h"
-#include "generator.h"
+#include "parser.h"
+#include "stree.h"
+#include "traverser.h"
+#include "display.h"
 
 int main(int argc, char **argv){
     if(argc != 2)
@@ -21,9 +24,20 @@ int main(int argc, char **argv){
     initScanner(string);
 
     TokenList *tokens = scanTokens();
-
     printList(tokens);
-    generate(tokens);
+    if(hadError()){
+        error("Error in file, exiting now..");
+    }
+
+    Block all = parse(tokens);
+    if(hadError()){
+        error("Error while parsing, exiting now..");
+    }
+
+    FILE* out = fopen("testout", "w");
+    traverse(all, out);
+    fclose(out);
+    fflush(stdin);
 
     freeList(tokens);
 

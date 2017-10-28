@@ -1,10 +1,9 @@
-//> Scanning on Demand not-yet
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-//#include "common.h"
 #include "scanner.h"
+#include "display.h"
 
 typedef struct {
     const char* name;
@@ -122,22 +121,13 @@ static void skipWhitespace() {
     for (;;) {
         char c = peek();
         switch (c) {
-            //case ' ':
-            case '\r':
-                //  case '\t': We need indent to define block
-                advance();
-                break;
-
-            case '\n':
-                scanner.line++;
-                advance();
-                break;
-
             case '/':
                 if (peekNext() == '/') {
                     // A comment goes until the end of the line.
                     while (peek() != '\n' && !isAtEnd()) advance();
-                } else {
+                } else{ //if(peekNext() == '*'){
+                    // A multiline comment goes until */
+                    //while (!isAtEnd() && !(peek() == '*' && peekNext() == '/')) advance();
                     return;
                 }
                 break;
@@ -218,8 +208,18 @@ static Token scanToken() {
                         return makeToken(TOKEN_INDENT);
                     }
                     else
-                        return scanToken();
+                        return scanToken(); // Ignore all other spaces
                  }
+        case '\r':
+                  if(peek() == '\n'){
+                      advance();
+                      scanner.line++;
+                      return makeToken(TOKEN_NEWLINE);
+                  }
+                  return scanToken(); // Ignore \r
+        case '\n':
+                  scanner.line++;
+                  return makeToken(TOKEN_NEWLINE);
         case '\t': return makeToken(TOKEN_INDENT);
         case '(': return makeToken(TOKEN_LEFT_PAREN);
         case ')': return makeToken(TOKEN_RIGHT_PAREN);
@@ -232,6 +232,7 @@ static Token scanToken() {
         case '+': return makeToken(TOKEN_PLUS);
         case '/': return makeToken(TOKEN_SLASH);
         case '*': return makeToken(TOKEN_STAR);
+        case '%': return makeToken(TOKEN_PERCEN);
         case '!':
                   if (match('=')) return makeToken(TOKEN_BANG_EQUAL);
                   return makeToken(TOKEN_BANG);
@@ -249,9 +250,10 @@ static Token scanToken() {
                   return makeToken(TOKEN_GREATER);
 
         case '"': return string();
+        default:
+                  line_error(scanner.line, "Unexpected character!");
+                  break;
     }
-
-    return errorToken("Unexpected character.");
 }
 
 static TokenList *newList(Token t){ 
@@ -273,12 +275,8 @@ static void insertList(TokenList **head, TokenList **prev, TokenList *toInsert){
 TokenList* scanTokens(){
     TokenList *ret = NULL, *head = NULL;
     Token t;
-    int bak = scanner.line;
     while((t = scanToken()).type != TOKEN_EOF){
-        if(scanner.line > bak){
-            bak = scanner.line;
-            insertList(&head, &ret, newList(makeToken(TOKEN_NEWLINE)));
-        }
+        //info("Looping in makelist");
         insertList(&head, &ret, newList(t));
     }
 
@@ -301,7 +299,7 @@ void printList(TokenList *list){
         }
        list = list->next; 
     }
-    printf("\n");
+    printf("TOKEN_EOF\n");
 }
 
 void freeList(TokenList *list){

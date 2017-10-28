@@ -11,6 +11,12 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+static int hasError = 0;
+
+int hadError(){
+    return hasError;
+}
+
 void fatal(const char* msg){
     printf("\n" ANSI_COLOR_RED "[Fatal] %s" ANSI_COLOR_RESET, msg);
     exit(1);
@@ -23,7 +29,7 @@ void error(const char* msg){
 
 void line_error(int line, const char* msg){
     printf("\n" ANSI_COLOR_RED "[Error] [Line:%d] %s" ANSI_COLOR_RESET, line, msg);
-  //  exit(1);
+    hasError = 1;
 }
 
 void warning(const char* msg){

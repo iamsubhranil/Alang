@@ -1,13 +1,25 @@
 Begin
-Set i = i+1
-Print "i is now " i
-If(i > 2)
-Then
-    Set i = i +2
-    While(i < 5)
-        Set i = i+1
-        Break
-    EndWhile
-    Set j = j+1
-EndIf
+Set i = N/2
+While(i > 2)
+Begin
+    If(N % i = 0)
+    Then
+        Set temp = i
+        Set flag = 0
+        Set j = 2
+        While(j < i/2)
+        Begin
+            If(i % j = 0)
+            Then
+                Set flag = 1
+            EndIf
+            Set j = j + 1
+        EndWhile
+        If(flag = 0)
+        Then
+            Print "temp"
+        EndIf
+    EndIf
+    Set i = i - 1
+EndWhile
 End

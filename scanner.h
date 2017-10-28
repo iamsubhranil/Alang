@@ -27,6 +27,7 @@ typedef enum {
   TOKEN_SEMICOLON,
   TOKEN_SLASH,
   TOKEN_STAR,
+  TOKEN_PERCEN,
 
   TOKEN_IDENTIFIER,
   TOKEN_STRING,
@@ -80,6 +81,7 @@ static const char* tokenNames[] = {
   "TOKEN_SEMICOLON",
   "TOKEN_SLASH",
   "TOKEN_STAR",
+  "TOKEN_PERCEN",
 
   "TOKEN_IDENTIFIER",
   "TOKEN_STRING",
