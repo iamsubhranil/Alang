@@ -133,7 +133,7 @@ static int isOperator(TokenType type){
 
 static Expression* expression(){
     debug("Parsing expression");
-    
+
     Expression* expr = (Expression *)malloc(sizeof(Expression));
     expr->literal = errorToken;
     expr->op = errorToken;
@@ -212,7 +212,7 @@ static Statement ifStatement(Compiler *compiler){
     s.ifStatement.ifBlock.condition = expression();
     consume(TOKEN_RIGHT_PAREN, "Conditional must end with a closing brace[')'] after If!");
     consume(TOKEN_NEWLINE, "Expected newline after If!");
-    
+
     if(getNextIndent() == compiler->indentLevel){
         consumeIndent(compiler->indentLevel);
         consume(TOKEN_THEN, "Expected Then on the same indent!");
@@ -221,7 +221,7 @@ static Statement ifStatement(Compiler *compiler){
 
     s.ifStatement.ifBlock.statements = blockStatement(compiler, BLOCK_IF);
     consumeIndent(compiler->indentLevel);
-    
+
     while(match(TOKEN_ELSE)){
         if(match(TOKEN_IF)){
             s.ifStatement.hasElseIf = 2;
@@ -236,8 +236,10 @@ static Statement ifStatement(Compiler *compiler){
         }
     }
 
-    consume(TOKEN_ENDIF, "Expected EndIf!");
-    consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
+    if(s.ifStatement.hasElseIf != 2){
+        consume(TOKEN_ENDIF, "Expected EndIf!");
+        consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
+    }
     debug("If statement parsed");
 
     return s;
@@ -245,7 +247,7 @@ static Statement ifStatement(Compiler *compiler){
 
 static Statement whileStatement(Compiler* compiler){
     debug("Parsing while statement");
-    
+
     Statement s;
     s.type = STATEMENT_WHILE;
 

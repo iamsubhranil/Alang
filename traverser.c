@@ -20,10 +20,10 @@ static FILE* file = NULL;
 
 static void writeToken(Token t){
     int i = 0;
-    printf("\n[Writing] ");
+    //printf("\n[Writing] ");
     while(i < t.length){
         fputc(t.start[i], file);
-        putchar(t.start[i]);
+        //putchar(t.start[i]);
         i++;
     }
     fflush(file);
@@ -55,19 +55,23 @@ static void writeExpression(Expression* e){
 }
 
 static void resolveExpression(Statement s){
+    debug("Resolving expression");
     write(statementNames[s.type]);   
     if(s.type == STATEMENT_SET){
         space();
         writeExpression(s.expressionStatement.expression);
     } 
     newline();
+    debug("Expression resolved");
 }
 
 static void resolvePrint(PrintStatement p){
+    debug("Resolving print");
     write(statementNames[STATEMENT_PRINT]);
     space();
     writeToken(p.print);
     newline();
+    debug("Print resolved");
 }
 
 static void resolve(Statement s);
@@ -83,6 +87,7 @@ static void resolveBlock(Block b){
 }
 
 static void resolveIf(IfStatement s){
+    debug("Resolving if");
     write(statementNames[STATEMENT_IF]);
     space();
     write("(");
@@ -100,11 +105,15 @@ static void resolveIf(IfStatement s){
         space();
         resolveIf(*s.elseIfBlock);
     }
-    write("EndIf\0");
-    newline();
+    if(s.hasElseIf != 2){
+        write("EndIf\0");
+        newline();
+    }
+    debug("If resolved");
 }
 
 static void resolveConditional(Statement s){
+    debug("Resolving conditional");
     if(s.type == STATEMENT_DO){
         write("Do\0");
         newline();
@@ -126,11 +135,14 @@ static void resolveConditional(Statement s){
         write("EndWhile\0");
     }
     newline();
+    debug("Conditional resolved");
 }
 
 static void resolveBreak(BreakStatement s){
+    debug("Resolving break");
     write("Break\0");
     newline();
+    debug("Break resolved");
 }
 
 static void resolve(Statement s){
