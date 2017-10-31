@@ -3,9 +3,9 @@
 
 #include "scanner.h"
 #include "parser.h"
-#include "stree.h"
-#include "traverser.h"
 #include "display.h"
+#include "stmt.h"
+#include "allocator.h"
 
 int main(int argc, char **argv){
     if(argc != 2)
@@ -34,12 +34,13 @@ int main(int argc, char **argv){
         error("Error while parsing, exiting now..");
     }
 
-    FILE* out = fopen("testout", "w");
-    traverse(all, out);
-    fclose(out);
-    fflush(stdin);
+   // FILE* out = fopen("testout", "w");
+   // traverse(all, out);
+   // fclose(out);
+   // fflush(stdin);
 
     freeList(tokens);
+    mfree();
 
     printf("\n");
     return 0;

@@ -2,28 +2,25 @@ Begin
 Set i = N/2
 While(i > 2)
 Begin
-    If(N % i = 0)
+    If(N % i == 0)
     Then
         Set temp = i
         Set flag = 0
         Set j = 2
         While(j < i/2)
         Begin
-            If(i % j = 0)
+            If(i % j == 0)
             Then
                 Set flag = 1
-            Else If(i % 2 = 0)
-            Then
-                Set flag = 2
-            Else If(i % 3 = 0)
-            Then
-                Set flag = 3
-            Else
-                Set flag = 4
+            Else 
+                If(i % 2 == 0)
+                Then
+                    Set flag = 2
+                EndIf
             EndIf
             Set j = j + 1
         EndWhile
-        If(flag = 0)
+        If(flag == 0)
         Then
             Print "temp"
         EndIf

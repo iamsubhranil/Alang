@@ -2,7 +2,7 @@
 #define TRAVERSER_H
 
 #include <stdio.h>
-#include "stree.h"
+#include "stmt.h"
 
 void traverse(Block b, FILE* file);
 

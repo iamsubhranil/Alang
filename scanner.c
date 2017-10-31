@@ -16,6 +16,12 @@ static Keyword keywords[] = {
     {"Begin",   5, TOKEN_BEGIN},
     {"End",     3, TOKEN_END},
 
+    {"True",    4, TOKEN_TRUE},
+    {"False",   5, TOKEN_FALSE},
+    {"Null",    4, TOKEN_NULL},
+    {"AND",     3, TOKEN_AND},
+    {"OR",      2, TOKEN_OR},
+
     {"Set",     3, TOKEN_SET},
 
     {"If",      2, TOKEN_IF},
@@ -233,6 +239,7 @@ static Token scanToken() {
         case '/': return makeToken(TOKEN_SLASH);
         case '*': return makeToken(TOKEN_STAR);
         case '%': return makeToken(TOKEN_PERCEN);
+        case '^': return makeToken(TOKEN_CARET);
         case '!':
                   if (match('=')) return makeToken(TOKEN_BANG_EQUAL);
                   return makeToken(TOKEN_BANG);
