@@ -15,6 +15,11 @@ Begin
             Else If(i % 2 = 0)
             Then
                 Set flag = 2
+            Else If(i % 3 = 0)
+            Then
+                Set flag = 3
+            Else
+                Set flag = 4
             EndIf
             Set j = j + 1
         EndWhile

@@ -7,38 +7,9 @@
 #include "parser.h"
 #include "stree.h"
 
-static char *newChar(char c){
-    char *ret = (char *)malloc(sizeof(char));
-    ret[0] = c;
-    return ret;
-}
-
-static char *getVal(Token token){
-    if(token.type == TOKEN_NEWLINE)
-        return newChar('\n');
-    if(token.type == TOKEN_INDENT)
-        return newChar('\t');
-    if(token.type == TOKEN_EOF)
-        return newChar('\0');
-
-    char *ret = (char *)malloc(sizeof(char) * (token.length + 1));
-    strncpy(ret, token.start, token.length);
-    return ret;
-}
-
 static int currentIndentLevel = 0, inIf = 0, inWhile = 0, inDo = 0, inFor = 0;
 static TokenList *head = NULL;
 static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1};
-
-typedef enum{
-    BLOCK_IF,
-    BLOCK_ELSE,
-    BLOCK_WHILE,
-    BLOCK_DO,
-    BLOCK_FOR,
-    BLOCK_NONE,
-    BLOCK_MAIN
-} BlockType;
 
 typedef struct Compiler{
     struct Compiler *parent;
@@ -167,7 +138,7 @@ static Expression* expression(){
 static Statement statement(Compiler *compiler);
 
 static Block newBlock(){
-    Block b = {0, NULL};
+    Block b = {0, BLOCK_NONE, NULL};
     return b;
 }
 
@@ -182,10 +153,12 @@ static Block blockStatement(Compiler *compiler, BlockType name){
     int indent = compiler->indentLevel+1;
     Compiler *blockCompiler = initCompiler(compiler, indent, name);
     Block b = newBlock();
+    b.blockName = name;
     while(getNextIndent() == indent){
         debug("Found a block statement");
         addToBlock(&b, statement(blockCompiler));
     }
+    free(blockCompiler);
     debug("Block statement parsed");
     return b;
 }
@@ -377,6 +350,7 @@ static Statement statement(Compiler *compiler){
 Block parse(TokenList *list){
     head = list;
     Block mainBlock = newBlock();
+    mainBlock.blockName = BLOCK_MAIN;
     Compiler* root = initCompiler(NULL, 0, BLOCK_MAIN);
     while(!match(TOKEN_EOF))
         addToBlock(&mainBlock, statement(root));

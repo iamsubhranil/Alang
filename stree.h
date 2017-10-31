@@ -22,8 +22,19 @@ typedef enum{
 
 typedef struct Statement Statement;
 
+typedef enum{
+    BLOCK_IF,
+    BLOCK_ELSE,
+    BLOCK_WHILE,
+    BLOCK_DO,
+    BLOCK_FOR,
+    BLOCK_NONE,
+    BLOCK_MAIN
+} BlockType;
+
 typedef struct{
     int numStatements;
+    BlockType blockName;
     Statement* statements;
 } Block;
 
