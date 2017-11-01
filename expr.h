@@ -5,11 +5,12 @@
 
 typedef struct Expression Expression;
 
+/*
 typedef struct{
     Token name;
     Expression* value;
 } Assign;
-
+*/
 typedef struct{
     Expression* left;
     Token op;
@@ -45,7 +46,7 @@ typedef struct{
 } Variable;
 
 typedef enum{
-    EXPR_ASSIGN,
+//    EXPR_ASSIGN,
     EXPR_BINARY,
     EXPR_LOGICAL,
     EXPR_LITERAL,
@@ -56,7 +57,7 @@ typedef enum{
 typedef struct Expression{
     ExpressionType type;
     union{
-        Assign assignment;
+//        Assign assignment;
         Binary binary;
         Logical logical;
         Literal literal;

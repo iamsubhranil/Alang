@@ -261,27 +261,28 @@ static Expression* orE(){
     return expr;
 }
 
-static Expression* assignment(){
-    Expression* expr = orE();
+/*
+   static Expression* assignment(){
+   Expression* expr = orE();
 
-    if(peek() == TOKEN_EQUAL){
-        Token t = present();
-        Expression* value = assignment();
-        if(expr->type == EXPR_VARIABLE){
-            Expression* ex = newExpression();
-            ex->type = EXPR_ASSIGN;
-            ex->assignment.name = expr->variable.name;
-            ex->assignment.value = value;
-        }
-        else
-            line_error(t.line, "Invalid assignment target!");
-    }
+   if(peek() == TOKEN_EQUAL){
+   Token t = present();
+   Expression* value = assignment();
+   if(expr->type == EXPR_VARIABLE){
+   Expression* ex = newExpression();
+   ex->type = EXPR_ASSIGN;
+   ex->assignment.name = expr->variable.name;
+   ex->assignment.value = value;
+   }
+   else
+   line_error(t.line, "Invalid assignment target!");
+   }
 
-    return expr;
-}
-
+   return expr;
+   }
+   */
 static Expression* expression(){
-    return assignment();
+    return orE();
 }
 
 static Statement statement(Compiler *compiler);
@@ -334,13 +335,23 @@ static Statement ifStatement(Compiler *compiler){
     consumeIndent(compiler->indentLevel);
 
     if(match(TOKEN_ELSE)){
-        consume(TOKEN_NEWLINE, "Expected newline after Else!");
-        s.ifStatement.elseBranch = blockStatement(compiler, BLOCK_ELSE);
-        consumeIndent(compiler->indentLevel);
+        if(match(TOKEN_IF)){
+            Block elseifBlock = {0, BLOCK_ELSE, NULL};
+            addToBlock(&elseifBlock, ifStatement(compiler));
+            s.ifStatement.elseBranch = elseifBlock;
+        }
+        else{
+            consume(TOKEN_NEWLINE, "Expected newline after Else!");
+            s.ifStatement.elseBranch = blockStatement(compiler, BLOCK_ELSE);
+            consumeIndent(compiler->indentLevel);
+            consume(TOKEN_ENDIF, "Expected EndIf after If!");
+            consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
+        }
     }
-    
-    consume(TOKEN_ENDIF, "Expected EndIf after If!");
-    consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
+    else{
+        consume(TOKEN_ENDIF, "Expected EndIf after If!");
+        consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
+    }
     debug("If statement parsed");
 
     return s;
@@ -373,29 +384,29 @@ static Statement whileStatement(Compiler* compiler){
 
 // Not used now
 /*static Statement doStatement(Compiler* compiler){
-    debug("Parsing do statement");
-    Statement s;
-    s.type = STATEMENT_DO;
-    consume(TOKEN_NEWLINE, "Expected newline after Do!");
-    if(getNextIndent() == compiler->indentLevel){
-        consumeIndent(compiler->indentLevel);
-        consume(TOKEN_BEGIN, "Expected Begin on the same indent level after Do!");
-        consume(TOKEN_NEWLINE, "Expected newline after Begin!");
-    }
-    s.conditionalStatement.statements = blockStatement(compiler, BLOCK_DO);
-    consumeIndent(compiler->indentLevel);
-    if(match(TOKEN_ENDDO)){
-        consume(TOKEN_NEWLINE, "Expected newline after EndDo!");
-        consumeIndent(compiler->indentLevel);
-    }
-    consume(TOKEN_WHILE, "Expected While after Do!");
-    consume(TOKEN_LEFT_PAREN, "Expected left paren before conditional!");
-    s.conditionalStatement.condition = expression();
-    consume(TOKEN_RIGHT_PAREN, "Expected right parent before conditional!");
-    consume(TOKEN_NEWLINE, "Expected newline after While!");
-    debug("Do statement parsed");
-    return s;
-}*/
+  debug("Parsing do statement");
+  Statement s;
+  s.type = STATEMENT_DO;
+  consume(TOKEN_NEWLINE, "Expected newline after Do!");
+  if(getNextIndent() == compiler->indentLevel){
+  consumeIndent(compiler->indentLevel);
+  consume(TOKEN_BEGIN, "Expected Begin on the same indent level after Do!");
+  consume(TOKEN_NEWLINE, "Expected newline after Begin!");
+  }
+  s.conditionalStatement.statements = blockStatement(compiler, BLOCK_DO);
+  consumeIndent(compiler->indentLevel);
+  if(match(TOKEN_ENDDO)){
+  consume(TOKEN_NEWLINE, "Expected newline after EndDo!");
+  consumeIndent(compiler->indentLevel);
+  }
+  consume(TOKEN_WHILE, "Expected While after Do!");
+  consume(TOKEN_LEFT_PAREN, "Expected left paren before conditional!");
+  s.conditionalStatement.condition = expression();
+  consume(TOKEN_RIGHT_PAREN, "Expected right parent before conditional!");
+  consume(TOKEN_NEWLINE, "Expected newline after While!");
+  debug("Do statement parsed");
+  return s;
+  }*/
 
 static Statement breakStatement(Compiler *compiler){
     debug("Parsing break statement");
@@ -432,13 +443,13 @@ static Statement printStatement(){
     debug("Parsing print statement");
     s.printStatement.argCount = 1;
     s.printStatement.expressions = expression();
-   // while(match(TOKEN_COMMA)){
-   //     
-   // }
-   // if(peek() == TOKEN_STRING)
-   //     s.printStatement.print = present();
-   // else
-   //     s.printStatement.print = consume(TOKEN_IDENTIFIER, "Expected string or identifer after Print!");
+    // while(match(TOKEN_COMMA)){
+    //     
+    // }
+    // if(peek() == TOKEN_STRING)
+    //     s.printStatement.print = present();
+    // else
+    //     s.printStatement.print = consume(TOKEN_IDENTIFIER, "Expected string or identifer after Print!");
     consume(TOKEN_NEWLINE, "Expected newline after Print!");
     debug("Print statement parsed");
     return s;
@@ -474,12 +485,14 @@ static Statement statement(Compiler *compiler){
         return setStatement();
     else if(match(TOKEN_WHILE))
         return whileStatement(compiler);
-   // else if(match(TOKEN_DO))
-   //     return doStatement(compiler);
+    // else if(match(TOKEN_DO))
+    //     return doStatement(compiler);
     else if(match(TOKEN_PRINT))
         return printStatement();
     else if(match(TOKEN_BREAK))
         return breakStatement(compiler);
+    else
+        line_error(present().line, "Bad statement!");
 }
 
 Block parse(TokenList *list){
