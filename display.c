@@ -32,6 +32,11 @@ void line_error(int line, const char* msg){
     hasError = 1;
 }
 
+void runtime_error(int line, const char* msg){
+    printf("\n" ANSI_COLOR_RED "[Runtime Error] [Line:%d] %s\n" ANSI_COLOR_RESET, line, msg);
+    exit(1);
+}
+
 void warning(const char* msg){
     printf("\n" ANSI_COLOR_YELLOW "[Warning] %s" ANSI_COLOR_RESET, msg);
 }

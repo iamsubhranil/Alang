@@ -7,6 +7,7 @@ void warning(const char* msg);
 void info(const char* msg);
 void debug(const char* msg);
 void line_error(int line, const char* msg);
+void runtime_error(int line, const char* msg);
 int hadError();
 
 #endif

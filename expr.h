@@ -28,6 +28,7 @@ typedef enum{
 
 typedef struct{
     LiteralType type;
+    int line;
     union{
         int lVal;
         double dVal;
@@ -42,7 +43,7 @@ typedef struct{
 } Logical;
 
 typedef struct{
-    Token name;
+    char* name;
 } Variable;
 
 typedef enum{

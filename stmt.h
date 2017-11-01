@@ -9,7 +9,7 @@ typedef enum{
     STATEMENT_WHILE,
     STATEMENT_BREAK,
     STATEMENT_PRINT,
-    STATEMENT_DO,
+//    STATEMENT_DO,
     STATEMENT_BEGIN,
     STATEMENT_END
 } StatementType;
@@ -36,29 +36,33 @@ typedef struct{
     Token pos;
 } Break;
 
-typedef struct{
+/*typedef struct{
     Expression* expression;
 } ExpressionStatement;
-
+*/
 // Function
 
 typedef struct{
+    int line;
     Expression* condition;
     Block thenBranch;
     Block elseBranch;
 } If;
 
 typedef struct{
+    int line;
     int argCount;
-    Expression* expressions;
+    Expression** expressions;
 } Print;
 
 typedef struct{
-    Token name;
+    int line;
+    char *name;
     Expression* initializer;
 } Set;
 
 typedef struct{
+    int line;
     Expression* condition;
     Block body;
 } While;
@@ -68,7 +72,7 @@ struct Statement{
     union{
         Block blockStatement;
         Break breakStatement;
-        ExpressionStatement expressionStatement;
+//        ExpressionStatement expressionStatement;
         If ifStatement;
         Print printStatement;
         Set setStatement;

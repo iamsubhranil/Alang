@@ -1,0 +1,10 @@
+Begin
+Print "Hello World!"
+Set i = 2
+Print i
+If(i > 2)
+    Print "i is greater than 2!"
+Else
+    Print "i is equal to 2!"
+EndIf
+End

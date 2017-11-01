@@ -1,6 +1,9 @@
 set(SOURCE_FILES    main.c
                     display.c
                     scanner.c
-                    parser.c)
+                    parser.c
+                    interpreter.c
+                    environment.c)
 
 add_executable(alconv   ${SOURCE_FILES})
+target_link_libraries(alconv m)

@@ -6,6 +6,7 @@
 #include "display.h"
 #include "stmt.h"
 #include "allocator.h"
+#include "interpreter.h"
 
 int main(int argc, char **argv){
     if(argc != 2)
@@ -33,6 +34,7 @@ int main(int argc, char **argv){
     if(hadError()){
         error("Error while parsing, exiting now..");
     }
+    interpret(all);
 
    // FILE* out = fopen("testout", "w");
    // traverse(all, out);

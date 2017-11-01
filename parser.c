@@ -48,6 +48,10 @@ static Token present(){
     return present;
 }
 
+static int presentLine(){
+    return head->value.line;
+}
+
 static int match(TokenType type){
     if(head->value.type == type){
         advance();
@@ -112,9 +116,20 @@ static Expression* newExpression(){
 
 static Expression* expression();
 
-static char* stringOf(Token t){
-    char* s = (char *)mallocate(sizeof(char) * t.length);
+static char* numericString(Token t){
+    char* s = (char *)mallocate(sizeof(char) * t.length + 1);
     strncpy(s, t.start, t.length);
+    s[t.length] = '\0';
+    return s;
+}
+
+static char* stringOf(Token t){
+    if(t.type == TOKEN_NUMBER || t.type == TOKEN_IDENTIFIER)
+        return numericString(t);
+//    printf("%s %d\n", t.start, t.length);
+    char* s = (char *)mallocate(sizeof(char) * t.length);
+    strncpy(s, t.start + 1, t.length - 2);
+    s[t.length - 1] = '\0';
     return s;
 }
 
@@ -129,31 +144,36 @@ static Expression* primary(){
     Expression* expr = newExpression();
     if(match(TOKEN_TRUE)){
         expr->type = EXPR_LITERAL;
+        expr->literal.line = presentLine();
         expr->literal.type = LIT_LOGICAL;
         expr->literal.lVal = 1;
     }
     else if(match(TOKEN_FALSE)){
         expr->type = EXPR_LITERAL;
+        expr->literal.line = presentLine();
         expr->literal.type = LIT_LOGICAL;
         expr->literal.lVal = 0;
     }
     else if(match(TOKEN_NULL)){
         expr->type = EXPR_LITERAL;
+        expr->literal.line = presentLine();
         expr->literal.type = LIT_NULL;
     }
     else if(peek() == TOKEN_NUMBER){
         expr->type = EXPR_LITERAL;
+        expr->literal.line = presentLine();
         expr->literal.type = LIT_NUMERIC;
         expr->literal.dVal = doubleOf(present());
     }
     else if(peek() == TOKEN_STRING){
         expr->type = EXPR_LITERAL;
+        expr->literal.line = presentLine();
         expr->literal.type = LIT_STRING;
         expr->literal.sVal = stringOf(present());
     }
     else if(peek() == TOKEN_IDENTIFIER){
         expr->type = EXPR_VARIABLE;
-        expr->variable.name = present();
+        expr->variable.name = stringOf(present());
     }
     else if(match(TOKEN_LEFT_PAREN)){
         //free(expr);
@@ -173,7 +193,7 @@ static Expression* tothepower(){
     while(peek() == TOKEN_CARET){
         Expression* multi = newExpression();
         multi->type = EXPR_BINARY;
-        multi->logical.op = present();
+        multi->binary.op = present();
         multi->binary.left = expr;
         multi->binary.right = primary();
         expr = multi;
@@ -186,7 +206,7 @@ static Expression* multiplication(){
     while(peek() == TOKEN_STAR || peek() == TOKEN_SLASH){
         Expression* multi = newExpression();
         multi->type = EXPR_BINARY;
-        multi->logical.op = present();
+        multi->binary.op = present();
         multi->binary.left = expr;
         multi->binary.right = tothepower();
         expr = multi;
@@ -200,7 +220,7 @@ static Expression* addition(){
             || peek() == TOKEN_PERCEN){
         Expression* multi = newExpression();
         multi->type = EXPR_BINARY;
-        multi->logical.op = present();
+        multi->binary.op = present();
         multi->binary.left = expr;
         multi->binary.right = multiplication();
         expr = multi;
@@ -213,10 +233,10 @@ static Expression* comparison(){
     while(peek() == TOKEN_GREATER || peek() == TOKEN_LESS
             || peek() == TOKEN_GREATER_EQUAL || peek() == TOKEN_LESS_EQUAL){
         Expression* multi = newExpression();
-        multi->type = EXPR_BINARY;
+        multi->type = EXPR_LOGICAL;
         multi->logical.op = present();
-        multi->binary.left = expr;
-        multi->binary.right = addition();
+        multi->logical.left = expr;
+        multi->logical.right = addition();
         expr = multi;
     }
     return expr;
@@ -226,10 +246,10 @@ static Expression* equality(){
     Expression* expr = comparison();
     while(peek() == TOKEN_EQUAL_EQUAL || peek() == TOKEN_BANG_EQUAL){
         Expression* multi = newExpression();
-        multi->type = EXPR_BINARY;
+        multi->type = EXPR_LOGICAL;
         multi->logical.op = present();
-        multi->binary.left = expr;
-        multi->binary.right = comparison();
+        multi->logical.left = expr;
+        multi->logical.right = comparison();
         expr = multi;
     }
     return expr;
@@ -317,6 +337,7 @@ static Statement ifStatement(Compiler *compiler){
     debug("Parsing if statement");
     Statement s;
     s.type = STATEMENT_IF;
+    s.ifStatement.line = presentLine();
     s.ifStatement.thenBranch.numStatements = 0;
     s.ifStatement.elseBranch.numStatements = 0;
 
@@ -364,6 +385,7 @@ static Statement whileStatement(Compiler* compiler){
     s.type = STATEMENT_WHILE;
 
     consume(TOKEN_LEFT_PAREN, "Expected left paren before conditional!");
+    s.whileStatement.line = presentLine();
     s.whileStatement.condition = expression();
     consume(TOKEN_RIGHT_PAREN, "Expected right paren after conditional!");
     consume(TOKEN_NEWLINE, "Expected newline after While!");
@@ -429,7 +451,9 @@ static Statement setStatement(){
     Statement s;
     s.type = STATEMENT_SET;
     debug("Parsing set statement");
-    s.setStatement.name = consume(TOKEN_IDENTIFIER, "Expected identifer after Set!");
+    s.setStatement.name = stringOf(head->value);
+    s.setStatement.line = presentLine();
+    consume(TOKEN_IDENTIFIER, "Expected identifer after Set!");
     consume(TOKEN_EQUAL, "Expected equals after identifer in Set!");
     s.setStatement.initializer = expression();
     consume(TOKEN_NEWLINE, "Expected newline after Set statement!");
@@ -441,11 +465,18 @@ static Statement printStatement(){
     Statement s;
     s.type = STATEMENT_PRINT;
     debug("Parsing print statement");
-    s.printStatement.argCount = 1;
-    s.printStatement.expressions = expression();
-    // while(match(TOKEN_COMMA)){
-    //     
-    // }
+
+    int count = 1;
+    Expression** exps = (Expression **)mallocate(sizeof(Expression *));
+    exps[0] = expression();
+    s.printStatement.line = presentLine();
+    while(match(TOKEN_COMMA)){
+         count++;
+         exps = (Expression **)reallocate(exps, sizeof(Expression *)*count);
+         exps[count - 1] = expression();
+    }
+    s.printStatement.argCount = count;
+    s.printStatement.expressions = exps;
     // if(peek() == TOKEN_STRING)
     //     s.printStatement.print = present();
     // else
