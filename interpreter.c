@@ -151,7 +151,7 @@ static Literal resolveExpression(Expression* expression){
 
 static void printString(const char *s){
     int i = 0, len = strlen(s);
-    printf("\nPrinting : %s", s);
+    //printf("\nPrinting : %s", s);
     while(i < len){
         if(s[i] == '\\' && i < (len - 1)){
             if(s[i+1] == 'n'){

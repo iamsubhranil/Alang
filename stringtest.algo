@@ -1,0 +1,5 @@
+Print "\nHello world!\n"
+Set i = "Welcome"
+Print i, " to ", "Alang!"
+Print "\ni contains a string, and we're gonna add 5 to it.\nThe result should be awesome ;)\n"
+Print "i+5 = ", i+5

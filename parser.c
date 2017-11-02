@@ -127,9 +127,12 @@ static char* stringOf(Token t){
     if(t.type == TOKEN_NUMBER || t.type == TOKEN_IDENTIFIER)
         return numericString(t);
     //    printf("%s %d\n", t.start, t.length);
-    char* s = (char *)mallocate(sizeof(char) * t.length);
-    strncpy(s, t.start + 1, t.length - 2);
-    s[t.length - 1] = '\0';
+    char* s = (char *)mallocate(sizeof(char) * (t.length-1));
+    int i;
+    for(i = 1;i < t.length-1;i++)
+        s[i-1] = t.start[i];
+    s[t.length - 2] = '\0';
+    // printf("\nGiven : %s of size %d \nReturing : [%s] of size %lu", t.start, t.length, s, strlen(s));
     return s;
 }
 
