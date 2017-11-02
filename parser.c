@@ -295,7 +295,7 @@ static Expression* andE(){
 
 static Expression* orE(){
     Expression* expr = andE();
-    while(peek() == TOKEN_AND){
+    while(peek() == TOKEN_OR){
         Expression* logic = newExpression();
         logic->type = EXPR_LOGICAL;
         logic->logical.op = present();

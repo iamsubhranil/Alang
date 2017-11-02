@@ -1,0 +1,18 @@
+Set i = 5 > 6
+Print "\ni contains ", i
+Print "\ni And True is : ", i And True
+Print "\ni Or True is : ", i Or True
+Print "\ni and False is : ", i And False
+Print "\ni or False is : ", i Or False
+If(True)
+    Print "\nIf was given a true condition!"
+EndIf
+If(False)
+    Print "\nIf you see this, book a space shuttle and go to Mars. Earth isn't for us anymore :("
+EndIf
+If(True And False)
+    Print "\nOh crap! True and False is False!"
+EndIf
+If(True Or False)
+    Print "\nYup, True or False is True!"
+EndIf

@@ -176,7 +176,7 @@ static void executePrint(Print p){
                 printf("null");
                 break;
             case LIT_LOGICAL:
-                printf("%s", result.lVal == 0 ? "false" : "true");
+                printf("%s", result.lVal == 0 ? "False" : "True");
                 break;
             case LIT_DOUBLE:
                 printf("%g", result.dVal);

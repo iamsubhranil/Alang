@@ -19,8 +19,8 @@ static Keyword keywords[] = {
     {"True",    4, TOKEN_TRUE},
     {"False",   5, TOKEN_FALSE},
     {"Null",    4, TOKEN_NULL},
-    {"AND",     3, TOKEN_AND},
-    {"OR",      2, TOKEN_OR},
+    {"And",     3, TOKEN_AND},
+    {"Or",      2, TOKEN_OR},
 
     {"Set",     3, TOKEN_SET},
 
