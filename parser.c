@@ -7,7 +7,7 @@
 #include "parser.h"
 #include "expr.h"
 #include "stmt.h"
-#include "allocator.c"
+#include "allocator.h"
 
 static int currentIndentLevel = 0, inIf = 0, inWhile = 0, inDo = 0, inFor = 0;
 static TokenList *head = NULL;

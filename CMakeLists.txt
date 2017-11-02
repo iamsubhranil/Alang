@@ -3,7 +3,8 @@ set(SOURCE_FILES    main.c
                     scanner.c
                     parser.c
                     interpreter.c
-                    environment.c)
+                    environment.c
+                    allocator.c)
 
 add_executable(alconv   ${SOURCE_FILES})
 target_link_libraries(alconv m)

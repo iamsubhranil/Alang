@@ -151,7 +151,8 @@ static Token identifier() {
 
     // See if the identifier is a reserved word.
     size_t length = scanner.current - scanner.tokenStart;
-    for (Keyword* keyword = keywords; keyword->name != NULL; keyword++) {
+    Keyword *keyword;
+    for (keyword = keywords; keyword->name != NULL; keyword++) {
         if (length == keyword->length &&
                 memcmp(scanner.tokenStart, keyword->name, length) == 0) {
             type = keyword->type;
