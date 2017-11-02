@@ -16,7 +16,7 @@ int main(int argc, char **argv){
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);  //same as rewind(f);
 
-    char *string = (char *)malloc(fsize + 1);
+    char *string = (char *)mallocate(fsize + 1);
     fread(string, fsize, 1, f);
     fclose(f);
 
@@ -41,8 +41,8 @@ int main(int argc, char **argv){
    // fclose(out);
    // fflush(stdin);
 
-    freeList(tokens);
-    mfree();
+    //freeList(tokens);
+    memfree_all();
 
     printf("\n");
     return 0;

@@ -7,6 +7,7 @@
 #include "expr.h"
 #include "display.h"
 #include "environment.h"
+#include "allocator.h"
 
 #define EPSILON 0.000000000000000001
 
@@ -245,7 +246,7 @@ static void executeBreak(Break b){
 
 static void executeEnd(){
     //debug("Executing end statement");
-    printf("\n");
+    memfree_all();
     exit(0);
 }
 

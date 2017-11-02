@@ -5,6 +5,7 @@
 
 void* mallocate(size_t size);
 void* reallocate(void *oldmem, size_t size);
-void mfree();
+void memfree(void *mem);
+void memfree_all();
 
 #endif

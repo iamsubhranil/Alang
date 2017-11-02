@@ -4,6 +4,7 @@
 
 #include "scanner.h"
 #include "display.h"
+#include "allocator.h"
 
 typedef struct {
     const char* name;
@@ -265,7 +266,7 @@ static Token scanToken() {
 }
 
 static TokenList *newList(Token t){ 
-    TokenList *now = (TokenList *)malloc(sizeof(TokenList));
+    TokenList *now = (TokenList *)mallocate(sizeof(TokenList));
     now->value = t;
     now->next = NULL;
     return now;

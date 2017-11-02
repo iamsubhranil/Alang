@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "display.h"
+#include "allocator.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -19,11 +20,13 @@ int hadError(){
 
 void fatal(const char* msg){
     printf("\n" ANSI_COLOR_RED "[Fatal] %s" ANSI_COLOR_RESET, msg);
+    memfree_all();
     exit(1);
 }
 
 void error(const char* msg){
     printf("\n" ANSI_COLOR_RED "[Error] %s" ANSI_COLOR_RESET, msg);
+    memfree_all();
     exit(1);
 }
 
@@ -34,6 +37,7 @@ void line_error(int line, const char* msg){
 
 void runtime_error(int line, const char* msg){
     printf("\n" ANSI_COLOR_RED "[Runtime Error] [Line:%d] %s\n" ANSI_COLOR_RESET, line, msg);
+    memfree_all();
     exit(1);
 }
 

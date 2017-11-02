@@ -201,7 +201,7 @@ static Expression* primary(){
         expr->variable.name = stringOf(present());
     }
     else if(match(TOKEN_LEFT_PAREN)){
-        //free(expr);
+        memfree(expr);
         expr = expression();
         consume(TOKEN_RIGHT_PAREN, "Expected '(' after expression.");
     }
@@ -340,7 +340,7 @@ static Block newBlock(){
 static void addToBlock(Block* block, Statement statement){
     block->numStatements += 1;
     block->statements = (Statement *)reallocate(block->statements, sizeof(Statement) * block->numStatements);
-    (block->statements)[block->numStatements-1] = statement;
+    block->statements[block->numStatements-1] = statement;
 }
 
 static Block blockStatement(Compiler *compiler, BlockType name){
@@ -353,7 +353,7 @@ static Block blockStatement(Compiler *compiler, BlockType name){
         debug("Found a block statement");
         addToBlock(&b, statement(blockCompiler));
     }
-    free(blockCompiler);
+    memfree(blockCompiler);
     debug("Block statement parsed");
     return b;
 }
@@ -570,6 +570,6 @@ Block parse(TokenList *list){
     Compiler* root = initCompiler(NULL, 0, BLOCK_MAIN);
     while(!match(TOKEN_EOF))
         addToBlock(&mainBlock, statement(root));
-
+    memfree(root);
     return mainBlock;
 }
