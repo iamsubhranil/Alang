@@ -14,37 +14,70 @@ static Literal resolveExpression(Expression* expression);
 
 static Literal nullLiteral = {LIT_NULL, 0, {0}};
 
+static int isNumeric(Literal l){
+    return l.type == LIT_INT || l.type == LIT_DOUBLE;
+}
+
 static Literal resolveBinary(Binary expr){
     Literal left = resolveExpression(expr.left);
     Literal right = resolveExpression(expr.right);
-    if(left.type != LIT_NUMERIC || right.type != LIT_NUMERIC){
+    if(!isNumeric(left) || !isNumeric(right)){
         runtime_error(left.line, "Binary operation can only be done on numerical values!");
         return nullLiteral;
     }
     Literal ret = {LIT_NULL, 0, {0}};
     ret.line = left.line;
-    ret.type = LIT_NUMERIC;
-    switch(expr.op.type){
-        case TOKEN_PLUS:
-            ret.dVal = left.dVal + right.dVal;
-            break;
-        case TOKEN_MINUS:
-            ret.dVal = left.dVal - right.dVal;
-            break;
-        case TOKEN_STAR:
-            ret.dVal = left.dVal * right.dVal;
-            break;
-        case TOKEN_SLASH:
-            ret.dVal = left.dVal / right.dVal;
-            break;
-        case TOKEN_CARET:
-            ret.dVal = pow(left.dVal, right.dVal);
-            break;
-        case TOKEN_PERCEN:
-            ret.dVal = (int)left.dVal % (int)right.dVal;
-            break;
-        default:
-            break;
+    if(left.type == LIT_INT && right.type == LIT_INT){
+        ret.type = LIT_INT;
+        switch(expr.op.type){
+            case TOKEN_PLUS:
+                ret.iVal = left.iVal + right.iVal;
+                break;
+            case TOKEN_MINUS:
+                ret.iVal = left.iVal - right.iVal;
+                break;
+            case TOKEN_STAR:
+                ret.iVal = left.iVal * right.iVal;
+                break;
+            case TOKEN_SLASH:
+                ret.iVal = left.iVal / right.iVal;
+                break;
+            case TOKEN_CARET:
+                ret.iVal = pow(left.iVal, right.iVal);
+                break;
+            case TOKEN_PERCEN:
+                ret.iVal = left.iVal % right.iVal;
+                break;
+            default:
+                break;
+        }
+    }
+    else{
+        ret.type = LIT_DOUBLE;
+        double a = left.type == LIT_INT?left.iVal:left.dVal;
+        double b = right.type == LIT_INT?right.iVal:right.dVal;
+        switch(expr.op.type){
+            case TOKEN_PLUS:
+                ret.dVal = a + b;
+                break;
+            case TOKEN_MINUS:
+                ret.dVal = a - b;
+                break;
+            case TOKEN_STAR:
+                ret.dVal = a * b;
+                break;
+            case TOKEN_SLASH:
+                ret.dVal = a / b;
+                break;
+            case TOKEN_CARET:
+                ret.dVal = pow(a, b);
+                break;
+            case TOKEN_PERCEN:
+                runtime_error(left.line, "\% can only be applied between two integers!");
+                break;
+            default:
+                break;
+        }
     }
     return ret;
 }
@@ -52,37 +85,43 @@ static Literal resolveBinary(Binary expr){
 static Literal resolveLogical(Logical expr){
     Literal left = resolveExpression(expr.left);
     Literal right = resolveExpression(expr.right);
-    if((left.type != LIT_NUMERIC && left.type != LIT_LOGICAL) 
-            || (right.type != LIT_NUMERIC && right.type != LIT_LOGICAL)){
+    if((!isNumeric(left) && left.type != LIT_LOGICAL) 
+            || (!isNumeric(right) && right.type != LIT_LOGICAL)){
         runtime_error(left.line, "Logical expression must be performed on numeric values!");
         return nullLiteral;
     }
     Literal ret;
     ret.type = LIT_LOGICAL;
     ret.line = left.line;
+        double a = left.type == LIT_INT?left.iVal:left.dVal;
+        double b = right.type == LIT_INT?right.iVal:right.dVal;
     switch(expr.op.type){
         case TOKEN_GREATER:
-            ret.lVal = left.dVal > right.dVal;
+            ret.lVal = a > b;
             break;
         case TOKEN_GREATER_EQUAL:
-            ret.lVal = left.dVal >= right.dVal;
+            ret.lVal = a >= b;
             break;
         case TOKEN_LESS:
-            ret.lVal = left.dVal < right.dVal;
+            ret.lVal = a < b;
             break;
         case TOKEN_LESS_EQUAL:
-            ret.lVal = left.dVal <= right.dVal;
+            ret.lVal = a <= b;
             break;
         case TOKEN_EQUAL_EQUAL:
-            ret.lVal = fabs(left.dVal - right.dVal) <= EPSILON;
+            ret.lVal = fabs(a - b) <= EPSILON;
             break;
         case TOKEN_BANG_EQUAL:
-            ret.lVal = fabs(left.dVal - right.dVal) > EPSILON;
+            ret.lVal = fabs(a - b) > EPSILON;
             break;
         case TOKEN_AND:
+            if(left.type != LIT_LOGICAL || right.type != LIT_LOGICAL)
+                runtime_error(left.line, "'And' can only be applied over logical expressions!");
             ret.lVal = left.lVal & right.lVal;
             break;
         case TOKEN_OR:
+            if(left.type != LIT_LOGICAL || right.type != LIT_LOGICAL)
+                runtime_error(left.line, "'Or' can only be applied over logical expressions!");
             ret.lVal = left.lVal | right.lVal;
             break;
         default:
@@ -112,6 +151,7 @@ static Literal resolveExpression(Expression* expression){
 
 static void printString(const char *s){
     int i = 0, len = strlen(s);
+    printf("\nPrinting : %s", s);
     while(i < len){
         if(s[i] == '\\' && i < (len - 1)){
             if(s[i+1] == 'n'){
@@ -138,8 +178,11 @@ static void executePrint(Print p){
             case LIT_LOGICAL:
                 printf("%s", result.lVal == 0 ? "false" : "true");
                 break;
-            case LIT_NUMERIC:
+            case LIT_DOUBLE:
                 printf("%g", result.dVal);
+                break;
+            case LIT_INT:
+                printf("%ld", result.iVal);
                 break;
             case LIT_STRING:
                 printString(result.sVal);

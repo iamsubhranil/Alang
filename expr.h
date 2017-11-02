@@ -20,7 +20,8 @@ typedef struct{
 // Call
 
 typedef enum{
-    LIT_NUMERIC,
+    LIT_DOUBLE,
+    LIT_INT,
     LIT_STRING,
     LIT_LOGICAL,
     LIT_NULL
@@ -31,6 +32,7 @@ typedef struct{
     int line;
     union{
         int lVal;
+        long iVal;
         double dVal;
         char* sVal;
     };

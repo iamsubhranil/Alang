@@ -133,11 +133,26 @@ static char* stringOf(Token t){
     return s;
 }
 
-static double doubleOf(Token t){
-    char *s = stringOf(t);
+static int isDouble(const char *string){
+    int i = 0;
+    while(string[i] != '\0'){
+        if(string[i] == '.')
+            return 1;
+        i++;
+    }
+    return 0;
+}
+
+static double doubleOf(const char *s){
     double d;
     sscanf(s, "%lf", &d);
     return d;
+}
+
+static long longOf(const char *s){
+    long l;
+    sscanf(s, "%ld", &l);
+    return l;
 }
 
 static Expression* primary(){
@@ -162,8 +177,15 @@ static Expression* primary(){
     else if(peek() == TOKEN_NUMBER){
         expr->type = EXPR_LITERAL;
         expr->literal.line = presentLine();
-        expr->literal.type = LIT_NUMERIC;
-        expr->literal.dVal = doubleOf(present());
+        char *val = stringOf(present());
+        if(isDouble(val)){
+            expr->literal.type = LIT_DOUBLE;
+            expr->literal.dVal = doubleOf(val);
+        }
+        else{
+            expr->literal.type = LIT_INT;
+            expr->literal.iVal = longOf(val);
+        }
     }
     else if(peek() == TOKEN_STRING){
         expr->type = EXPR_LITERAL;
