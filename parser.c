@@ -126,7 +126,7 @@ static char* numericString(Token t){
 static char* stringOf(Token t){
     if(t.type == TOKEN_NUMBER || t.type == TOKEN_IDENTIFIER)
         return numericString(t);
-//    printf("%s %d\n", t.start, t.length);
+    //    printf("%s %d\n", t.start, t.length);
     char* s = (char *)mallocate(sizeof(char) * t.length);
     strncpy(s, t.start + 1, t.length - 2);
     s[t.length - 1] = '\0';
@@ -451,11 +451,23 @@ static Statement setStatement(){
     Statement s;
     s.type = STATEMENT_SET;
     debug("Parsing set statement");
-    s.setStatement.name = stringOf(head->value);
+    char *identifer = stringOf(head->value);
     s.setStatement.line = presentLine();
     consume(TOKEN_IDENTIFIER, "Expected identifer after Set!");
     consume(TOKEN_EQUAL, "Expected equals after identifer in Set!");
-    s.setStatement.initializer = expression();
+    s.setStatement.count = 1;
+    s.setStatement.initializers = (Initializer *)mallocate(sizeof(Initializer));
+    s.setStatement.initializers[0].initializerExpression = expression();
+    s.setStatement.initializers[0].identifer = identifer;
+    while(match(TOKEN_COMMA)){
+        identifer = stringOf(head->value);
+        consume(TOKEN_IDENTIFIER, "Expected identifier!");
+        consume(TOKEN_EQUAL, "Expected equals after identifer in Set!");
+        s.setStatement.count++;
+        s.setStatement.initializers = (Initializer *)reallocate(s.setStatement.initializers, sizeof(Initializer) * s.setStatement.count);
+        s.setStatement.initializers[s.setStatement.count - 1].initializerExpression = expression();
+        s.setStatement.initializers[s.setStatement.count - 1].identifer = identifer;
+    }
     consume(TOKEN_NEWLINE, "Expected newline after Set statement!");
     debug("Set statement parsed");
     return s;
@@ -471,9 +483,9 @@ static Statement printStatement(){
     exps[0] = expression();
     s.printStatement.line = presentLine();
     while(match(TOKEN_COMMA)){
-         count++;
-         exps = (Expression **)reallocate(exps, sizeof(Expression *)*count);
-         exps[count - 1] = expression();
+        count++;
+        exps = (Expression **)reallocate(exps, sizeof(Expression *)*count);
+        exps[count - 1] = expression();
     }
     s.printStatement.argCount = count;
     s.printStatement.expressions = exps;

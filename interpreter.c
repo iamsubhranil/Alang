@@ -188,7 +188,11 @@ static void executeWhile(While w){
 
 static void executeSet(Set s){
     //debug("Executing set statement");
-    env_put(s.name, resolveExpression(s.initializer));
+    int i = 0;
+    while(i < s.count){
+        env_put(s.initializers[i].identifer, resolveExpression(s.initializers[i].initializerExpression));
+        i++;
+    }
 }
 
 static void executeBreak(Break b){

@@ -1,6 +1,5 @@
 Begin
-Set N = 24
-Set i = N/2
+Set N = 24, i = N/2
 While(i >= 2)
 Begin
     If(N % i == 0)

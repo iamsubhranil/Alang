@@ -56,9 +56,14 @@ typedef struct{
 } Print;
 
 typedef struct{
+    char *identifer;
+    Expression *initializerExpression;
+} Initializer;
+
+typedef struct{
     int line;
-    char *name;
-    Expression* initializer;
+    int count;
+    Initializer *initializers;
 } Set;
 
 typedef struct{
