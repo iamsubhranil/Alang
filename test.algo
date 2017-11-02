@@ -1,5 +1,5 @@
 Begin
-Set N = 24, i = N/2
+Set N = 3292, i = N/2, count = 0
 While(i >= 2)
 Begin
     If(N % i == 0)
@@ -18,7 +18,11 @@ Begin
         Then
             Print i, " is a prime factor of ", N, "\n"
         EndIf
+        Set count = count + 1
     EndIf
     Set i = i - 1
 EndWhile
+If(count == 0)
+    Print N, " is a prime number!\n"
+EndIf
 End
