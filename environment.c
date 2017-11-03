@@ -74,8 +74,20 @@ Literal env_get(char *identifer){
 }
 
 void env_arr_new(char *identifer, long numElements){
-    if(env_match(identifer) != NULL)
+    Environment *match = env_match(identifer);
+    if(match != NULL && match->type != ARRAY)
         error("Variable is already defined!");
+    else if(match != NULL){
+        long bak = match->arr.count;
+        match->arr.count = numElements;
+        match->arr.values = (Literal *)reallocate(match->arr.values, sizeof(Literal)*numElements);
+        while(bak < numElements){
+            match->arr.values[bak].type = LIT_INT;
+            match->arr.values[bak].iVal = 0;
+            bak++;
+        }
+        return;
+    }
     Environment *env = (Environment *)mallocate(sizeof(Environment));
     env->name = identifer;
     env->type = ARRAY;

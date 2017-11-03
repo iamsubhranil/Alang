@@ -25,5 +25,7 @@ EndWhile
 Print "\nInitializing a[20] and b[32]"
 Array a[20], b[32]
 Print "\na[20] = ",a[20]," b[32] = ",b[32]
-Print "\nTrying to access ar[9] (it should crash ;) )"
-Set ar[9] = 2
+Print "\nResizing a to 10"
+Array a[10]
+Print "\nTrying to access a[20] (it should crash ;) )"
+Set a[20] = 2
