@@ -7,5 +7,5 @@ set(SOURCE_FILES    main.c
                     allocator.c
                     io.c)
 
-add_executable(alconv   ${SOURCE_FILES})
-target_link_libraries(alconv m)
+add_executable(alang   ${SOURCE_FILES})
+target_link_libraries(alang m)
