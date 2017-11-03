@@ -29,22 +29,23 @@ Alang also supports arrays, and an array *can* contain heterogeneous elements. A
 Each alang statement must terminate with a newline. To specify a block of statements as a single unit, tabs must be used. Each tab must be either of a hardcoded character('\t'), or *4 spaces*. Use anything more or less than that and bad things will happen. To specify a block of statements, indent them in the same level.
 
 Example:
-Statement0
-Statement1
-    //Start of a block
-    Statement2
-    Statement3
-        //Start of a nested block
-        Statement4
-        Statement5
-        .
-        .
-        .
-        StatementM
-        //End of a nested block
-    StatementN
-    //End of outer block
-StatementP
+
+    Statement0
+    Statement1
+        //Start of a block
+        Statement2
+        Statement3
+            //Start of a nested block
+            Statement4
+            Statement5
+            .
+            .
+            .
+            StatementM
+            //End of a nested block
+        StatementN
+        //End of outer block
+    StatementP
 
 #### Syntax
 
