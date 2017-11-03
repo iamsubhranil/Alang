@@ -22,7 +22,14 @@ static int isNumeric(Literal l){
 static Literal resolveBinary(Binary expr){
     Literal left = resolveExpression(expr.left);
     Literal right = resolveExpression(expr.right);
-    if(!isNumeric(left) || !isNumeric(right)){
+    if(left.type == LIT_STRING && right.type == LIT_STRING && expr.op.type == TOKEN_PLUS){
+        Literal ret = {LIT_STRING, left.line, {0}};
+        ret.sVal = (char *)mallocate(sizeof(char) * (strlen(left.sVal) + strlen(right.sVal) + 1));
+        strncpy(ret.sVal, left.sVal, strlen(left.sVal));
+        strcat(ret.sVal, right.sVal);
+        return ret;
+    }
+    else if (!isNumeric(left) || !isNumeric(right)){
         runtime_error(left.line, "Binary operation can only be done on numerical values!");
         return nullLiteral;
     }
@@ -86,7 +93,35 @@ static Literal resolveBinary(Binary expr){
 static Literal resolveLogical(Logical expr){
     Literal left = resolveExpression(expr.left);
     Literal right = resolveExpression(expr.right);
-    if((!isNumeric(left) && left.type != LIT_LOGICAL) 
+    if(left.type == LIT_STRING && right.type == LIT_STRING){
+        Literal ret = {LIT_LOGICAL, 0, {0}};
+        ret.line = left.line;
+        switch(expr.op.type){
+            case TOKEN_GREATER:
+                ret.lVal = strlen(left.sVal) > strlen(right.sVal);
+                break;
+            case TOKEN_GREATER_EQUAL:
+                ret.lVal = strlen(left.sVal) >= strlen(right.sVal);
+                break;
+            case TOKEN_LESS:
+                ret.lVal = strlen(left.sVal) < strlen(right.sVal);
+                break;
+            case TOKEN_LESS_EQUAL:
+                ret.lVal = strlen(left.sVal) <= strlen(right.sVal);
+                break;
+            case TOKEN_EQUAL_EQUAL:
+                ret.lVal = strcmp(left.sVal, right.sVal) == 0?1:0;
+                break;
+            case TOKEN_BANG_EQUAL:
+                ret.lVal = strcmp(left.sVal, right.sVal) == 0?0:1;
+                break;
+            default:
+                runtime_error(left.line, "Bad logical operator between string operands!");
+                break;
+        }
+        return ret;
+    }
+    else if((!isNumeric(left) && left.type != LIT_LOGICAL) 
             || (!isNumeric(right) && right.type != LIT_LOGICAL)){
         runtime_error(left.line, "Logical expression must be performed on numeric values!");
         return nullLiteral;
