@@ -103,3 +103,7 @@ An Alang program is a collection of statements, each of which starts with one of
 ```
     End
 ```
+
+#### Examples
+
+Examples can be found in `algos` folder.
