@@ -204,6 +204,10 @@ static void printString(const char *s){
                 putchar('\n');
                 i++;
             }
+            else if(s[i+1] == 't'){
+                putchar('\t');
+                i++;
+            }
             else
                 putchar('\\');
         }

@@ -13,9 +13,9 @@ While(loop)
     Set e = b
     While(d > 0)
         If(d % 2 == 0)
-            Print "\n\n", d, "    ",e," x(struck of)"
+            Print "\n\n", d, "\t",e," x(struck of)"
         Else
-            Print "\n\n", d, "    ",e
+            Print "\n\n", d, "\t",e
             Set n[i] = e
             Set i = i + 1
         EndIf
