@@ -22,9 +22,12 @@ static Keyword keywords[] = {
     {"Null",    4, TOKEN_NULL},
     {"And",     3, TOKEN_AND},
     {"Or",      2, TOKEN_OR},
+    {"Int",     3, TOKEN_INT},
+    {"Float",   5, TOKEN_FLOAT},
 
     {"Set",     3, TOKEN_SET},
     {"Array",   5, TOKEN_ARRAY},
+    {"Input",   5, TOKEN_INPUT},
 
     {"If",      2, TOKEN_IF},
     {"Then",    4, TOKEN_THEN},
@@ -215,6 +218,7 @@ static Token scanToken() {
         case '[': return makeToken(TOKEN_LEFT_SQUARE);
         case ']': return makeToken(TOKEN_RIGHT_SQUARE);
         case ';': return makeToken(TOKEN_SEMICOLON);
+        case ':': return makeToken(TOKEN_COLON);
         case ',': return makeToken(TOKEN_COMMA);
         case '.': return makeToken(TOKEN_DOT);
         case '-': return makeToken(TOKEN_MINUS);

@@ -8,6 +8,7 @@
 #include "display.h"
 #include "environment.h"
 #include "allocator.h"
+#include "io.h"
 
 #define EPSILON 0.000000000000000001
 
@@ -306,6 +307,34 @@ static void executeArray(ArrayInit ai){
     }
 }
 
+static void executeInput(InputStatement is){
+    int i = 0;
+    while(i < is.count){
+        Input in = is.inputs[i];
+        switch(in.type){
+            case INPUT_PROMPT:
+                printString(in.prompt);
+                break;
+            case INPUT_IDENTIFER:
+                {
+                    char *ide = in.identifer;
+                    switch(in.datatype){
+                        case INPUT_ANY:
+                            env_put(ide, getString());
+                            break;
+                        case INPUT_FLOAT:
+                            env_put(ide, getFloat());
+                            break;
+                        case INPUT_INT:
+                            env_put(ide, getInt());
+                            break;
+                    }
+                }
+        }
+        i++;
+    }
+}
+
 static void executeBreak(Break b){
     //debug("Executing break statement");
     warning("Break is a no-op!\n");
@@ -339,6 +368,8 @@ static void executeStatement(Statement s){
         case STATEMENT_ARRAY:
             executeArray(s.arrayStatement);
             break;
+        case STATEMENT_INPUT:
+            return executeInput(s.inputStatement);
         case STATEMENT_BREAK:
             executeBreak(s.breakStatement);
             break;

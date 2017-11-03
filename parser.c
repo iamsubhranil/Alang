@@ -521,6 +521,43 @@ static Statement arrayStatement(){
     return s;
 }
 
+static Statement inputStatement(){
+    Statement s;
+    s.type = STATEMENT_INPUT;
+    debug("Parsing input statement");
+    s.inputStatement.line = presentLine();
+    s.inputStatement.count = 0;
+    s.inputStatement.inputs = 0;
+    do{
+        s.inputStatement.count++;
+        s.inputStatement.inputs = (Input *)reallocate(s.inputStatement.inputs, sizeof(Input) * s.inputStatement.count);
+        Input i;
+        if(peek() == TOKEN_STRING){
+            i.type = INPUT_PROMPT;
+            i.prompt = stringOf(present());
+        }
+        else if(peek() == TOKEN_IDENTIFIER){
+            i.type = INPUT_IDENTIFER;
+            i.identifer = stringOf(present());
+            i.datatype = INPUT_ANY;
+            if(match(TOKEN_COLON)){
+                if(match(TOKEN_INT))
+                    i.datatype = INPUT_INT;
+                else if(match(TOKEN_FLOAT))
+                    i.datatype = INPUT_FLOAT;
+                else
+                    line_error(s.inputStatement.line, "Bad input format specifier!");
+            }
+        }
+        else
+            line_error(s.inputStatement.line, "Bad input statement!");
+        s.inputStatement.inputs[s.inputStatement.count - 1] = i;
+    } while(match(TOKEN_COMMA));
+
+    consume(TOKEN_NEWLINE, "Expected newline after Input!");
+    return s;
+}
+
 static Statement printStatement(){
     Statement s;
     s.type = STATEMENT_PRINT;
@@ -576,6 +613,8 @@ static Statement statement(Compiler *compiler){
         return setStatement();
     else if(match(TOKEN_ARRAY))
         return arrayStatement();
+    else if(match(TOKEN_INPUT))
+        return inputStatement();
     else if(match(TOKEN_WHILE))
         return whileStatement(compiler);
     // else if(match(TOKEN_DO))

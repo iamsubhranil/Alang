@@ -25,7 +25,7 @@ int main(int argc, char **argv){
     initScanner(string);
 
     TokenList *tokens = scanTokens();
-    printList(tokens);
+//    printList(tokens);
     if(hadError()){
         error("Error in file, exiting now..");
     }

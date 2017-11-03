@@ -1,5 +1,10 @@
 Begin
-Set N = 3292, i = N/2, count = 0
+Input "Give an integer to search prime factors for : ", N:Int
+If(N < 1)
+    Print "[Error] Input must be >= 2"
+    End
+EndIf
+Set i = N/2, count = 0
 While(i >= 2)
 Begin
     If(N % i == 0)

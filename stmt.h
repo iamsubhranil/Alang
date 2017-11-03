@@ -6,6 +6,7 @@
 typedef enum{
     STATEMENT_SET,
     STATEMENT_ARRAY,
+    STATEMENT_INPUT,
     STATEMENT_IF,
     STATEMENT_WHILE,
     STATEMENT_BREAK,
@@ -79,6 +80,34 @@ typedef struct{
     Expression** initializers;
 } ArrayInit;
 
+typedef enum{
+    INPUT_ANY,
+    INPUT_INT,
+    INPUT_FLOAT
+} InputDataType;
+
+typedef enum{
+    INPUT_PROMPT,
+    INPUT_IDENTIFER
+} InputType;
+
+typedef struct{ 
+    InputType type;
+    union{
+        char *prompt;
+        struct{
+            InputDataType datatype;
+            char *identifer;
+        };
+    };
+} Input;
+
+typedef struct{
+    int line;
+    int count;
+    Input *inputs;
+} InputStatement;
+
 struct Statement{
     StatementType type;
     union{
@@ -89,6 +118,7 @@ struct Statement{
         Print printStatement;
         Set setStatement;
         ArrayInit arrayStatement;
+        InputStatement inputStatement;
         While whileStatement;
     };
 };

@@ -18,6 +18,7 @@ typedef enum {
   TOKEN_BANG_EQUAL,
   TOKEN_COMMA,
   TOKEN_DOT,
+  TOKEN_COLON,
 
   TOKEN_EQUAL,
   TOKEN_EQUAL_EQUAL,
@@ -45,12 +46,15 @@ typedef enum {
   TOKEN_NULL,
   TOKEN_AND,
   TOKEN_OR,
+  TOKEN_INT,
+  TOKEN_FLOAT,
 
   TOKEN_BEGIN,
   TOKEN_END,
 
   TOKEN_SET,
   TOKEN_ARRAY,
+  TOKEN_INPUT,
 
   TOKEN_IF,
   TOKEN_THEN,
@@ -85,6 +89,8 @@ static const char* tokenNames[] = {
   "TOKEN_BANG_EQUAL",
   "TOKEN_COMMA",
   "TOKEN_DOT",
+  "TOKEN_COLON",
+
   "TOKEN_EQUAL",
   "TOKEN_EQUAL_EQUAL",
   "TOKEN_GREATER",
@@ -110,12 +116,15 @@ static const char* tokenNames[] = {
   "TOKEN_NULL",
   "TOKEN_AND",
   "TOKEN_OR",
+  "TOKEN_INT",
+  "TOKEN_FLOAT",
 
   "TOKEN_BEGIN",
   "TOKEN_END",
 
   "TOKEN_SET",
   "TOKEN_ARRAY",
+  "TOKEN_INPUT",
 
   "TOKEN_IF",
   "TOKEN_THEN",
