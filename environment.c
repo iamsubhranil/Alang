@@ -74,6 +74,8 @@ Literal env_get(char *identifer){
 }
 
 void env_arr_new(char *identifer, long numElements){
+    if(env_match(identifer) != NULL)
+        error("Variable is already defined!");
     Environment *env = (Environment *)mallocate(sizeof(Environment));
     env->name = identifer;
     env->type = ARRAY;
