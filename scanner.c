@@ -125,27 +125,6 @@ static Token errorToken(const char* message) {
     return token;
 }
 
-static void skipWhitespace() {
-    for (;;) {
-        char c = peek();
-        switch (c) {
-            case '/':
-                if (peekNext() == '/') {
-                    // A comment goes until the end of the line.
-                    while (peek() != '\n' && !isAtEnd()) advance();
-                } else{ //if(peekNext() == '*'){
-                    // A multiline comment goes until */
-                    //while (!isAtEnd() && !(peek() == '*' && peekNext() == '/')) advance();
-                    return;
-                }
-                break;
-
-            default:
-                return;
-        }
-    }
-}
-
 static Token identifier() {
     while (isAlphaNumeric(peek())) advance();
 
@@ -194,7 +173,6 @@ static Token string() {
 }
 
 static Token scanToken() {
-    skipWhitespace();
 
     // The next token starts with the current character.
     scanner.tokenStart = scanner.current;
@@ -241,7 +219,28 @@ static Token scanToken() {
         case '.': return makeToken(TOKEN_DOT);
         case '-': return makeToken(TOKEN_MINUS);
         case '+': return makeToken(TOKEN_PLUS);
-        case '/': return makeToken(TOKEN_SLASH);
+        case '/': 
+                  if(peek() == '/'){
+                      while (peek() != '\n' && !isAtEnd()) advance();
+                      advance(); // \n
+                      scanner.line++;
+                      return scanToken();
+                  }
+                  else if(peek() == '*'){
+                      while(!(peek() == '*' && peekNext() == '/') && !isAtEnd()){
+                          if(peek() == '\n')
+                              scanner.line++;
+                          advance();
+                      }
+                      if(!isAtEnd()){
+                            advance(); // *
+                            advance(); // /
+                            advance(); // \n
+                            scanner.line++;
+                      }
+                    return scanToken();
+                  }
+                  return makeToken(TOKEN_SLASH);
         case '*': return makeToken(TOKEN_STAR);
         case '%': return makeToken(TOKEN_PERCEN);
         case '^': return makeToken(TOKEN_CARET);
