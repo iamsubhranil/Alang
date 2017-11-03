@@ -5,6 +5,7 @@
 
 typedef enum{
     STATEMENT_SET,
+    STATEMENT_ARRAY,
     STATEMENT_IF,
     STATEMENT_WHILE,
     STATEMENT_BREAK,
@@ -56,7 +57,7 @@ typedef struct{
 } Print;
 
 typedef struct{
-    char *identifer;
+    Expression *identifer;
     Expression *initializerExpression;
 } Initializer;
 
@@ -72,6 +73,12 @@ typedef struct{
     Block body;
 } While;
 
+typedef struct{
+    int line;
+    int count;
+    Expression** initializers;
+} ArrayInit;
+
 struct Statement{
     StatementType type;
     union{
@@ -81,6 +88,7 @@ struct Statement{
         If ifStatement;
         Print printStatement;
         Set setStatement;
+        ArrayInit arrayStatement;
         While whileStatement;
     };
 };

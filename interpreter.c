@@ -135,6 +135,13 @@ static Literal resolveVariable(Variable expr){
     return env_get(expr.name);
 }
 
+static Literal resolveArray(ArrayExpression ae){
+    Literal index = resolveExpression(ae.index);
+    if(index.type != LIT_INT)
+        runtime_error(index.line, "Array index must be an integer!");
+    return env_arr_get(ae.identifier, index.iVal);
+}
+
 static Literal resolveExpression(Expression* expression){
     switch(expression->type){
         case EXPR_LITERAL:
@@ -147,6 +154,8 @@ static Literal resolveExpression(Expression* expression){
             return nullLiteral;
         case EXPR_VARIABLE:
             return resolveVariable(expression->variable);
+        case EXPR_ARRAY:
+            return resolveArray(expression->arrayExpression);
     }
 }
 
@@ -234,7 +243,30 @@ static void executeSet(Set s){
     //debug("Executing set statement");
     int i = 0;
     while(i < s.count){
-        env_put(s.initializers[i].identifer, resolveExpression(s.initializers[i].initializerExpression));
+        Expression *id = s.initializers[i].identifer;
+        if(id->type == EXPR_VARIABLE)
+            env_put(id->variable.name, resolveExpression(s.initializers[i].initializerExpression));
+        else if(id->type == EXPR_ARRAY){
+            Literal index = resolveExpression(id->arrayExpression.index);
+            if(index.type != LIT_INT)
+                runtime_error(index.line, "Array index must be an integer!");
+            env_arr_put(id->arrayExpression.identifier, index.iVal, 
+                    resolveExpression(s.initializers[i].initializerExpression));
+        }
+        else
+            runtime_error(s.line, "Bad assignment target!");
+        i++;
+    }
+}
+
+static void executeArray(ArrayInit ai){
+    int i = 0;
+    while(i < ai.count){
+        Expression *iden = ai.initializers[i];
+        Literal init = resolveExpression(iden->arrayExpression.index);
+        if(init.type != LIT_INT)
+            runtime_error(ai.line, "Array dimension must be an integer!");
+        env_arr_new(iden->arrayExpression.identifier, init.iVal);
         i++;
     }
 }
@@ -268,6 +300,9 @@ static void executeStatement(Statement s){
             break;
         case STATEMENT_SET:
             executeSet(s.setStatement);
+            break;
+        case STATEMENT_ARRAY:
+            executeArray(s.arrayStatement);
             break;
         case STATEMENT_BREAK:
             executeBreak(s.breakStatement);

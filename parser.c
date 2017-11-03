@@ -197,8 +197,17 @@ static Expression* primary(){
         expr->literal.sVal = stringOf(present());
     }
     else if(peek() == TOKEN_IDENTIFIER){
-        expr->type = EXPR_VARIABLE;
-        expr->variable.name = stringOf(present());
+        char *name = stringOf(present());
+        if(match(TOKEN_LEFT_SQUARE)){
+            expr->type = EXPR_ARRAY;
+            expr->arrayExpression.identifier = name;
+            expr->arrayExpression.index = expression();
+            consume(TOKEN_RIGHT_SQUARE, "Expected ']' after array index!");
+        }
+        else{
+            expr->type = EXPR_VARIABLE;
+            expr->variable.name = name;
+        }
     }
     else if(match(TOKEN_LEFT_PAREN)){
         memfree(expr);
@@ -476,25 +485,39 @@ static Statement setStatement(){
     Statement s;
     s.type = STATEMENT_SET;
     debug("Parsing set statement");
-    char *identifer = stringOf(head->value);
     s.setStatement.line = presentLine();
-    consume(TOKEN_IDENTIFIER, "Expected identifer after Set!");
-    consume(TOKEN_EQUAL, "Expected equals after identifer in Set!");
-    s.setStatement.count = 1;
-    s.setStatement.initializers = (Initializer *)mallocate(sizeof(Initializer));
-    s.setStatement.initializers[0].initializerExpression = expression();
-    s.setStatement.initializers[0].identifer = identifer;
-    while(match(TOKEN_COMMA)){
-        identifer = stringOf(head->value);
-        consume(TOKEN_IDENTIFIER, "Expected identifier!");
-        consume(TOKEN_EQUAL, "Expected equals after identifer in Set!");
+    s.setStatement.count = 0;
+    s.setStatement.initializers = NULL;
+    do{
         s.setStatement.count++;
         s.setStatement.initializers = (Initializer *)reallocate(s.setStatement.initializers, sizeof(Initializer) * s.setStatement.count);
+        s.setStatement.initializers[s.setStatement.count - 1].identifer = expression();
+        consume(TOKEN_EQUAL, "Expected '=' after identifer!");
         s.setStatement.initializers[s.setStatement.count - 1].initializerExpression = expression();
-        s.setStatement.initializers[s.setStatement.count - 1].identifer = identifer;
-    }
+    } while(match(TOKEN_COMMA));
     consume(TOKEN_NEWLINE, "Expected newline after Set statement!");
     debug("Set statement parsed");
+    return s;
+}
+
+static Statement arrayStatement(){
+    Statement s;
+    s.type = STATEMENT_ARRAY;
+    debug("Parsing array statement");
+    s.arrayStatement.line = presentLine();
+    s.arrayStatement.count = 0;
+    s.arrayStatement.initializers = NULL;
+
+    do{
+        s.arrayStatement.count++;
+        s.arrayStatement.initializers = (Expression **)reallocate(s.arrayStatement.initializers, 
+                sizeof(Expression *) * s.arrayStatement.count);
+        s.arrayStatement.initializers[s.arrayStatement.count - 1] = expression();
+        if(s.arrayStatement.initializers[s.arrayStatement.count - 1]->type != EXPR_ARRAY)
+            line_error(s.arrayStatement.line, "Expected array expression!");
+    } while(match(TOKEN_COMMA));
+    consume(TOKEN_NEWLINE, "Expected newline after Array statement!");
+    debug("Array statement parsed");
     return s;
 }
 
@@ -551,6 +574,8 @@ static Statement statement(Compiler *compiler){
         return ifStatement(compiler);
     else if(match(TOKEN_SET))
         return setStatement();
+    else if(match(TOKEN_ARRAY))
+        return arrayStatement();
     else if(match(TOKEN_WHILE))
         return whileStatement(compiler);
     // else if(match(TOKEN_DO))

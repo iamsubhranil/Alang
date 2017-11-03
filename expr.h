@@ -39,6 +39,11 @@ typedef struct{
 } Literal;
 
 typedef struct{
+    Expression *index;
+    char *identifier;
+} ArrayExpression;
+
+typedef struct{
     Expression* left;
     Token op;
     Expression* right;
@@ -54,6 +59,7 @@ typedef enum{
     EXPR_LOGICAL,
     EXPR_LITERAL,
     EXPR_VARIABLE,
+    EXPR_ARRAY,
     EXPR_NONE
 } ExpressionType;
 
@@ -64,6 +70,7 @@ typedef struct Expression{
         Binary binary;
         Logical logical;
         Literal literal;
+        ArrayExpression arrayExpression;
         Variable variable;
     };
 } Expression;

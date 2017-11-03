@@ -11,6 +11,9 @@ typedef enum {
   TOKEN_RIGHT_PAREN,
   TOKEN_LEFT_BRACE,
   TOKEN_RIGHT_BRACE,
+  TOKEN_LEFT_SQUARE,
+  TOKEN_RIGHT_SQUARE,
+
   TOKEN_BANG,
   TOKEN_BANG_EQUAL,
   TOKEN_COMMA,
@@ -22,6 +25,7 @@ typedef enum {
   TOKEN_GREATER_EQUAL,
   TOKEN_LESS,
   TOKEN_LESS_EQUAL,
+
   TOKEN_MINUS,
   TOKEN_PLUS,
   TOKEN_SEMICOLON,
@@ -46,6 +50,7 @@ typedef enum {
   TOKEN_END,
 
   TOKEN_SET,
+  TOKEN_ARRAY,
 
   TOKEN_IF,
   TOKEN_THEN,
@@ -73,6 +78,9 @@ static const char* tokenNames[] = {
   "TOKEN_RIGHT_PAREN",
   "TOKEN_LEFT_BRACE",
   "TOKEN_RIGHT_BRACE",
+  "TOKEN_LEFT_SQUARE",
+  "TOKEN_RIGHT_SQUARE",
+
   "TOKEN_BANG",
   "TOKEN_BANG_EQUAL",
   "TOKEN_COMMA",
@@ -107,6 +115,7 @@ static const char* tokenNames[] = {
   "TOKEN_END",
 
   "TOKEN_SET",
+  "TOKEN_ARRAY",
 
   "TOKEN_IF",
   "TOKEN_THEN",
