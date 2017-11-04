@@ -1,5 +1,4 @@
 set(SOURCE_FILES    main.c
-                    display.c
                     scanner.c
                     parser.c
                     interpreter.c
