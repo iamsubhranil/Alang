@@ -3,8 +3,8 @@
 
 #include "expr.h"
 
-Literal getString();
-Literal getInt();
-Literal getFloat();
+Literal getString(int line);
+Literal getInt(int line);
+Literal getFloat(int line);
 
 #endif

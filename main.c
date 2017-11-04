@@ -8,7 +8,17 @@
 #include "allocator.h"
 #include "interpreter.h"
 
+static void p(const char* name, size_t size){
+    printf("\n%s : %lu bytes", name, size);
+}
+
+static void printSize(){
+    p("Expression", sizeof(Expression));
+    p("Statement", sizeof(Statement));
+}
+
 int main(int argc, char **argv){
+//    printSize();
     if(argc != 2)
         return 2;
     FILE *f = fopen(argv[1], "rb");
@@ -25,23 +35,23 @@ int main(int argc, char **argv){
     initScanner(string);
 
     TokenList *tokens = scanTokens();
+    if(hasScanErrors()){
+        printf(error("%d errors occured while scanning. Correct them and try to run again.\n"), hasScanErrors());
+        memfree_all();
+        return 1;
+    }
 //    printList(tokens);
-    if(hadError()){
-        error("Error in file, exiting now..");
+
+    Code all = parse(tokens);
+    if(hasParseError()){
+        printf(error("%d errors occured while parsing. Correct them and try to run again.\n"), hasParseError());
+        memfree_all();
+        return 1;
     }
 
-    Block all = parse(tokens);
-    if(hadError()){
-        error("Error while parsing, exiting now..");
-    }
+    freeList(tokens);
     interpret(all);
 
-   // FILE* out = fopen("testout", "w");
-   // traverse(all, out);
-   // fclose(out);
-   // fflush(stdin);
-
-    //freeList(tokens);
     memfree_all();
 
     printf("\n");

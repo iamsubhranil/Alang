@@ -1,82 +1,87 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "expr.h"
 #include "display.h"
 #include "allocator.h"
 #include "environment.h"
+#include "interpreter.h"
 
-typedef struct{
-    int count;
-    Literal *values;
-} Array;
-
-typedef enum{
-    LITERAL,
-    ARRAY
-} EnvType;
-
-typedef struct Environment{
-    char* name;
-    EnvType type;
-    union{
-        Literal value;
-        Array arr;
-    };
-    struct Environment* next;
-} Environment;
-
-static Environment *head = NULL, *rear = NULL;
-
-static void insert(Environment *env){ 
-    if(head == NULL){
-        head = rear = env;
+static void insert(Record *toInsert, Environment *parent){ 
+    if(parent->front == NULL){
+        parent->front = parent->rear = toInsert;
     }
     else{
-        rear->next = env;
-        rear = env;
+        parent->rear->next = toInsert;
+        parent->rear = toInsert;
     }
 }
 
-static void env_new(char* identifer, Literal value){
-    Environment *env = (Environment *)mallocate(sizeof(Environment));
+static void rec_new(char* identifer, Literal value, Environment *parent){
+    Record *env = (Record *)mallocate(sizeof(Record));
     env->name = identifer;
     env->value = value;
     env->type = LITERAL;
     env->next = NULL;
-    insert(env);
+    insert(env, parent);
 }
 
-static Environment* env_match(char* identifer){
-    Environment *bak = head;
+static Record* env_match(char* identifer, Environment *env){
+    if(env == NULL)
+        return NULL;
+    Record *bak = env->front;
     while(bak != NULL){
         if(strcmp(bak->name, identifer) == 0)
             return bak;
         bak = bak->next;
     }
-    return NULL;
+    return env_match(identifer, env->parent);
 }
 
-void env_put(char* identifer, Literal value){
-    Environment *get = env_match(identifer);
+Environment* env_new(Environment *parent){
+    Environment *ret = (Environment *)mallocate(sizeof(Environment));
+    ret->front = ret->rear = NULL;
+    ret->parent = parent;
+    return ret;
+}
+
+void env_free(Environment *env){
+    while(env->front != NULL){
+        Record *rec = env->front;
+        Record *bak = rec->next;
+        if(rec->type == ARRAY)
+            memfree(rec->arr.values);
+        memfree(rec);
+        env->front = bak;
+    }
+    memfree(env);
+}
+
+void env_put(char* identifer, Literal value, Environment *env){
+    Record *get = env_match(identifer, env);
     if(get == NULL)
-        env_new(identifer, value);
+        rec_new(identifer, value, env);
     else
         get->value = value;
 }
 
-Literal env_get(char *identifer){
-    Environment *env = env_match(identifer);
-    if(env == NULL)
-        error("Undefined variable!");
-    else if(env->type == ARRAY)
-        error("An array must be accessed using index!");
-    return env->value;
+Literal env_get(char *identifer, int line, Environment *env){
+    Record *get = env_match(identifer, env);
+    if(get == NULL){
+        printf(runtime_error("Undefined variable %s!"), line, identifer);
+        stop();
+    }
+    else if(get->type == ARRAY){
+        printf(runtime_error("%s is an array and cannot be accessed directly!"), line, identifer);
+        stop();
+    }
+    return get->value;
 }
 
-void env_arr_new(char *identifer, long numElements){
-    Environment *match = env_match(identifer);
+void env_arr_new(char *identifer, int line, long numElements, Environment *env){
+    Record *match = env_match(identifer, env);
     if(match != NULL && match->type != ARRAY)
-        error("Variable is already defined!");
+        printf(runtime_error("Variable %s is already defined!"), line, identifer);
     else if(match != NULL){
         long bak = match->arr.count;
         match->arr.count = numElements;
@@ -88,41 +93,53 @@ void env_arr_new(char *identifer, long numElements){
         }
         return;
     }
-    Environment *env = (Environment *)mallocate(sizeof(Environment));
-    env->name = identifer;
-    env->type = ARRAY;
-    env->next = NULL;
-    env->arr.count = numElements;
-    env->arr.values = (Literal *)mallocate(sizeof(Literal) * numElements);
+    Record *rec = (Record *)mallocate(sizeof(Record));
+    rec->name = identifer;
+    rec->type = ARRAY;
+    rec->next = NULL;
+    rec->arr.count = numElements;
+    rec->arr.values = (Literal *)mallocate(sizeof(Literal) * numElements);
     long i = 0;
     while(i < numElements){
-        env->arr.values[i].type = LIT_INT;
-        env->arr.values[i].iVal = 0;
+        rec->arr.values[i].type = LIT_INT;
+        rec->arr.values[i].iVal = 0;
         i++;
     }
-    insert(env);
+    insert(rec, env);
 }
 
-void env_arr_put(char *identifer, long index, Literal value){
-    Environment *env = env_match(identifer);
-    if(env == NULL)
-        runtime_error(value.line, "Undefined array!");
-    else if(env->type != ARRAY)
-        runtime_error(value.line, "Accessed variable is not an array!");
-    else if(index < 1 || env->arr.count < index)
-        runtime_error(value.line, "Array index out of range!");
+void env_arr_put(char *identifer, long index, Literal value, Environment *env){
+    Record *get = env_match(identifer, env);
+    if(get == NULL){
+        printf(runtime_error("Undefined array %s!"), value.line, identifer);
+        stop();
+    }
+    else if(get->type != ARRAY){
+        printf(runtime_error("Variable %s is not an array!"), value.line, identifer);
+        stop();
+    }
+    else if(index < 1 || get->arr.count < index){
+        printf(runtime_error("Array index out of range [%ld]!"), value.line, index);
+        stop();
+    }
 
-    env->arr.values[index - 1] = value;
+    get->arr.values[index - 1] = value;
 }
 
-Literal env_arr_get(char *identifer, long index){ 
-    Environment *env = env_match(identifer);
-    if(env == NULL)
-        error("Undefined array!");
-    else if(env->type != ARRAY)
-        error("Accessed variable is not an array!");
-    else if(index < 1 || env->arr.count < index)
-        error("Array index out of range!");
+Literal env_arr_get(char *identifer, int line, long index, Environment *env){ 
+    Record *get = env_match(identifer, env);
+    if(env == NULL){
+        printf(runtime_error("Undefined array %s!"), line, identifer);
+        stop();
+    }
+    else if(get->type != ARRAY){
+        printf(runtime_error("Variable %s is not an array!"), line, identifer);
+        stop();
+    }
+    else if(index < 1 || get->arr.count < index){
+        printf(runtime_error("Array index out of range [%ld]!"), line, index);
+        stop();
+    }
 
-    return env->arr.values[index - 1];
+    return get->arr.values[index - 1];
 }

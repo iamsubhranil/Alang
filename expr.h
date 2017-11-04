@@ -12,12 +12,19 @@ typedef struct{
 } Assign;
 */
 typedef struct{
+    int line;
     Expression* left;
     Token op;
     Expression* right;
 } Binary;
 
 // Call
+typedef struct{
+    int line;
+    char *identifer;
+    int argCount;
+    Expression **arguments;
+} Call;
 
 typedef enum{
     LIT_DOUBLE,
@@ -27,9 +34,17 @@ typedef enum{
     LIT_NULL
 } LiteralType;
 
+static const char *literalNames[] = {
+    "LIT_DOUBLE",
+    "LIT_INT",
+    "LIT_STRING",
+    "LIT_LOGICAL",
+    "LIT_NULL"
+};
+
 typedef struct{
-    LiteralType type;
     int line;
+    LiteralType type;
     union{
         int lVal;
         long iVal;
@@ -39,17 +54,20 @@ typedef struct{
 } Literal;
 
 typedef struct{
+    int line;
     Expression *index;
     char *identifier;
 } ArrayExpression;
 
 typedef struct{
+    int line;
     Expression* left;
     Token op;
     Expression* right;
 } Logical;
 
 typedef struct{
+    int line;
     char* name;
 } Variable;
 
@@ -60,8 +78,20 @@ typedef enum{
     EXPR_LITERAL,
     EXPR_VARIABLE,
     EXPR_ARRAY,
+    EXPR_CALL,
     EXPR_NONE
 } ExpressionType;
+
+static const char *expressionNames[] = {
+//    EXPR_ASSIGN,
+    "EXPR_BINARY",
+    "EXPR_LOGICAL",
+    "EXPR_LITERAL",
+    "EXPR_VARIABLE",
+    "EXPR_ARRAY",
+    "EXPR_CALL",
+    "EXPR_NONE"
+};
 
 typedef struct Expression{
     ExpressionType type;
@@ -72,6 +102,7 @@ typedef struct Expression{
         Literal literal;
         ArrayExpression arrayExpression;
         Variable variable;
+        Call callExpression;
     };
 } Expression;
 

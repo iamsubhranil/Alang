@@ -1,7 +1,9 @@
-Print "\nTesting inputs"
-Input "\nGive me an integer : ",i:Int
-Print "I read : ",i
-Input "\nGive me a float : ",i:Float
-Print "I read : ",i
-Input "\nGive me a string : ",i
-Print "I read : ",i
+Routine Main()
+    Print "\nTesting inputs"
+    Input "\nGive me an integer : ",i:Int
+    Print "I read : ",i
+    Input "\nGive me a float : ",i:Float
+    Print "I read : ",i
+    Input "\nGive me a string : ",i
+    Print "I read : ",i
+EndRoutine

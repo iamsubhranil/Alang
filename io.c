@@ -3,6 +3,7 @@
 #include "allocator.h"
 #include "expr.h"
 #include "io.h"
+#include "display.h"
 
 static char* readString(){
     char *ret = NULL;
@@ -19,29 +20,67 @@ static char* readString(){
     return ret;
 }
 
-Literal getString(){
+Literal getString(int line){
     char *s = readString();
-    Literal ret = {LIT_STRING, 0, {0}};
+    Literal ret = {line, LIT_STRING, {0}};
     ret.sVal = s;
     return ret;
 }
 
-Literal getInt(){
+static int isNum(char c){
+    return c>='0' && c<='9';
+}
+
+static int isInt(char *s){
+    int i = 0;
+    while(s[i] != '\0'){
+        if(!isNum(s[i]))
+            return 0;
+        i++;
+    }
+    return 1;
+}
+
+Literal getInt(int line){
     char *s = readString();
+    while(!isInt(s)){
+        printf(warning("[Input Error] Not an integer : %s!\n[Re-Input] "), s);
+        s = readString();
+    }
     long l = 0;
     sscanf(s, "%ld", &l);
     memfree(s);
-    Literal lit = {LIT_INT, 0, {0}};
+    Literal lit = {line, LIT_INT, {0}};
     lit.iVal = l;
     return lit;
 }
 
-Literal getFloat(){
+static int isNumber(char *s){
+    int i = 0, hasDot = 0;
+    while(s[i] != '\0'){
+        if(s[i] == '.'){
+            if(hasDot == 0)
+                hasDot = 1;
+            else
+                return 0;
+        }
+        else if(!isNum(s[i]))
+            return 0;
+        i++;
+    }
+    return 1;
+}
+
+Literal getFloat(int line){
     char *s = readString();
+    while(!isNumber(s)){
+        printf(warning("[Input Error] Not a number : %s!\n[Re-Input] "), s);
+        s = readString();
+    }
     double d = 0;
     sscanf(s, "%lf", &d);
     memfree(s);
-    Literal lit = {LIT_DOUBLE, 0, {0}};
+    Literal lit = {line, LIT_DOUBLE, {0}};
     lit.dVal = d;
     return lit;
 }

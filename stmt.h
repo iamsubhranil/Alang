@@ -2,6 +2,7 @@
 #define STMT_H
 
 #include "expr.h"
+#include "environment.h"
 
 typedef enum{
     STATEMENT_SET,
@@ -13,6 +14,10 @@ typedef enum{
     STATEMENT_PRINT,
 //    STATEMENT_DO,
     STATEMENT_BEGIN,
+    STATEMENT_ROUTINE,
+    STATEMENT_CALL,
+    STATEMENT_RETURN,
+    STATEMENT_NOOP,
     STATEMENT_END
 } StatementType;
 
@@ -25,6 +30,7 @@ typedef enum{
     BLOCK_DO,
     BLOCK_FOR,
     BLOCK_NONE,
+    BLOCK_FUNC,
     BLOCK_MAIN
 } BlockType;
 
@@ -108,6 +114,24 @@ typedef struct{
     Input *inputs;
 } InputStatement;
 
+typedef struct{
+    int line;
+    char *name;
+    int arity;
+    char **arguments;
+    Environment *environment;
+    Block code;
+} Routine;
+
+typedef struct{
+    int line;
+    Expression *callee;
+} CallStatement;
+
+typedef struct{
+    Expression *value;
+} ReturnStatement;
+
 struct Statement{
     StatementType type;
     union{
@@ -120,7 +144,15 @@ struct Statement{
         ArrayInit arrayStatement;
         InputStatement inputStatement;
         While whileStatement;
+        Routine routine;
+        CallStatement callStatement;
+        ReturnStatement returnStatement;
     };
 };
+
+typedef struct{
+    int count;
+    Statement *parts;
+} Code;
 
 #endif

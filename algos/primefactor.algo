@@ -1,33 +1,30 @@
-Begin
-Input "Give an integer to search prime factors for : ", N:Int
-If(N < 1)
-    Print "[Error] Input must be >= 2"
-    End
-EndIf
-Set i = N/2, count = 0
-While(i >= 2)
-Begin
-    If(N % i == 0)
-    Then
-        Set flag = 0
-        Set j = 2
-        While(j <= i/2)
-        Begin
-            If(i % j == 0)
-            Then
-                Set flag = 1
-            EndIf
-            Set j = j + 1
-        EndWhile
-        If(flag == 0)
-        Then
-            Print i, " is a prime factor of ", N, "\n"
-        EndIf
-        Set count = count + 1
+Routine Main()
+    Input "Give an integer to search prime factors for : ", N:Int
+    If(N < 1)
+        Print "[Error] Input must be >= 2"
+        End
     EndIf
-    Set i = i - 1
-EndWhile
-If(count == 0)
-    Print N, " is a prime number!\n"
-EndIf
-End
+    Set i = N/2, count = 0
+    While(i >= 2)
+        If(N % i == 0)
+            If(CheckPrime(i))
+                Print i, " is a prime factor of ", N, "\n"
+            EndIf
+            Set count = count + 1
+        EndIf
+        Set i = i - 1
+    EndWhile
+    If(count == 0)
+        Print N, " is a prime number!\n"
+    EndIf
+EndRoutine
+Routine CheckPrime(x)
+    Set temp = 2
+    While(temp <= x/2)
+        If(x % temp == 0)
+            Return False
+        EndIf
+        Set temp = temp + 1
+    EndWhile
+    Return True
+EndRoutine

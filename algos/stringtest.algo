@@ -1,16 +1,22 @@
-// Comment
-/*
- * Multiline comment
-*/
-Print "\nHello world!\n"
-Set i = "Welcome"
-Print i, " to ", "Alang!"
-Set j = " to Alang"
-Print "\ni contains '",i,"' and j contains '",j,"'"
-Print "\ni + j becomes : ",i + j
-Print "\ni == j : ", i==j
-Print "\ni < j : ", i < j
-Print "\ni > j : ", i > j
-Print "\ni != j : ", i != j
-Print "\ni contains a string, and we're gonna add 5 to it.\nThe result should be awesome ;)\n"
-Print "i+5 = ", i+5
+
+Routine Main()
+    /*
+    * Multiline comment
+    */
+    Print "\nHello world!\n"
+    Set i = "Welcome"
+    
+    // Print Something
+    
+    Print i, " to ", "Alang!"
+    Set j = " to Alang"
+    Print "\ni contains '",i,"' and j contains '",j,"'"
+    Print "\ni + j becomes : ",i + j
+    Print "\ni == j : ", i==j
+    Print "\ni < j : ", i < j
+    Print "\ni > j : ", i > j
+    Print "\ni != j : ", i != j
+    Print "\ni contains a string, and we're gonna add 5 to it.\nThe result should be awesome ;)\n"
+    Print "i+5 = ", i+5
+    
+EndRoutine

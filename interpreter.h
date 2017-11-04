@@ -3,6 +3,7 @@
 
 #include "stmt.h"
 
-void interpret(Block b);
+void interpret(Code c);
+void stop();
 
 #endif

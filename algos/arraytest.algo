@@ -1,31 +1,33 @@
-Print "\nInitializing array arr with size 8"
-Array arr[3+5]
-Print "\nSetting arr[3] to 5"
-Set arr[3] = 5
-Print "\narr[3] = ", arr[3]
-Print "\nInitializing array ar with size arr[3]"
-Array ar[arr[3]]
-Print "\nSetting ar[2] to 10"
-Set ar[2] = 10
-Print "\nAdding arr[3] to ar[2]"
-Set arr[3] = arr[3] + ar[2]
-Print "\narr[3] = ", arr[3]
-Set i = 1
-Print "\nLooping arr[i]"
-While(i < 9)
-    Set arr[i] = i
-    Set i = i+1
-EndWhile
-Print "\nLoop printing the values"
-Set i = 1
-While(i < 9)
-    Print "\narr[",i,"] = ", arr[i]
-    Set i = i+1
-EndWhile
-Print "\nInitializing a[20] and b[32]"
-Array a[20], b[32]
-Print "\na[20] = ",a[20]," b[32] = ",b[32]
-Print "\nResizing a to 10"
-Array a[10]
-Print "\nTrying to access a[20] (it should crash ;) )"
-Set a[20] = 2
+Routine Main()
+    Print "\nInitializing array arr with size 8"
+    Array arr[3+5]
+    Print "\nSetting arr[3] to 5"
+    Set arr[3] = 5
+    Print "\narr[3] = ", arr[3]
+    Print "\nInitializing array ar with size arr[3]"
+    Array ar[arr[3]]
+    Print "\nSetting ar[2] to 10"
+    Set ar[2] = 10
+    Print "\nAdding arr[3] to ar[2]"
+    Set arr[3] = arr[3] + ar[2]
+    Print "\narr[3] = ", arr[3]
+    Set i = 1
+    Print "\nLooping arr[i]"
+    While(i < 9)
+        Set arr[i] = i
+        Set i = i+1
+    EndWhile
+    Print "\nLoop printing the values"
+    Set i = 1
+    While(i < 9)
+        Print "\narr[",i,"] = ", arr[i]
+        Set i = i+1
+    EndWhile
+    Print "\nInitializing a[20] and b[32]"
+    Array a[20], b[32]
+    Print "\na[20] = ",a[20]," b[32] = ",b[32]
+    Print "\nResizing a to 10"
+    Array a[10]
+    Print "\nTrying to access a[20] (it should crash ;) )"
+    Set a[20] = 2
+EndRoutine

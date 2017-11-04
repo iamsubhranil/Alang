@@ -4,6 +4,7 @@
 #include "scanner.h"
 #include "stmt.h"
 
-Block parse(TokenList *list);
+Code parse(TokenList *list);
+int hasParseError();
 
 #endif

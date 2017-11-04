@@ -73,6 +73,11 @@ typedef enum {
 
   TOKEN_PRINT,
 
+  TOKEN_ROUTINE,
+  TOKEN_ENDROUTINE,
+  TOKEN_CALL,
+  TOKEN_RETURN,
+
   TOKEN_ERROR,
   TOKEN_EOF
 } TokenType;
@@ -143,6 +148,11 @@ static const char* tokenNames[] = {
 
   "TOKEN_PRINT",
 
+  "TOKEN_ROUTINE",
+  "TOKEN_ENDROUTINE",
+  "TOKEN_CALL",
+  "TOKEN_RETURN",
+
   "TOKEN_ERROR",
   "TOKEN_EOF"
 };
@@ -164,5 +174,7 @@ void initScanner(const char* source);
 TokenList* scanTokens();
 void printList(TokenList *list);
 void freeList(TokenList *list);
+
+int hasScanErrors();
 
 #endif

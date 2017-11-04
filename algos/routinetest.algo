@@ -1,0 +1,17 @@
+Set i = 0
+Routine Fact(x)
+    If(x < 2)
+        Return 1
+    EndIf
+    Return x * Fact(x-1)
+EndRoutine
+Routine NoRet(x)
+    Set j = 0
+EndRoutine
+Routine Main()
+    Set j = 1
+    Print "\nHello world From main!"
+    Input "\nEnter an integer to check factorial for : ", f:Int
+    Print "\nRead : ",f
+    Print "\nNoRet : ", NoRet(7)
+EndRoutine

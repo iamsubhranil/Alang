@@ -1,39 +1,41 @@
-Set loop = True
-Array n[20]
-While(loop)
-    Input "\nEnter two integers : ", a:Int, b:Int
-    If(a < 1 Or b < 1)
-        Print "Invalid input!\n"
-        End
-    EndIf
-    Print "Peasant Multiplication Method as follows"
-    Print "\n======================================="
-    Set i = 1
-    Set d = a
-    Set e = b
-    While(d > 0)
-        If(d % 2 == 0)
-            Print "\n\n", d, "\t",e," x(struck of)"
-        Else
-            Print "\n\n", d, "\t",e
-            Set n[i] = e
-            Set i = i + 1
+Routine Main()
+    Set loop = True
+    Array n[20]
+    While(loop)
+        Input "\nEnter two integers : ", a:Int, b:Int
+        If(a < 1 Or b < 1)
+            Print "Invalid input!\n"
+            End
         EndIf
-        Set d = d/2
-        Set e = e*2
+        Print "Peasant Multiplication Method as follows"
+        Print "\n======================================="
+        Set i = 1
+        Set d = a
+        Set e = b
+        While(d > 0)
+            If(d % 2 == 0)
+                Print "\n\n", d, "\t",e," x(struck of)"
+            Else
+                Print "\n\n", d, "\t",e
+                Set n[i] = e
+                Set i = i + 1
+            EndIf
+            Set d = d/2
+            Set e = e*2
+        EndWhile
+        Set s = n[1]
+        Print "\n\n", s
+        Set d = 2
+        While(d < i)
+            Print " + ", n[d]
+            Set s = s+n[d]
+            Set d = d+1
+        EndWhile
+        Print " = ",s
+        Print " which is equal to ",a," * ",b," = ",a*b
+        Input "\nDo you want to continue (y/n) ? ", choice
+        If(choice != "Y" And choice != "y")
+            Set loop = False
+        EndIf
     EndWhile
-    Set s = n[1]
-    Print "\n\n", s
-    Set d = 2
-    While(d < i)
-        Print " + ", n[d]
-        Set s = s+n[d]
-        Set d = d+1
-    EndWhile
-    Print " = ",s
-    Print " which is equal to ",a," * ",b," = ",a*b
-    Input "\nDo you want to continue (y/n) ? ", choice
-    If(choice != "Y" And choice != "y")
-        Set loop = False
-    EndIf
-EndWhile
+EndRoutine

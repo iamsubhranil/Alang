@@ -45,6 +45,12 @@ static Keyword keywords[] = {
     {"EndDo",   5, TOKEN_ENDDO},
 
     {"Print",   5, TOKEN_PRINT},
+
+    {"Routine", 7, TOKEN_ROUTINE},
+    {"EndRoutine", 10, TOKEN_ENDROUTINE},
+    {"Call",    4, TOKEN_CALL},
+    {"Return",  6, TOKEN_RETURN},
+
     // Sentinel to mark the end of the array.
     {NULL,      0, TOKEN_EOF}
 };
@@ -56,7 +62,8 @@ typedef struct {
     int line;
 } Scanner;
 
-Scanner scanner;
+static Scanner scanner;
+static int se = 0;
 
 void initScanner(const char* source) {
     scanner.source = source;
@@ -226,7 +233,7 @@ static Token scanToken() {
         case '/': 
                   if(peek() == '/'){
                       while (peek() != '\n' && !isAtEnd()) advance();
-                      advance(); // \n
+                    //  advance(); // \n
                       scanner.line++;
                       return scanToken();
                   }
@@ -239,7 +246,7 @@ static Token scanToken() {
                       if(!isAtEnd()){
                             advance(); // *
                             advance(); // /
-                            advance(); // \n
+                       //     advance(); // \n
                             scanner.line++;
                       }
                     return scanToken();
@@ -266,7 +273,8 @@ static Token scanToken() {
 
         case '"': return string();
         default:
-                  line_error(scanner.line, "Unexpected character!");
+                  printf(line_error("Unexpected character %c!"), scanner.line, c);
+                  se++;
                   break;
     }
 }
@@ -320,7 +328,11 @@ void printList(TokenList *list){
 void freeList(TokenList *list){
     while(list != NULL){
         TokenList *bak = list->next;
-        free(list);
+        memfree(list);
         list = bak;
     }
+}
+
+int hasScanErrors(){
+    return se;
 }
