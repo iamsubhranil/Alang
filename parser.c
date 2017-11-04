@@ -761,7 +761,7 @@ Code parse(TokenList *list){
         c.parts = (Statement *)reallocate(c.parts, sizeof(Statement) * c.count);
         c.parts[c.count - 1] = part(comp);
     }
-    memfree(head);
+    memfree(comp);
     return c;
 }
 
