@@ -1,0 +1,5 @@
+Routine Main()
+    Set i = "\"This is a quoted text\""
+    Print "\n",i
+    Print "\n\"This is another quoted text\""
+EndRoutine

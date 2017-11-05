@@ -11,7 +11,7 @@
 #include "io.h"
 #include "interpreter.h"
 
-#define EPSILON 0.000000000000000001
+#define EPSILON 0.0000000000000000000000001
 
 static Literal resolveExpression(Expression* expression, Environment *env);
 static Literal executeBlock(Block b, Environment *env);
@@ -285,6 +285,10 @@ static void printString(const char *s){
                 putchar('\t');
                 i++;
             }
+            else if(s[i+1] == '"'){
+                putchar('"');
+                i++;
+            }
             else
                 putchar('\\');
         }
@@ -447,7 +451,6 @@ static Literal executeInput(InputStatement is, Environment *env){
 
 static Literal executeBreak(){
     //debug("Executing break statement");
-    //warning("Break is a no-op!\n");
     brk = 1;
     return nullLiteral;
 }
@@ -522,12 +525,6 @@ static Literal executeStatement(Statement s, Environment *env){
             break;
     }
 }
-
-/*void interpret(Block b){
-  Environment *root = env_new(NULL);
-  executeBlock(b, root);
-  env_free(root);
-  }*/
 
 void interpret(Code c){
     int i = 0;
