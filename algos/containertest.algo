@@ -1,0 +1,82 @@
+Set front = Null
+
+Container Node(x)
+    Set value = x
+    Set next = Null
+EndContainer
+
+Routine insertAtEnd(x)
+    If(front == Null)
+        Set front = x
+    Else
+        Set bak = front
+        While(bak.next != Null)
+            Set bak = bak.next
+        EndWhile
+        Set bak.next = x
+    EndIf
+EndRoutine
+
+Routine insertAtFront(x)
+    Set x.next = front, front = x
+EndRoutine
+
+Routine insertAtPos(x, pos)
+    If(pos == 1)
+        Set front = x
+        Return 0
+    EndIf
+    Set i = 1, bak = front
+    While(i < (pos - 1) And bak != Null)
+        Set bak = bak.next
+        Set i = i+1
+    EndWhile
+    If(bak == Null)
+        Print "\nInvalid position specified : ", pos
+    Else
+        Set x.next = bak.next, bak.next = x
+        Print "\nInsertion complete! "
+    EndIf
+EndRoutine
+
+Routine PrintList(x)
+    If(x == Null)
+        Print "Empty list!"
+        Return 0
+    EndIf
+    Set bak = x, i = 1
+    While(bak != Null)
+        Print "\nNode : ",i,"\tValue : ",bak.value
+        Set bak = bak.next, i = i+1
+    EndWhile
+EndRoutine
+
+Routine Main()
+    While(True)
+        Print "\nSelect an operation : "
+        Print "\n1. Insert at front"
+        Print "\n2. Insert at end"
+        Print "\n3. Insert at position"
+        Print "\n4. Print list : "
+        Input choice:Int
+        If(choice < 1 Or choice > 4)
+            Print "\nBad choice!\n"
+            End
+        EndIf
+        If(choice != 4)
+            Input "\nEnter the value of the node : ", x:Int
+            Set node = Node(x)
+        EndIf
+        If(choice == 1)
+            Call insertAtFront(node)
+        Else If(choice == 2)
+            Call insertAtEnd(node)
+        Else If(choice == 3)
+            Input "\nEnter position to insert : ", pos:Int
+            Call insertAtPos(node,pos)
+        Else
+            Call PrintList(front)
+        EndIf
+        Print "\n"
+    EndWhile
+EndRoutine

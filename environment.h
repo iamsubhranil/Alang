@@ -1,25 +1,12 @@
 #ifndef ENVIRONMENT_H
 #define ENVIRONMENT_H
 
-#include "expr.h"
-
-typedef struct{
-    int count;
-    Literal *values;
-} Array;
-
-typedef enum{
-    LITERAL,
-    ARRAY
-} EnvType;
+#include "stmt.h"
+#include "interpreter.h"
 
 typedef struct Record{
-    char* name;
-    EnvType type;
-    union{
-        Literal value;
-        Array arr;
-    };
+    char *name;
+    Object object;
     struct Record* next;
 } Record;
 
@@ -29,12 +16,20 @@ typedef struct Environment{
     struct Environment *parent;
 } Environment;
 
-void env_put(char *identifer, Literal value, Environment *env);
-Literal env_get(char *identifer, int line, Environment *env);
+Environment *env_new(Environment *parent);
+void env_free(Environment *env);
+
+void env_put(char *identifer, Object value, Environment *env);
+Object env_get(char *identifer, int line, Environment *env);
+
 void env_arr_new(char *identifer, int line, long numElements, Environment *env);
 void env_arr_put(char *identifer, long index, Literal value, Environment *env);
 Literal env_arr_get(char *identifer, int line, long index, Environment *env);
-Environment *env_new(Environment *parent);
-void env_free(Environment *env);
+
+void env_routine_put(Routine r, int line, Environment *env);
+Routine env_routine_get(char *identifer, int line, Environment *env);
+
+void env_container_put(Container c, int line, Environment *env);
+Container env_container_get(char *identifer, int line, Environment *env);
 
 #endif

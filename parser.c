@@ -36,9 +36,10 @@ static TokenType peek(){
 
 static Token advance(){
     if(head->next != NULL){
+        Token h = head->value;
         head = head->next;
         //printf("\n[Info:Advance] Advancing to [%s]", tokenNames[head->value.type]);
-        return head->value;
+        return h;
     }
     return errorToken;
 }
@@ -54,7 +55,7 @@ static int presentLine(){
 }
 
 static int match(TokenType type){
-    if(head->value.type == type){
+    if(peek() == type){
         advance();
         return 1;
     }
@@ -71,7 +72,8 @@ static void synchronize(){
 }
 
 static Token consume(TokenType type, const char* err){
-    if(head->value.type == type){
+    //printf("\n[Info] Have %s expected %s", tokenNames[peek()], tokenNames[type]);
+    if(peek() == type){
         //printf("\n[Info:Consume] Consuming [%s]", tokenNames[type]);
         return advance();
     }
@@ -97,7 +99,7 @@ static int getNextIndent(){
         temp = temp->next;
         nextIndent++;
     }
-//    printf(debug("NextIndent : %d"), nextIndent);
+    //    printf(debug("NextIndent : %d"), nextIndent);
     return nextIndent;
 }
 
@@ -225,32 +227,42 @@ static Expression* primary(){
     return expr;
 }
 
+static Expression* getCall(Expression* expr){
+    Expression *call = newExpression();
+    call->type = EXPR_CALL;
+    call->callExpression.identifer = expr->variable.name;
+    call->callExpression.argCount = 0;
+    call->callExpression.arguments = NULL;
+    call->callExpression.line = presentLine();
+    if(match(TOKEN_RIGHT_PAREN))
+        return call;
+    do{
+        Expression *argument = expression();
+        call->callExpression.argCount++;
+        call->callExpression.arguments = (Expression **)reallocate(call->callExpression.arguments, 
+                sizeof(Expression *)*call->callExpression.argCount);
+        call->callExpression.arguments[call->callExpression.argCount - 1] = argument;
+    } while(match(TOKEN_COMMA));
+    consume(TOKEN_RIGHT_PAREN, "Expected '(' after expression!");
+    return call;
+}
+
 static Expression* call(){
     Expression* expr = primary();
-    if(match(TOKEN_LEFT_PAREN)){
-        if(expr->type != EXPR_VARIABLE){
-            printf(line_error("Expected identifier as callee!"), presentLine());
-            he++;
+    while(true){
+        if(match(TOKEN_LEFT_PAREN)){
+            expr  = getCall(expr);
         }
-        else {
-                Expression *call = newExpression();
-                call->type = EXPR_CALL;
-                call->callExpression.identifer = expr->variable.name;
-                call->callExpression.argCount = 0;
-                call->callExpression.arguments = NULL;
-                call->callExpression.line = presentLine();
-                if(match(TOKEN_RIGHT_PAREN))
-                    return call;
-                do{
-                    Expression *argument = expression();
-                    call->callExpression.argCount++;
-                    call->callExpression.arguments = (Expression **)reallocate(call->callExpression.arguments, 
-                            sizeof(Expression *)*call->callExpression.argCount);
-                    call->callExpression.arguments[call->callExpression.argCount - 1] = argument;
-                } while(match(TOKEN_COMMA));
-                consume(TOKEN_RIGHT_PAREN, "Expected '(' after expression!");
-                return call;
-            }
+        else if(match(TOKEN_DOT)){
+            Expression *ex = newExpression();
+            ex->type = EXPR_REFERENCE;
+            ex->referenceExpression.line = presentLine();
+            ex->referenceExpression.containerName = expr;
+            ex->referenceExpression.member = stringOf(consume(TOKEN_IDENTIFIER, "Expected member reference!"));
+            expr = ex;
+        }
+        else
+            break;
     }
     return expr;
 }
@@ -625,29 +637,20 @@ static Statement routineStatement(Compiler *compiler){
     s.type = STATEMENT_ROUTINE;
     s.routine.line = presentLine();
     s.routine.arity = 0;
-    s.routine.arguments = NULL;
-    s.routine.environment = NULL;
+    s.routine.arguments = NULL;   
     s.routine.name = NULL;
 
     if(compiler->indentLevel > 0){
         printf(line_error("Routines can only be declared in top level indent!"), presentLine());
         he++;
     }
-    if(peek() != TOKEN_IDENTIFIER){
-        printf(line_error("Expected routine name!"), presentLine());
-        he++;
-    }
-    s.routine.name = stringOf(present());
+    s.routine.name = stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!"));
     consume(TOKEN_LEFT_PAREN, "Expected '(' after routine declaration!");
     if(peek() != TOKEN_RIGHT_PAREN){
         do{
-            if(peek() != TOKEN_IDENTIFIER){
-                printf(line_error("Expected identifier as argument!"), s.routine.line);
-                he++;
-            }
             s.routine.arity++;
             s.routine.arguments = (char **)reallocate(s.routine.arguments, sizeof(char *) * s.routine.arity);
-            s.routine.arguments[s.routine.arity - 1] = stringOf(present());
+            s.routine.arguments[s.routine.arity - 1] = stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!"));
         } while(match(TOKEN_COMMA));
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
     }
@@ -675,8 +678,30 @@ static Statement callStatement(){
 static Statement returnStatement(){
     Statement s;
     s.type = STATEMENT_RETURN;
+    s.returnStatement.line = presentLine();
     s.returnStatement.value = expression();
     consume(TOKEN_NEWLINE, "Expected newline after Return!");
+    return s;
+}
+
+static Statement containerStatement(Compiler *c){
+    Statement s;
+    s.type = STATEMENT_CONTAINER;
+    s.container.name = stringOf(head->value);
+    s.container.line = presentLine();
+    s.container.arity = 0;
+    consume(TOKEN_IDENTIFIER, "Expected container identifer!");
+    consume(TOKEN_LEFT_PAREN, "Expected '(' after container name");
+    while(!match(TOKEN_RIGHT_PAREN) && !match(TOKEN_EOF)){
+        s.container.arity++;
+        s.container.arguments = (char **)mallocate(sizeof(char *) * s.container.arity);
+        s.container.arguments[s.container.arity - 1] = stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!"));
+    }
+    consume(TOKEN_NEWLINE, "Expected newline after container declaration!");
+    s.container.constructor = blockStatement(c, BLOCK_FUNC) ;
+    consumeIndent(c->indentLevel);
+    consume(TOKEN_ENDCONTAINER, "Expected EndContainer on the same indent!");
+    consume(TOKEN_NEWLINE, "Expected newline after EndContainer!");
     return s;
 }
 
@@ -728,8 +753,10 @@ static Statement statement(Compiler *compiler){
         return callStatement();
     else if(match(TOKEN_RETURN))
         return returnStatement();
-    else
-        printf(line_error("Bad statement %s!"), presentLine(), tokenNames[present().type]);
+    else{
+        printf(line_error("Bad statement %s!"), presentLine(), tokenNames[peek()]);
+        advance();
+    }
 }
 
 Statement part(Compiler *c){
@@ -743,6 +770,9 @@ Statement part(Compiler *c){
     }
     else if(match(TOKEN_ARRAY)){
         return arrayStatement();
+    }
+    else if(match(TOKEN_CONTAINER)){
+        return containerStatement(c);
     }
     else{
         printf(line_error("Bad top level statement %s!"), presentLine(), tokenNames[peek()]);

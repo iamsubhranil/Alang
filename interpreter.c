@@ -13,53 +13,50 @@
 
 #define EPSILON 0.0000000000000000000000001
 
-static Literal resolveExpression(Expression* expression, Environment *env);
+
+static Object resolveExpression(Expression* expression, Environment *env);
 static Literal executeBlock(Block b, Environment *env);
 
 static Literal nullLiteral = {0, LIT_NULL, {0}};
+static Object nullObject = {OBJECT_NULL, {{0, LIT_NULL, {0}}}};
 
-static Routine *routines = NULL, badRoutine = {-1, NULL, -1, NULL, NULL, {}};
-static int routineCount = 0;
 static Environment *globalEnv = NULL;
 
 static int brk = 0, ret = 0, hasError = 0;
-
-static Routine getRoutine(const char *identifer){
-    int i = 0;
-    while(i < routineCount){
-        if(strcmp(routines[i].name, identifer) == 0 )
-            return routines[i];
-        i++;
-    }
-    return badRoutine;
-}
-
-static void addRoutine(Routine r){
-//    printf("\n[AddRoutine] Registering %s\n", r.name);
-    routineCount++;
-    routines = (Routine *)reallocate(routines, sizeof(Routine)*routineCount);
-    routines[routineCount - 1] = r;
-}
 
 static int isNumeric(Literal l){
     return l.type == LIT_INT || l.type == LIT_DOUBLE;
 }
 
-static Literal resolveBinary(Binary expr, Environment *env){
-    Literal left = resolveExpression(expr.left, env);
-    Literal right = resolveExpression(expr.right, env);
- //   printf("\n[Binary] Got %s and %s for operator %s", literalNames[left.type], literalNames[right.type], tokenNames[expr.op.type]);
+static Literal resolveLiteral(Expression *expression, int line, Environment *env){
+    Object o = resolveExpression(expression, env);
+    if(o.type != OBJECT_LITERAL){
+        printf(runtime_error("Expected literal, Received %d!"), line, o.type);
+        stop();
+    }
+    return o.literal;
+}
+
+static Object fromLiteral(Literal l){
+    Object o = {OBJECT_LITERAL, {l}};
+    return o;
+}
+
+static Object resolveBinary(Binary expr, Environment *env){
+    Literal left = resolveLiteral(expr.left, expr.line, env);
+    Literal right = resolveLiteral(expr.right, expr.line, env);
+    //   printf("\n[Binary] Got %s and %s for operator %s", literalNames[left.type], literalNames[right.type], tokenNames[expr.op.type]);
     if(left.type == LIT_STRING && right.type == LIT_STRING && expr.op.type == TOKEN_PLUS){
         Literal ret = {expr.line, LIT_STRING, {0}};
         ret.sVal = (char *)mallocate(sizeof(char) * (strlen(left.sVal) + strlen(right.sVal) + 1));
         strncpy(ret.sVal, left.sVal, strlen(left.sVal));
         strcat(ret.sVal, right.sVal);
-        return ret;
+        return fromLiteral(ret);
     }
     else if (!isNumeric(left) || !isNumeric(right)){
         printf(runtime_error("Binary operation can only be done on numerical values!"), expr.line);
         stop();
-        return nullLiteral;
+        return nullObject;
     }
     Literal ret = {expr.line, LIT_NULL, {0}};
     ret.line = left.line;
@@ -116,13 +113,76 @@ static Literal resolveBinary(Binary expr, Environment *env){
                 break;
         }
     }
-    return ret;
+    return fromLiteral(ret);
 }
 
-static Literal resolveLogical(Logical expr, Environment *env){
-    Literal left = resolveExpression(expr.left, env);
-    Literal right = resolveExpression(expr.right, env);
-//    printf("\n[Logical] Got %s and %s for operator %s", literalNames[left.type], literalNames[right.type], tokenNames[expr.op.type]);
+static Object compareInstance(Logical expr, Environment *env){
+    Object a = resolveExpression(expr.left, env);
+    Object b = resolveExpression(expr.right, env);
+    if(a.type == OBJECT_INSTANCE && b.type == OBJECT_INSTANCE){
+        Literal ret = {expr.line, LIT_LOGICAL, {0}};
+        switch(expr.op.type){
+            case TOKEN_EQUAL_EQUAL:
+                ret.lVal = a.instance.environment == b.instance.environment;
+                break;
+            case TOKEN_BANG_EQUAL:
+                ret.lVal = a.instance.environment != b.instance.environment;
+                break;
+            default:
+                printf(runtime_error("Can't compare container instances!"), expr.line);
+                stop();
+                break;
+        }
+        return fromLiteral(ret);
+    }
+    else if((a.type == OBJECT_INSTANCE && b.type == OBJECT_LITERAL)
+            || (a.type == OBJECT_LITERAL && b.type == OBJECT_INSTANCE)){
+        Literal lit = a.type == OBJECT_LITERAL ? a.literal : b.literal;
+        Instance o = a.type == OBJECT_INSTANCE ? a.instance : b.instance;
+        if(lit.type != LIT_NULL){
+            printf(runtime_error("Unable to compare between literal and instances!"), expr.line);
+            stop();
+        }
+        Literal ret = {expr.line, LIT_LOGICAL, {0}};
+        switch(expr.op.type){
+            case TOKEN_EQUAL_EQUAL: 
+                ret.lVal = o.name == NULL;
+                break;
+            case TOKEN_BANG_EQUAL:
+                ret.lVal = o.name != NULL;
+                break;
+            default:
+                printf(runtime_error("Null can't be compared!"), expr.line);
+                stop();
+                break;
+        }
+        return fromLiteral(ret);
+    }
+    return nullObject;
+}
+
+static Object resolveLogical(Logical expr, Environment *env){
+    Object r = compareInstance(expr, env);
+    if(r.type != OBJECT_NULL)
+        return r;
+    Literal left = resolveLiteral(expr.left, expr.line, env);
+    Literal right = resolveLiteral(expr.right, expr.line, env);
+    //    printf("\n[Logical] Got %s and %s for operator %s", literalNames[left.type], literalNames[right.type], tokenNames[expr.op.type]);
+    if(left.type == LIT_NULL || right.type == LIT_NULL){
+        Literal ret = {expr.line, LIT_LOGICAL, {0}};
+        switch(expr.op.type){
+            case TOKEN_EQUAL_EQUAL:
+                ret.lVal = left.type == LIT_NULL && right.type == LIT_NULL;
+                break;
+            case TOKEN_BANG_EQUAL:
+                ret.lVal = left.type != LIT_NULL || right.type != LIT_NULL;
+                break;
+            default:
+                printf(runtime_error("Unable to compare Null!"), expr.line);
+                break;
+        }
+        return fromLiteral(ret);
+    }
     if(left.type == LIT_STRING && right.type == LIT_STRING){
         Literal ret = {expr.line, LIT_LOGICAL, {0}};
         ret.line = left.line;
@@ -150,13 +210,13 @@ static Literal resolveLogical(Logical expr, Environment *env){
                 stop();
                 break;
         }
-        return ret;
+        return fromLiteral(ret);
     }
     else if((!isNumeric(left) && left.type != LIT_LOGICAL) 
             || (!isNumeric(right) && right.type != LIT_LOGICAL)){
-        printf(runtime_error("Logical expression must be performed on numeric values!"), expr.line);
+        printf(runtime_error("Bad operand for logical operator!"), expr.line);
         stop();
-        return nullLiteral;
+        return nullObject;
     }
     Literal ret;
     ret.type = LIT_LOGICAL;
@@ -199,41 +259,30 @@ static Literal resolveLogical(Logical expr, Environment *env){
         default:
             break;
     }
-    return ret;
+    return fromLiteral(ret);
 }
 
-static Literal resolveVariable(Variable expr, Environment *env){
+static Object resolveVariable(Variable expr, Environment *env){
     return env_get(expr.name, expr.line, env);
 }
 
-static Literal resolveArray(ArrayExpression ae, Environment *env){
-    Literal index = resolveExpression(ae.index, env);
+static Object resolveArray(ArrayExpression ae, Environment *env){
+    Literal index = resolveLiteral(ae.index, ae.line, env);
     if(index.type != LIT_INT){
         printf(runtime_error("Array index must be an integer!"), ae.line);
         stop();
     }
-    return env_arr_get(ae.identifier, ae.line, index.iVal, env);
+    return fromLiteral(env_arr_get(ae.identifier, ae.line, index.iVal, env));
 }
 
-static Literal resolveCall(Call c, Environment *env){
-    Routine r = getRoutine(c.identifer);
+static Object resolveRoutineCall(Call c, Environment *env){
+    Routine r = env_routine_get(c.identifer, c.line, globalEnv);
     //printf("\nResolving call to %s", c.identifer);
-    if(r.arity == -1){
-        if(strcmp(c.identifer, "Main") == 0){
-            printf(error("Unable to start! Routine Main is not defined!"));
-            stop();
-        }
-        else{
-            printf(runtime_error("Routine %s is not defined!"), c.line, c.identifer);
-            stop();
-        }
-        return nullLiteral;
-    }
     if(r.arity != c.argCount){
         printf(runtime_error("Argument count mismatch for routine %s! Expected : %d Received %d!"), 
                 c.line, c.identifer, r.arity, c.argCount);
         stop();
-        return nullLiteral;
+        return nullObject;
     }
     Environment *routineEnv = env_new(globalEnv);
     int i = 0;
@@ -242,33 +291,77 @@ static Literal resolveCall(Call c, Environment *env){
         env_put(r.arguments[i], resolveExpression(c.arguments[i], env), routineEnv);
         i++;
     }
-   // printf("\n[Call] Executing %s\n", r.name);
-    Literal retl = executeBlock(r.code, routineEnv);
+    // printf("\n[Call] Executing %s\n", r.name);
+    Object obj = fromLiteral(executeBlock(r.code, routineEnv));
     if(ret)
         ret = 0;
     env_free(routineEnv);
-    return retl;
+    return obj;
 }
 
-static Literal resolveExpression(Expression* expression, Environment *env){
- //   printf("\nSolving expression : %s", expressionNames[expression->type]);
+static Object resolveContainerCall(Call c, Environment *env){
+    Container r = env_container_get(c.identifer, c.line, globalEnv);
+    //printf("\nResolving call to %s", c.identifer); 
+    if(r.arity != c.argCount){
+        printf(runtime_error("Argument count mismatch for container %s! Expected : %d Received %d!"), 
+                c.line, c.identifer, r.arity, c.argCount);
+        stop();
+        return nullObject;
+    }
+    Environment *containerEnv = env_new(globalEnv);
+    int i = 0;
+    //    printf("\n[Call] Executing %s\n", r.name);
+    while(i < r.arity){
+        env_put(r.arguments[i], resolveExpression(c.arguments[i], env), containerEnv);
+        i++;
+    }
+    // printf("\n[Call] Executing %s\n", r.name);
+    executeBlock(r.constructor, containerEnv);
+    Object o;
+    o.type = OBJECT_INSTANCE;
+    o.instance.name = r.name;
+    o.instance.environment = containerEnv;
+    return o;
+}
+
+static Object resolveCall(Call c, Environment *env){
+    Object callee = env_get(c.identifer, c.line, env);
+    if(callee.type == OBJECT_ROUTINE)
+        return resolveRoutineCall(c, env);
+    else
+        return resolveContainerCall(c, env);
+}
+
+static Object resolveReference(Reference ref, Environment *env){
+    Object o = resolveExpression(ref.containerName, env);
+    if(o.type != OBJECT_INSTANCE){
+        printf(runtime_error("Invalid member reference!"), ref.line);
+        stop();
+    }
+    return env_get(ref.member, ref.line, (Environment *)o.instance.environment);
+}
+
+static Object resolveExpression(Expression* expression, Environment *env){
+    //   printf("\nSolving expression : %s", expressionNames[expression->type]);
     if(hasError)
-        return nullLiteral;
+        return nullObject;
     switch(expression->type){
         case EXPR_LITERAL:
-            return expression->literal;
+            return fromLiteral(expression->literal);
         case EXPR_BINARY:
             return resolveBinary(expression->binary, env);
         case EXPR_LOGICAL:
             return resolveLogical(expression->logical, env);
         case EXPR_NONE:
-            return nullLiteral;
+            return nullObject;
         case EXPR_VARIABLE:
             return resolveVariable(expression->variable, env);
         case EXPR_ARRAY:
             return resolveArray(expression->arrayExpression, env);
         case EXPR_CALL:
             return resolveCall(expression->callExpression, env);
+        case EXPR_REFERENCE:
+            return resolveReference(expression->referenceExpression, env);
     }
 }
 
@@ -298,10 +391,7 @@ static void printString(const char *s){
     }
 }
 
-static Literal executePrint(Print p, Environment *env){
-    int i = 0;
-    while(i < p.argCount){
-        Literal result = resolveExpression(p.expressions[i], env);
+static void printLiteral(Literal result){
         switch(result.type){
             case LIT_NULL:
                 printf("Null");
@@ -319,6 +409,36 @@ static Literal executePrint(Print p, Environment *env){
                 printString(result.sVal);
                 break;
         }
+}
+
+static void printObject(Object o){ 
+        switch(o.type){
+            case OBJECT_ARRAY:
+                printf("<array of %d>", o.arr.count);
+                break;
+            case OBJECT_CONTAINER:
+                printf("<container %s>", o.container.name);
+                break;
+            case OBJECT_INSTANCE:
+                printf("<instance of container %s>", o.instance.name);
+                break;
+            case OBJECT_ROUTINE:
+                printf("<routine %s>", o.routine.name);
+                break;
+            case OBJECT_NULL:
+                printf("Null");
+                break;
+            case OBJECT_LITERAL:
+                printLiteral(o.literal);
+                break;
+        }
+}
+
+static Literal executePrint(Print p, Environment *env){
+    int i = 0;
+    while(i < p.argCount){
+        Object o = resolveExpression(p.expressions[i], env);
+        printObject(o);
         i = i+1;
     }
     return nullLiteral;
@@ -341,7 +461,7 @@ static Literal executeBlock(Block b, Environment *env){
 
 static Literal executeIf(If ifs, Environment *env){
     //debug("Executing if statement");
-    Literal cond = resolveExpression(ifs.condition, env);
+    Literal cond = resolveLiteral(ifs.condition, ifs.line, env);
     if(cond.type != LIT_LOGICAL){
         printf(runtime_error("Not a logical expression as condition!"), ifs.line);
         stop();
@@ -357,7 +477,7 @@ static Literal executeIf(If ifs, Environment *env){
 
 static Literal executeWhile(While w, Environment *env){
     //debug("Executing while statement");
-    Literal cond = resolveExpression(w.condition, env);
+    Literal cond = resolveLiteral(w.condition, w.line, env);
     if(cond.type != LIT_LOGICAL){
         printf(runtime_error("Not a logical expression as condition!"), w.line);
         stop();
@@ -372,7 +492,7 @@ static Literal executeWhile(While w, Environment *env){
         }
         if(ret)
             return retl;
-        cond = resolveExpression(w.condition, env);
+        cond = resolveLiteral(w.condition, w.line, env);
     }
     return nullLiteral;
 }
@@ -385,14 +505,23 @@ static Literal executeSet(Set s, Environment *env){
         if(id->type == EXPR_VARIABLE)
             env_put(id->variable.name, resolveExpression(s.initializers[i].initializerExpression, env), env);
         else if(id->type == EXPR_ARRAY){
-            Literal index = resolveExpression(id->arrayExpression.index, env);
+            Literal index = resolveLiteral(id->arrayExpression.index, s.line, env);
             if(index.type != LIT_INT){
                 printf(runtime_error("Array index must be an integer!"), s.line);
                 stop();
                 return nullLiteral;
             }
             env_arr_put(id->arrayExpression.identifier, index.iVal, 
-                    resolveExpression(s.initializers[i].initializerExpression, env), env);
+                    resolveLiteral(s.initializers[i].initializerExpression, s.line, env), env);
+        }
+        else if(id->type == EXPR_REFERENCE){
+            Object ref = resolveExpression(id->referenceExpression.containerName, env);
+            if(ref.type != OBJECT_INSTANCE){
+                printf(runtime_error("Referenced item is not an instance of a container!"), s.line);
+                stop();
+            }
+            Object value = resolveExpression(s.initializers[i].initializerExpression, env);
+            env_put(id->referenceExpression.member, value, (Environment *)ref.instance.environment);
         }
         else{
             printf(runtime_error("Bad assignment target!"), s.line);
@@ -408,7 +537,7 @@ static Literal executeArray(ArrayInit ai, Environment *env){
     int i = 0;
     while(i < ai.count){
         Expression *iden = ai.initializers[i];
-        Literal init = resolveExpression(iden->arrayExpression.index, env);
+        Literal init = resolveLiteral(iden->arrayExpression.index, ai.line, env);
         if(init.type != LIT_INT){
             printf(runtime_error("Array dimension must be an integer!"), ai.line);
             stop();
@@ -433,13 +562,13 @@ static Literal executeInput(InputStatement is, Environment *env){
                     char *ide = in.identifer;
                     switch(in.datatype){
                         case INPUT_ANY:
-                            env_put(ide, getString(is.line), env);
+                            env_put(ide, fromLiteral(getString(is.line)), env);
                             break;
                         case INPUT_FLOAT:
-                            env_put(ide, getFloat(is.line), env);
+                            env_put(ide, fromLiteral(getFloat(is.line)), env);
                             break;
                         case INPUT_INT:
-                            env_put(ide, getInt(is.line), env);
+                            env_put(ide, fromLiteral(getInt(is.line)), env);
                             break;
                     }
                 }
@@ -469,7 +598,12 @@ static Literal executeBegin(){
 }
 
 static Literal registerRoutine(Routine r){
-    addRoutine(r);
+    env_routine_put(r, r.line, globalEnv);
+    return nullLiteral;
+}
+
+static Literal registerContainer(Container c){
+    env_container_put(c, c.line, globalEnv);
     return nullLiteral;
 }
 
@@ -480,11 +614,12 @@ static Literal executeCall(CallStatement cs, Environment *env){
         return nullLiteral;
     }
     else
-        return resolveCall(cs.callee->callExpression, env);
+        // TODO: CHANGE THIS IMMEDIATELY
+        return resolveCall(cs.callee->callExpression, env).literal;
 }
 
 static Literal executeReturn(ReturnStatement rs, Environment *env){
-    Literal retl = resolveExpression(rs.value, env);
+    Literal retl = resolveLiteral(rs.value, rs.line, env);
     ret = 1;
     return retl;
 }
@@ -515,6 +650,8 @@ static Literal executeStatement(Statement s, Environment *env){
             //           executeDo(s.)
         case STATEMENT_ROUTINE:
             return registerRoutine(s.routine);
+        case STATEMENT_CONTAINER:
+            return registerContainer(s.container);
         case STATEMENT_CALL:
             return executeCall(s.callStatement, env);
         case STATEMENT_NOOP:

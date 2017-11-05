@@ -51,6 +51,9 @@ static Keyword keywords[] = {
     {"Call",    4, TOKEN_CALL},
     {"Return",  6, TOKEN_RETURN},
 
+    {"Container", 9, TOKEN_CONTAINER},
+    {"EndContainer", 12, TOKEN_ENDCONTAINER},
+
     // Sentinel to mark the end of the array.
     {NULL,      0, TOKEN_EOF}
 };

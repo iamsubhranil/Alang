@@ -78,6 +78,9 @@ typedef enum {
   TOKEN_CALL,
   TOKEN_RETURN,
 
+  TOKEN_CONTAINER,
+  TOKEN_ENDCONTAINER,
+
   TOKEN_ERROR,
   TOKEN_EOF
 } TokenType;
@@ -152,6 +155,9 @@ static const char* tokenNames[] = {
   "TOKEN_ENDROUTINE",
   "TOKEN_CALL",
   "TOKEN_RETURN",
+
+  "TOKEN_CONTAINER",
+  "TOKEN_ENDCONTAINER",
 
   "TOKEN_ERROR",
   "TOKEN_EOF"
