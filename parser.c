@@ -679,7 +679,10 @@ static Statement returnStatement(){
     Statement s;
     s.type = STATEMENT_RETURN;
     s.returnStatement.line = presentLine();
-    s.returnStatement.value = expression();
+    if(peek() == TOKEN_NEWLINE)
+        s.returnStatement.value = NULL;
+    else
+        s.returnStatement.value = expression();
     consume(TOKEN_NEWLINE, "Expected newline after Return!");
     return s;
 }

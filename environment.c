@@ -20,9 +20,24 @@ static void insert(Record *toInsert, Environment *parent){
 static void rec_new(char* identifer, Object value, Environment *parent){
     Record *env = (Record *)mallocate(sizeof(Record));
     env->name = identifer;
+    if(value.type == OBJECT_INSTANCE){
+        value.instance->refCount++;
+        //        printf(debug("[New rec] Incremented refcount to %d of container %s#%d for identifer %s!"),
+        //                value.instance->refCount, value.instance->name, value.instance->insCount, identifer);
+    }
     env->object = value;
     env->next = NULL;
     insert(env, parent);
+}
+
+static void gc_try(Record *rec){
+    rec->object.instance->refCount--;
+    if(rec->object.instance->refCount == 0){
+//        printf(debug("[Free] Garbage collecting %s#%d for identifer %s! not in use!"), rec->object.instance->name,
+//                rec->object.instance->insCount, rec->name);
+        env_free((Environment *)rec->object.instance->environment);
+        memfree(rec->object.instance);
+    }
 }
 
 static Record* env_match(char* identifer, Environment *env){
@@ -50,6 +65,10 @@ void env_free(Environment *env){
         Record *bak = rec->next;
         if(rec->object.type == OBJECT_ARRAY)
             memfree(rec->object.arr.values);
+        else if(rec->object.type == OBJECT_INSTANCE){
+            gc_try(rec);
+        }
+        //        memfree(rec->name);
         memfree(rec);
         env->front = bak;
     }
@@ -58,10 +77,27 @@ void env_free(Environment *env){
 
 void env_put(char* identifer, Object value, Environment *env){
     Record *get = env_match(identifer, env);
+    //    if(value.type == OBJECT_INSTANCE)
+    //        printf(debug("[Put] Putting instance %s#%d with refcount %d"), value.instance->name,
+    //                value.instance->insCount, value.instance->refCount);
     if(get == NULL)
         rec_new(identifer, value, env);
-    else
+    else{
+        if(get->object.type == OBJECT_INSTANCE){
+            gc_try(get);
+            //            printf(debug("[Put] Reassigning %s! Decremented refcount of %s#%d to %d!"),
+            //                    identifer, get->object.instance->name, get->object.instance->insCount,
+            //                    get->object.instance->refCount);
+        }
+        if(value.type == OBJECT_INSTANCE){
+            value.instance->refCount++;
+            //            printf(debug("[Put] Incremented refcount to %d of container %s#%d for identifer %s!"),
+            //                   value.instance->refCount, value.instance->name, value.instance->insCount,
+            //                   identifer);
+        }
         get->object = value;
+    }
+    //printf(debug("[Put] Putting %s complete!"), identifer);
 }
 
 Object env_get(char *identifer, int line, Environment *env){
@@ -188,7 +224,7 @@ void env_container_put(Container c, int line, Environment *env){
         }
         stop();
     }
-    
+
     Object o;
     o.type = OBJECT_CONTAINER;
     o.container = c;

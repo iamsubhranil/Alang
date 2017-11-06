@@ -12,8 +12,10 @@ typedef struct{
 } Array;
 
 typedef struct{
-   char *name;
-   void *environment;
+    int refCount;
+    char *name;
+    int insCount;
+    void *environment;
 } Instance;
 
 typedef enum{
@@ -32,7 +34,7 @@ typedef struct{
         Array arr;
         Routine routine;
         Container container;
-        Instance instance;
+        Instance* instance;
     };
 } Object;
 

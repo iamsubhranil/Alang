@@ -15,11 +15,11 @@
 
 
 static Object resolveExpression(Expression* expression, Environment *env);
-static Literal executeBlock(Block b, Environment *env);
+static Object executeBlock(Block b, Environment *env);
 
 static Literal nullLiteral = {0, LIT_NULL, {0}};
 static Object nullObject = {OBJECT_NULL, {{0, LIT_NULL, {0}}}};
-
+static int instanceCount = 0;
 static Environment *globalEnv = NULL;
 
 static int brk = 0, ret = 0, hasError = 0;
@@ -123,10 +123,10 @@ static Object compareInstance(Logical expr, Environment *env){
         Literal ret = {expr.line, LIT_LOGICAL, {0}};
         switch(expr.op.type){
             case TOKEN_EQUAL_EQUAL:
-                ret.lVal = a.instance.environment == b.instance.environment;
+                ret.lVal = a.instance == b.instance;
                 break;
             case TOKEN_BANG_EQUAL:
-                ret.lVal = a.instance.environment != b.instance.environment;
+                ret.lVal = a.instance != b.instance;
                 break;
             default:
                 printf(runtime_error("Can't compare container instances!"), expr.line);
@@ -138,7 +138,7 @@ static Object compareInstance(Logical expr, Environment *env){
     else if((a.type == OBJECT_INSTANCE && b.type == OBJECT_LITERAL)
             || (a.type == OBJECT_LITERAL && b.type == OBJECT_INSTANCE)){
         Literal lit = a.type == OBJECT_LITERAL ? a.literal : b.literal;
-        Instance o = a.type == OBJECT_INSTANCE ? a.instance : b.instance;
+        Instance* o = a.type == OBJECT_INSTANCE ? a.instance : b.instance;
         if(lit.type != LIT_NULL){
             printf(runtime_error("Unable to compare between literal and instances!"), expr.line);
             stop();
@@ -146,10 +146,10 @@ static Object compareInstance(Logical expr, Environment *env){
         Literal ret = {expr.line, LIT_LOGICAL, {0}};
         switch(expr.op.type){
             case TOKEN_EQUAL_EQUAL: 
-                ret.lVal = o.name == NULL;
+                ret.lVal = o == NULL;
                 break;
             case TOKEN_BANG_EQUAL:
-                ret.lVal = o.name != NULL;
+                ret.lVal = o != NULL;
                 break;
             default:
                 printf(runtime_error("Null can't be compared!"), expr.line);
@@ -286,15 +286,18 @@ static Object resolveRoutineCall(Call c, Environment *env){
     }
     Environment *routineEnv = env_new(globalEnv);
     int i = 0;
-    //    printf("\n[Call] Executing %s\n", r.name);
+   // printf("\n[Call] Executing %s Arity : %d\n", r.name, r.arity);
     while(i < r.arity){
+     //   printf(debug("Argument %s"), r.arguments[i]);
         env_put(r.arguments[i], resolveExpression(c.arguments[i], env), routineEnv);
         i++;
     }
     // printf("\n[Call] Executing %s\n", r.name);
-    Object obj = fromLiteral(executeBlock(r.code, routineEnv));
+    Object obj = executeBlock(r.code, routineEnv);
     if(ret)
         ret = 0;
+    //if(obj.type == OBJECT_INSTANCE)
+    //    obj.instance.refCount++;
     env_free(routineEnv);
     return obj;
 }
@@ -310,7 +313,7 @@ static Object resolveContainerCall(Call c, Environment *env){
     }
     Environment *containerEnv = env_new(globalEnv);
     int i = 0;
-    //    printf("\n[Call] Executing %s\n", r.name);
+   // printf("\n[Call] Executing container %s\n", r.name);
     while(i < r.arity){
         env_put(r.arguments[i], resolveExpression(c.arguments[i], env), containerEnv);
         i++;
@@ -319,8 +322,11 @@ static Object resolveContainerCall(Call c, Environment *env){
     executeBlock(r.constructor, containerEnv);
     Object o;
     o.type = OBJECT_INSTANCE;
-    o.instance.name = r.name;
-    o.instance.environment = containerEnv;
+    o.instance = (Instance *)mallocate(sizeof(Instance));
+    o.instance->name = r.name;
+    o.instance->environment = containerEnv;
+    o.instance->refCount = 0;
+    o.instance->insCount = ++instanceCount;
     return o;
 }
 
@@ -338,7 +344,7 @@ static Object resolveReference(Reference ref, Environment *env){
         printf(runtime_error("Invalid member reference!"), ref.line);
         stop();
     }
-    return env_get(ref.member, ref.line, (Environment *)o.instance.environment);
+    return env_get(ref.member, ref.line, (Environment *)o.instance->environment);
 }
 
 static Object resolveExpression(Expression* expression, Environment *env){
@@ -420,7 +426,7 @@ static void printObject(Object o){
                 printf("<container %s>", o.container.name);
                 break;
             case OBJECT_INSTANCE:
-                printf("<instance of container %s>", o.instance.name);
+                printf("<instance of container %s>", o.instance->name);
                 break;
             case OBJECT_ROUTINE:
                 printf("<routine %s>", o.routine.name);
@@ -434,22 +440,22 @@ static void printObject(Object o){
         }
 }
 
-static Literal executePrint(Print p, Environment *env){
+static Object executePrint(Print p, Environment *env){
     int i = 0;
     while(i < p.argCount){
         Object o = resolveExpression(p.expressions[i], env);
         printObject(o);
         i = i+1;
     }
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal executeStatement(Statement s, Environment *env);
+static Object executeStatement(Statement s, Environment *env);
 
-static Literal executeBlock(Block b, Environment *env){
+static Object executeBlock(Block b, Environment *env){
     //debug("Executing block statement");
     int num = 0;
-    Literal retl = nullLiteral;
+    Object retl = nullObject;
     while(num < b.numStatements){
         retl = executeStatement(b.statements[num], env);
         if(brk || ret)
@@ -459,13 +465,13 @@ static Literal executeBlock(Block b, Environment *env){
     return retl;
 }
 
-static Literal executeIf(If ifs, Environment *env){
+static Object executeIf(If ifs, Environment *env){
     //debug("Executing if statement");
     Literal cond = resolveLiteral(ifs.condition, ifs.line, env);
     if(cond.type != LIT_LOGICAL){
         printf(runtime_error("Not a logical expression as condition!"), ifs.line);
         stop();
-        return nullLiteral;
+        return nullObject;
     }
     if(cond.lVal){
         return executeBlock(ifs.thenBranch, env);
@@ -475,15 +481,15 @@ static Literal executeIf(If ifs, Environment *env){
     }
 }
 
-static Literal executeWhile(While w, Environment *env){
+static Object executeWhile(While w, Environment *env){
     //debug("Executing while statement");
     Literal cond = resolveLiteral(w.condition, w.line, env);
     if(cond.type != LIT_LOGICAL){
         printf(runtime_error("Not a logical expression as condition!"), w.line);
         stop();
-        return nullLiteral;
+        return nullObject;
     }
-    Literal retl = nullLiteral;
+    Object retl = nullObject;
     while(cond.lVal){
         retl = executeBlock(w.body, env);
         if(brk){
@@ -494,10 +500,10 @@ static Literal executeWhile(While w, Environment *env){
             return retl;
         cond = resolveLiteral(w.condition, w.line, env);
     }
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal executeSet(Set s, Environment *env){
+static Object executeSet(Set s, Environment *env){
     //debug("Executing set statement");
     int i = 0;
     while(i < s.count){
@@ -509,7 +515,7 @@ static Literal executeSet(Set s, Environment *env){
             if(index.type != LIT_INT){
                 printf(runtime_error("Array index must be an integer!"), s.line);
                 stop();
-                return nullLiteral;
+                return nullObject;
             }
             env_arr_put(id->arrayExpression.identifier, index.iVal, 
                     resolveLiteral(s.initializers[i].initializerExpression, s.line, env), env);
@@ -521,19 +527,19 @@ static Literal executeSet(Set s, Environment *env){
                 stop();
             }
             Object value = resolveExpression(s.initializers[i].initializerExpression, env);
-            env_put(id->referenceExpression.member, value, (Environment *)ref.instance.environment);
+            env_put(id->referenceExpression.member, value, (Environment *)ref.instance->environment);
         }
         else{
             printf(runtime_error("Bad assignment target!"), s.line);
             stop();
-            return nullLiteral;
+            return nullObject;
         }
         i++;
     }
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal executeArray(ArrayInit ai, Environment *env){
+static Object executeArray(ArrayInit ai, Environment *env){
     int i = 0;
     while(i < ai.count){
         Expression *iden = ai.initializers[i];
@@ -541,15 +547,15 @@ static Literal executeArray(ArrayInit ai, Environment *env){
         if(init.type != LIT_INT){
             printf(runtime_error("Array dimension must be an integer!"), ai.line);
             stop();
-            return nullLiteral;
+            return nullObject;
         }
         env_arr_new(iden->arrayExpression.identifier, ai.line, init.iVal, env);
         i++;
     }
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal executeInput(InputStatement is, Environment *env){
+static Object executeInput(InputStatement is, Environment *env){
     int i = 0;
     while(i < is.count){
         Input in = is.inputs[i];
@@ -575,58 +581,59 @@ static Literal executeInput(InputStatement is, Environment *env){
         }
         i++;
     }
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal executeBreak(){
+static Object executeBreak(){
     //debug("Executing break statement");
     brk = 1;
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal executeEnd(){
+static Object executeEnd(){
     //debug("Executing end statement");
     memfree_all();
     exit(0);
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal executeBegin(){
+static Object executeBegin(){
     //debug("Executing begin statement");
     warning("Begin is a no-op!\n");
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal registerRoutine(Routine r){
+static Object registerRoutine(Routine r){
     env_routine_put(r, r.line, globalEnv);
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal registerContainer(Container c){
+static Object registerContainer(Container c){
     env_container_put(c, c.line, globalEnv);
-    return nullLiteral;
+    return nullObject;
 }
 
-static Literal executeCall(CallStatement cs, Environment *env){
+static Object executeCall(CallStatement cs, Environment *env){
     if(cs.callee->type != EXPR_CALL){
         printf(runtime_error("Expected call expression!"), cs.line);
         stop();
-        return nullLiteral;
+        return nullObject;
     }
     else
-        // TODO: CHANGE THIS IMMEDIATELY
-        return resolveCall(cs.callee->callExpression, env).literal;
+        return resolveCall(cs.callee->callExpression, env);
 }
 
-static Literal executeReturn(ReturnStatement rs, Environment *env){
-    Literal retl = resolveLiteral(rs.value, rs.line, env);
+static Object executeReturn(ReturnStatement rs, Environment *env){
+    Object retl = nullObject;
+    if(rs.value != NULL)
+        retl = resolveExpression(rs.value,  env);
     ret = 1;
     return retl;
 }
 
-static Literal executeStatement(Statement s, Environment *env){
+static Object executeStatement(Statement s, Environment *env){
     if(hasError)
-        return nullLiteral;
+        return nullObject;
     switch(s.type){
         case STATEMENT_PRINT:
             return executePrint(s.printStatement, env);
@@ -675,6 +682,7 @@ void interpret(Code c){
     call.identifer = strdup("Main");
     call.arguments = NULL;
     resolveCall(call, globalEnv);
+    env_free(globalEnv);
 }
 
 void stop(){
