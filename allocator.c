@@ -1,5 +1,5 @@
 #include <stdlib.h>
-//#include <stdio.h>
+#include <stdio.h>
 
 #include "display.h"
 #include "allocator.h"
@@ -48,16 +48,20 @@ static void exchange(void *oldmem, void *newmem){
 void* mallocate(size_t size){
     void *mem = malloc(size);
     allocationCount++;
-    if(mem == NULL)
-        error("Unable to allocate object! Insufficient memory!");
+    if(mem == NULL){
+        printf(error("Unable to allocate object! Insufficient memory!"));
+        exit(1);
+    }
     insert(mem);
     return mem;
 }
 
 void* reallocate(void *mem, size_t size){
     void *newmem = realloc(mem, size);
-    if(newmem == NULL)
-        error("Unable to extend! Insufficient memory!");
+    if(newmem == NULL){
+        printf(error("Unable to extend! Insufficient memory!"));
+        exit(1);
+    }
     exchange(mem, newmem);
 //    printf("\n[Allocator] Reallocated %p to %p", mem, newmem);
 //        fflush(stdout);
