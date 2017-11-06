@@ -32,4 +32,6 @@ Routine env_routine_get(char *identifer, int line, Environment *env);
 void env_container_put(Container c, int line, Environment *env);
 Container env_container_get(char *identifer, int line, Environment *env);
 
+void gc_obj(Object o);
+
 #endif

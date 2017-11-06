@@ -37,14 +37,20 @@ static void rec_new(char* identifer, Object value, Environment *parent){
     insert(env, parent);
 }
 
-static void gc_try(Record *rec){
-    rec->object.instance->refCount--;
-    if(rec->object.instance->refCount == 0 && rec->object.instance->fromReturn == 0){
-//               printf(debug("[Free] Garbage collecting %s#%d for identifer %s! not in use!"), rec->object.instance->name,
-//                rec->object.instance->insCount, rec->name);
-        env_free((Environment *)rec->object.instance->environment);
-        memfree(rec->object.instance);
+void inline gc_obj(Object o){
+    if(o.type == OBJECT_INSTANCE){
+        Instance *ins = o.instance;
+        ins->refCount--;
+        if(ins->refCount <= 0 && ins->fromReturn == 0){
+//            printf(debug("[Gc_Obj] Garbage collecting %s#%d!"), ins->name, ins->insCount);
+            env_free((Environment *)ins->environment);
+            memfree(ins);
+        }
     }
+}
+
+static void inline gc_rec(Record *rec){
+    gc_obj(rec->object);
 }
 
 static Record* env_match(char* identifer, Environment *env){
@@ -73,7 +79,7 @@ void env_free(Environment *env){
         if(rec->object.type == OBJECT_ARRAY)
             memfree(rec->object.arr.values);
         else if(rec->object.type == OBJECT_INSTANCE){
-            gc_try(rec);
+            gc_rec(rec);
         }
         //        memfree(rec->name);
         memfree(rec);
@@ -84,22 +90,19 @@ void env_free(Environment *env){
 
 void env_put(char* identifer, Object value, Environment *env){
     Record *get = env_match(identifer, env);
-//        if(value.type == OBJECT_INSTANCE)
-//            printf(debug("[Put] Putting instance %s#%d with refcount %d"), value.instance->name,
-//                    value.instance->insCount, value.instance->refCount);
     if(get == NULL)
         rec_new(identifer, value, env);
     else{
-        if(get->object.type == OBJECT_INSTANCE){
-            gc_try(get);
+        Object old = get->object;
+        incr_ref(value);
+        get->object = value;
+        if(old.type == OBJECT_INSTANCE){
+            gc_obj(old);
             //            printf(debug("[Put] Reassigning %s! Decremented refcount of %s#%d to %d!"),
             //                    identifer, get->object.instance->name, get->object.instance->insCount,
             //                    get->object.instance->refCount);
         }
-        incr_ref(value);
-        get->object = value;
     }
-    //printf(debug("[Put] Putting %s complete!"), identifer);
 }
 
 Object env_get(char *identifer, int line, Environment *env){

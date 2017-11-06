@@ -622,10 +622,7 @@ static Object executeCall(CallStatement cs, Environment *env){
         if(o.type != OBJECT_NULL)
             printf(warning("[Line %d] Ignoring return value!"), cs.line);
         if(o.type == OBJECT_INSTANCE){
-            if(o.instance->refCount < 1){
-                env_free((Environment *)o.instance->environment);
-                memfree(o.instance);
-            }
+            gc_obj(o);
         }
     }
     return nullObject;
