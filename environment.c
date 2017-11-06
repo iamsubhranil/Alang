@@ -21,6 +21,8 @@ static void rec_new(char* identifer, Object value, Environment *parent){
     Record *env = (Record *)mallocate(sizeof(Record));
     env->name = identifer;
     if(value.type == OBJECT_INSTANCE){
+        if(value.instance->refCount == -1)
+            value.instance->refCount = 0;
         value.instance->refCount++;
         //        printf(debug("[New rec] Incremented refcount to %d of container %s#%d for identifer %s!"),
         //                value.instance->refCount, value.instance->name, value.instance->insCount, identifer);
@@ -77,9 +79,9 @@ void env_free(Environment *env){
 
 void env_put(char* identifer, Object value, Environment *env){
     Record *get = env_match(identifer, env);
-    //    if(value.type == OBJECT_INSTANCE)
-    //        printf(debug("[Put] Putting instance %s#%d with refcount %d"), value.instance->name,
-    //                value.instance->insCount, value.instance->refCount);
+//        if(value.type == OBJECT_INSTANCE)
+//            printf(debug("[Put] Putting instance %s#%d with refcount %d"), value.instance->name,
+//                    value.instance->insCount, value.instance->refCount);
     if(get == NULL)
         rec_new(identifer, value, env);
     else{
@@ -90,10 +92,12 @@ void env_put(char* identifer, Object value, Environment *env){
             //                    get->object.instance->refCount);
         }
         if(value.type == OBJECT_INSTANCE){
+            if(value.instance->refCount == -1)
+                value.instance->refCount = 0;
             value.instance->refCount++;
-            //            printf(debug("[Put] Incremented refcount to %d of container %s#%d for identifer %s!"),
-            //                   value.instance->refCount, value.instance->name, value.instance->insCount,
-            //                   identifer);
+                        printf(debug("[Put] Incremented refcount to %d of container %s#%d for identifer %s!"),
+                               value.instance->refCount, value.instance->name, value.instance->insCount,
+                               identifer);
         }
         get->object = value;
     }

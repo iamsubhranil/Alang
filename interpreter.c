@@ -296,8 +296,6 @@ static Object resolveRoutineCall(Call c, Environment *env){
     Object obj = executeBlock(r.code, routineEnv);
     if(ret)
         ret = 0;
-    //if(obj.type == OBJECT_INSTANCE)
-    //    obj.instance.refCount++;
     env_free(routineEnv);
     return obj;
 }
@@ -325,7 +323,7 @@ static Object resolveContainerCall(Call c, Environment *env){
     o.instance = (Instance *)mallocate(sizeof(Instance));
     o.instance->name = r.name;
     o.instance->environment = containerEnv;
-    o.instance->refCount = 0;
+    o.instance->refCount = -1;
     o.instance->insCount = ++instanceCount;
     return o;
 }
@@ -617,16 +615,29 @@ static Object executeCall(CallStatement cs, Environment *env){
     if(cs.callee->type != EXPR_CALL){
         printf(runtime_error("Expected call expression!"), cs.line);
         stop();
-        return nullObject;
     }
-    else
-        return resolveCall(cs.callee->callExpression, env);
+    else{
+        Object o = resolveCall(cs.callee->callExpression, env);
+        if(o.type != OBJECT_NULL)
+            printf(warning("[Line %d] Ignoring return value!"), cs.line);
+        if(o.type == OBJECT_INSTANCE && o.instance->refCount < 1){
+            env_free((Environment *)o.instance->environment);
+            memfree(o.instance);
+        }
+    }
+    return nullObject;
 }
 
 static Object executeReturn(ReturnStatement rs, Environment *env){
     Object retl = nullObject;
     if(rs.value != NULL)
         retl = resolveExpression(rs.value,  env);
+//    printf(debug("Returing object of type %d"), retl.type);
+    if(retl.type == OBJECT_INSTANCE && retl.instance->refCount != -1){
+        retl.instance->refCount++;
+//        printf(debug("Incrementing ref to %d of %s#%d\n"), retl.instance->refCount,
+//                retl.instance->name, retl.instance->insCount);
+    }
     ret = 1;
     return retl;
 }
