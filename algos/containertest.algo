@@ -102,6 +102,10 @@ Routine NewNode()
     Return Node(x)
 EndRoutine
 
+Routine Test()
+    Return front
+EndRoutine
+
 Routine Main()
     While(True)
         Print "\nSelect an operation : "
@@ -117,6 +121,8 @@ Routine Main()
             Print "\nBad choice!\n"
             Break
         Else
+            Set i = Test()
+            Call Test()
             If(choice < 4)
                 Set node = NewNode()
             EndIf

@@ -14,6 +14,7 @@ typedef struct{
 typedef struct{
     int refCount;
     char *name;
+    int fromReturn;
     int insCount;
     void *environment;
 } Instance;

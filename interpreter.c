@@ -323,8 +323,9 @@ static Object resolveContainerCall(Call c, Environment *env){
     o.instance = (Instance *)mallocate(sizeof(Instance));
     o.instance->name = r.name;
     o.instance->environment = containerEnv;
-    o.instance->refCount = -1;
+    o.instance->refCount = 0;
     o.instance->insCount = ++instanceCount;
+    o.instance->fromReturn = 0;
     return o;
 }
 
@@ -620,9 +621,11 @@ static Object executeCall(CallStatement cs, Environment *env){
         Object o = resolveCall(cs.callee->callExpression, env);
         if(o.type != OBJECT_NULL)
             printf(warning("[Line %d] Ignoring return value!"), cs.line);
-        if(o.type == OBJECT_INSTANCE && o.instance->refCount < 1){
-            env_free((Environment *)o.instance->environment);
-            memfree(o.instance);
+        if(o.type == OBJECT_INSTANCE){
+            if(o.instance->refCount < 1){
+                env_free((Environment *)o.instance->environment);
+                memfree(o.instance);
+            }
         }
     }
     return nullObject;
@@ -633,8 +636,8 @@ static Object executeReturn(ReturnStatement rs, Environment *env){
     if(rs.value != NULL)
         retl = resolveExpression(rs.value,  env);
 //    printf(debug("Returing object of type %d"), retl.type);
-    if(retl.type == OBJECT_INSTANCE && retl.instance->refCount != -1){
-        retl.instance->refCount++;
+    if(retl.type == OBJECT_INSTANCE){
+        retl.instance->fromReturn = 1;
 //        printf(debug("Incrementing ref to %d of %s#%d\n"), retl.instance->refCount,
 //                retl.instance->name, retl.instance->insCount);
     }

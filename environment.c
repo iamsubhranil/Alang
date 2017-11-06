@@ -17,16 +17,21 @@ static void insert(Record *toInsert, Environment *parent){
     }
 }
 
-static void rec_new(char* identifer, Object value, Environment *parent){
-    Record *env = (Record *)mallocate(sizeof(Record));
-    env->name = identifer;
+static void incr_ref(Object value){ 
     if(value.type == OBJECT_INSTANCE){
-        if(value.instance->refCount == -1)
-            value.instance->refCount = 0;
+        if(value.instance->fromReturn == 1){
+            value.instance->fromReturn = 0;
+        }
         value.instance->refCount++;
         //        printf(debug("[New rec] Incremented refcount to %d of container %s#%d for identifer %s!"),
         //                value.instance->refCount, value.instance->name, value.instance->insCount, identifer);
     }
+}
+
+static void rec_new(char* identifer, Object value, Environment *parent){
+    Record *env = (Record *)mallocate(sizeof(Record));
+    env->name = identifer;
+    incr_ref(value);
     env->object = value;
     env->next = NULL;
     insert(env, parent);
@@ -34,8 +39,8 @@ static void rec_new(char* identifer, Object value, Environment *parent){
 
 static void gc_try(Record *rec){
     rec->object.instance->refCount--;
-    if(rec->object.instance->refCount == 0){
-//        printf(debug("[Free] Garbage collecting %s#%d for identifer %s! not in use!"), rec->object.instance->name,
+    if(rec->object.instance->refCount == 0 && rec->object.instance->fromReturn == 0){
+//               printf(debug("[Free] Garbage collecting %s#%d for identifer %s! not in use!"), rec->object.instance->name,
 //                rec->object.instance->insCount, rec->name);
         env_free((Environment *)rec->object.instance->environment);
         memfree(rec->object.instance);
@@ -91,14 +96,7 @@ void env_put(char* identifer, Object value, Environment *env){
             //                    identifer, get->object.instance->name, get->object.instance->insCount,
             //                    get->object.instance->refCount);
         }
-        if(value.type == OBJECT_INSTANCE){
-            if(value.instance->refCount == -1)
-                value.instance->refCount = 0;
-            value.instance->refCount++;
-                        printf(debug("[Put] Incremented refcount to %d of container %s#%d for identifer %s!"),
-                               value.instance->refCount, value.instance->name, value.instance->insCount,
-                               identifer);
-        }
+        incr_ref(value);
         get->object = value;
     }
     //printf(debug("[Put] Putting %s complete!"), identifer);
