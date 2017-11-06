@@ -8,6 +8,7 @@ In the era of programs and never ending quest for the "perfect" programming lang
 Alang is dynamically typed, meaning it manages the datatype of a variable on-the-fly. It also doesn't scold you if you put a value of typeA in a variable which previously contained a value of typeB. Alang supports integer, floating point, boolean and string datatypes. All standard arithmetic and logical operations are permitted on integer and floating point values, including % for 'modulo divison'(integer only) and ^ for exponentiation operation. String supports all logical operations except 'logical and' and 'logical or'. The only 'arithmetic' operator which can be used in between two strings is '+', which results a new string as a concatenation of the older ones. Boolean variables can only be used in a logical operation or expression.
 A variable name can contain any alphanumeric character, but it must lead with an alphabet. It cannot contain '.', '#' or any other special characters. A string must be specified between ""(double quotes).
 Alang also supports arrays, and an array *can* contain heterogeneous elements. Array index starts from 1 and goes upto size_of_the_array, and trying to read or write outside of this range results in a runtime error. You can shrink and/or grow arrays at runtime by redefining it, which preserves the existing elements of the array. However, if the new size is lesser than the older one, all the elements with index > size gets deleted.
+Alang also supports accessing letters of a string using index, and reading and writing strings in the same way is permitted.
 
 #### Operator and expressions
 
@@ -68,6 +69,24 @@ It is not necessary for a routine to return a value. If a routine doesn't return
 ```
     Set i = MyRoutine(parameter1, parameter2, ...)
 ```
+
+#### Containers
+
+Containers are packets of data, and have some distinct properties of both a routine and an array. Like an array, a container is a collection of values. Unlike array, members of a container can be accessed by name. Like a function, a container can have arguments and a block of statements. But unlike functions, those instructions cannot be reused. They are executed one time while initializing the container. Any variable declared while the execution of the block is considered as a member of the container, and can be accessed using the following syntax later on : 
+```
+Set i = MyContainer() 
+Set i.member = value 
+```
+Containers differ from both C structures and OOP classes. Unlike structures, a container can have an implicit constructor. Unlike classes, a container cannot have routines.
+To declare a cotainer, place the constructor between `Container` - `EndContainer` block.
+```
+Container MyContainer(x, y)
+    Set value = x
+    Set next = y
+EndContainer
+```
+A container must be declared on the outermost indent, like routines. Alang "tries" to intelligently garbage collect all leftover containers instances when they are not in use, but may get stuck on some places. If you can find one such place, please open an issue with your full program and exact output.
+Only the variables declared while executing the constructor block are considered as members. Trying to access members other than them will result in errors.
 
 #### Syntax
 
