@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "expr.h"
 #include "display.h"
@@ -42,7 +43,7 @@ void inline gc_obj(Object o){
         Instance *ins = o.instance;
         ins->refCount--;
         if(ins->refCount <= 0 && ins->fromReturn == 0){
-//            printf(debug("[Gc_Obj] Garbage collecting %s#%d!"), ins->name, ins->insCount);
+            //            printf(debug("[Gc_Obj] Garbage collecting %s#%d!"), ins->name, ins->insCount);
             env_free((Environment *)ins->environment);
             memfree(ins);
         }
@@ -171,14 +172,13 @@ Literal env_arr_get(char *identifer, int line, long index, Environment *env){
         stop();
     }
     else if(get->object.type != OBJECT_ARRAY){
-        printf(runtime_error("Variable %s is not an array!"), line, identifer);
+        printf(runtime_error("Subscripted variable %s is not an array or string!"), line, identifer);
         stop();
     }
-    else if(index < 1 || get->object.arr.count < index){
+    if(index < 1 || get->object.arr.count < index){
         printf(runtime_error("Array index out of range [%ld]!"), line, index);
         stop();
     }
-
     return get->object.arr.values[index - 1];
 }
 

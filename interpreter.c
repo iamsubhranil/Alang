@@ -272,6 +272,24 @@ static Object resolveArray(ArrayExpression ae, Environment *env){
         printf(runtime_error("Array index must be an integer!"), ae.line);
         stop();
     }
+    Object get = env_get(ae.identifier, ae.line, env);
+    if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){ 
+            char *s = get.literal.sVal;
+            long le = strlen(s);
+            long in = index.lVal;
+            if(in < 1 || le < in){
+                printf(runtime_error("String index out of range [%ld]!"), ae.line, in);
+                stop();
+            }
+            char c = s[in - 1];
+            char *cs = (char *)mallocate(sizeof(char) * 2);
+            cs[0] = c;
+            cs[1] = '\0';
+            Literal l;
+            l.type =  LIT_STRING;
+            l.sVal = cs;
+            return fromLiteral(l);
+    }
     return fromLiteral(env_arr_get(ae.identifier, ae.line, index.iVal, env));
 }
 
