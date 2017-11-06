@@ -534,8 +534,24 @@ static Object executeSet(Set s, Environment *env){
                 stop();
                 return nullObject;
             }
-            env_arr_put(id->arrayExpression.identifier, index.iVal, 
-                    resolveLiteral(s.initializers[i].initializerExpression, s.line, env), env);
+            Literal rep = resolveLiteral(s.initializers[i].initializerExpression, s.line, env);
+            Object get = env_get(id->arrayExpression.identifier, s.line, env);
+            if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){
+                if(index.lVal < 1){
+                    printf(runtime_error("String index must be positive!"), s.line);
+                    stop();
+                }
+                if(rep.type != LIT_STRING){
+                    printf(runtime_error("Bad assignment to a string!"), s.line);
+                    stop();
+                }
+                if(strlen(rep.sVal) > 1)
+                    printf(warning("[Line %d] Ignoring extra characters while assignment!"), s.line);
+                get.literal.sVal[index.lVal - 1] = rep.sVal[0];
+            }
+            else
+                env_arr_put(id->arrayExpression.identifier, index.iVal, 
+                        rep, env);
         }
         else if(id->type == EXPR_REFERENCE){
             Object ref = resolveExpression(id->referenceExpression.containerName, env);
