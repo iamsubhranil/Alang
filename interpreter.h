@@ -6,9 +6,11 @@
 void interpret(Code c);
 void stop();
 
+typedef struct Object Object;
+
 typedef struct{
     int count;
-    Literal *values;
+    Object *values;
 } Array;
 
 typedef struct{
@@ -28,7 +30,7 @@ typedef enum{
     OBJECT_INSTANCE
 } ObjectType;
 
-typedef struct{
+struct Object{
     ObjectType type;
     union{
         Literal literal;
@@ -37,6 +39,6 @@ typedef struct{
         Container container;
         Instance* instance;
     };
-} Object;
+};
 
 #endif

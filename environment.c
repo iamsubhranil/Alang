@@ -89,10 +89,14 @@ void env_free(Environment *env){
     memfree(env);
 }
 
-void env_put(char* identifer, Object value, Environment *env){
+void env_put(char* identifer, int line, Object value, Environment *env){
     Record *get = env_match(identifer, env);
     if(get == NULL)
         rec_new(identifer, value, env);
+    else if(get->object.type == OBJECT_ARRAY){
+        printf(runtime_error("Array cannot be assigned directly!"), line);
+        stop();
+    }
     else{
         Object old = get->object;
         incr_ref(value);
@@ -112,10 +116,10 @@ Object env_get(char *identifer, int line, Environment *env){
         printf(runtime_error("Undefined variable %s!"), line, identifer);
         stop();
     }
-    else if(get->object.type == OBJECT_ARRAY){
-        printf(runtime_error("%s is an array and cannot be accessed directly!"), line, identifer);
-        stop();
-    }
+   // else if(get->object.type == OBJECT_ARRAY){
+   //     printf(runtime_error("%s is an array and cannot be accessed directly!"), line, identifer);
+   //     stop();
+   // }
     return get->object;
 }
 
@@ -126,10 +130,9 @@ void env_arr_new(char *identifer, int line, long numElements, Environment *env){
     else if(match != NULL){
         long bak = match->object.arr.count;
         match->object.arr.count = numElements;
-        match->object.arr.values = (Literal *)reallocate(match->object.arr.values, sizeof(Literal)*numElements);
+        match->object.arr.values = (Object *)reallocate(match->object.arr.values, sizeof(Object)*numElements);
         while(bak < numElements){
-            match->object.arr.values[bak].type = LIT_INT;
-            match->object.arr.values[bak].iVal = 0;
+            match->object.arr.values[bak].type = OBJECT_NULL;
             bak++;
         }
         return;
@@ -137,35 +140,34 @@ void env_arr_new(char *identifer, int line, long numElements, Environment *env){
     Object o;
     o.type = OBJECT_ARRAY;
     o.arr.count = numElements;
-    o.arr.values = (Literal *)mallocate(sizeof(Literal) * numElements);
+    o.arr.values = (Object *)mallocate(sizeof(Object) * numElements);
     long i = 0;
     while(i < numElements){
-        o.arr.values[i].type = LIT_INT;
-        o.arr.values[i].iVal = 0;
+        o.arr.values[i].type = OBJECT_NULL;
         i++;
     }
     rec_new(identifer, o, env);
 }
 
-void env_arr_put(char *identifer, long index, Literal value, Environment *env){
+void env_arr_put(char *identifer, int line, long index, Object value, Environment *env){
     Record *get = env_match(identifer, env);
     if(get == NULL){
-        printf(runtime_error("Undefined array %s!"), value.line, identifer);
+        printf(runtime_error("Undefined array %s!"), line, identifer);
         stop();
     }
     else if(get->object.type != OBJECT_ARRAY){
-        printf(runtime_error("Variable %s is not an array!"), value.line, identifer);
+        printf(runtime_error("Variable %s is not an array!"), line, identifer);
         stop();
     }
     else if(index < 1 || get->object.arr.count < index){
-        printf(runtime_error("Array index out of range [%ld]!"), value.line, index);
+        printf(runtime_error("Array index out of range [%ld]!"), line, index);
         stop();
     }
 
     get->object.arr.values[index - 1] = value;
 }
 
-Literal env_arr_get(char *identifer, int line, long index, Environment *env){ 
+Object env_arr_get(char *identifer, int line, long index, Environment *env){ 
     Record *get = env_match(identifer, env);
     if(env == NULL){
         printf(runtime_error("Undefined array %s!"), line, identifer);

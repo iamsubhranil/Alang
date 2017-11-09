@@ -19,12 +19,12 @@ typedef struct Environment{
 Environment *env_new(Environment *parent);
 void env_free(Environment *env);
 
-void env_put(char *identifer, Object value, Environment *env);
+void env_put(char *identifer, int line, Object value, Environment *env);
 Object env_get(char *identifer, int line, Environment *env);
 
 void env_arr_new(char *identifer, int line, long numElements, Environment *env);
-void env_arr_put(char *identifer, long index, Literal value, Environment *env);
-Literal env_arr_get(char *identifer, int line, long index, Environment *env);
+void env_arr_put(char *identifer, int line, long index, Object value, Environment *env);
+Object env_arr_get(char *identifer, int line, long index, Environment *env);
 
 void env_routine_put(Routine r, int line, Environment *env);
 Routine env_routine_get(char *identifer, int line, Environment *env);

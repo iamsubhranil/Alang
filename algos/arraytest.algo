@@ -1,3 +1,8 @@
+Container Test(x)
+    Set i = x
+EndContainer
+
+
 Routine Main()
     Print "\nInitializing array arr with size 8"
     Array arr[3+5]
@@ -21,6 +26,19 @@ Routine Main()
     Set i = 1
     While(i < 9)
         Print "\narr[",i,"] = ", arr[i]
+        Set i = i+1
+    EndWhile
+    Print "\nStoring Test container into array contain"
+    Array contain[10]
+    Set i = 1
+    While(i < 11)
+        Set contain[i] = Test(i)
+        Set i = i + 1
+    EndWhile
+    Print "\nPrinting stored container values"
+    Set i = 1
+    While(i < 11)
+        Print "\nContainer ",i," : ", contain[i].i
         Set i = i+1
     EndWhile
     Print "\nInitializing a[20] and b[32]"

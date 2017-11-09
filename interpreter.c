@@ -290,7 +290,7 @@ static Object resolveArray(ArrayExpression ae, Environment *env){
             l.sVal = cs;
             return fromLiteral(l);
     }
-    return fromLiteral(env_arr_get(ae.identifier, ae.line, index.iVal, env));
+    return env_arr_get(ae.identifier, ae.line, index.iVal, env);
 }
 
 static Object resolveRoutineCall(Call c, Environment *env){
@@ -307,7 +307,7 @@ static Object resolveRoutineCall(Call c, Environment *env){
    // printf("\n[Call] Executing %s Arity : %d\n", r.name, r.arity);
     while(i < r.arity){
      //   printf(debug("Argument %s"), r.arguments[i]);
-        env_put(r.arguments[i], resolveExpression(c.arguments[i], env), routineEnv);
+        env_put(r.arguments[i], c.line, resolveExpression(c.arguments[i], env), routineEnv);
         i++;
     }
     // printf("\n[Call] Executing %s\n", r.name);
@@ -331,7 +331,7 @@ static Object resolveContainerCall(Call c, Environment *env){
     int i = 0;
    // printf("\n[Call] Executing container %s\n", r.name);
     while(i < r.arity){
-        env_put(r.arguments[i], resolveExpression(c.arguments[i], env), containerEnv);
+        env_put(r.arguments[i], c.line, resolveExpression(c.arguments[i], env), containerEnv);
         i++;
     }
     // printf("\n[Call] Executing %s\n", r.name);
@@ -526,7 +526,7 @@ static Object executeSet(Set s, Environment *env){
     while(i < s.count){
         Expression *id = s.initializers[i].identifer;
         if(id->type == EXPR_VARIABLE)
-            env_put(id->variable.name, resolveExpression(s.initializers[i].initializerExpression, env), env);
+            env_put(id->variable.name, s.line, resolveExpression(s.initializers[i].initializerExpression, env), env);
         else if(id->type == EXPR_ARRAY){
             Literal index = resolveLiteral(id->arrayExpression.index, s.line, env);
             if(index.type != LIT_INT){
@@ -534,9 +534,9 @@ static Object executeSet(Set s, Environment *env){
                 stop();
                 return nullObject;
             }
-            Literal rep = resolveLiteral(s.initializers[i].initializerExpression, s.line, env);
             Object get = env_get(id->arrayExpression.identifier, s.line, env);
             if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){
+                Literal rep = resolveLiteral(s.initializers[i].initializerExpression, s.line, env);
                 if(index.lVal < 1){
                     printf(runtime_error("String index must be positive!"), s.line);
                     stop();
@@ -550,8 +550,8 @@ static Object executeSet(Set s, Environment *env){
                 get.literal.sVal[index.lVal - 1] = rep.sVal[0];
             }
             else
-                env_arr_put(id->arrayExpression.identifier, index.iVal, 
-                        rep, env);
+                env_arr_put(id->arrayExpression.identifier, s.line, index.iVal, 
+                        resolveExpression(s.initializers[i].initializerExpression, env), env);
         }
         else if(id->type == EXPR_REFERENCE){
             Object ref = resolveExpression(id->referenceExpression.containerName, env);
@@ -560,7 +560,7 @@ static Object executeSet(Set s, Environment *env){
                 stop();
             }
             Object value = resolveExpression(s.initializers[i].initializerExpression, env);
-            env_put(id->referenceExpression.member, value, (Environment *)ref.instance->environment);
+            env_put(id->referenceExpression.member, s.line, value, (Environment *)ref.instance->environment);
         }
         else{
             printf(runtime_error("Bad assignment target!"), s.line);
@@ -601,13 +601,13 @@ static Object executeInput(InputStatement is, Environment *env){
                     char *ide = in.identifer;
                     switch(in.datatype){
                         case INPUT_ANY:
-                            env_put(ide, fromLiteral(getString(is.line)), env);
+                            env_put(ide, is.line, fromLiteral(getString(is.line)), env);
                             break;
                         case INPUT_FLOAT:
-                            env_put(ide, fromLiteral(getFloat(is.line)), env);
+                            env_put(ide, is.line, fromLiteral(getFloat(is.line)), env);
                             break;
                         case INPUT_INT:
-                            env_put(ide, fromLiteral(getInt(is.line)), env);
+                            env_put(ide, is.line, fromLiteral(getInt(is.line)), env);
                             break;
                     }
                 }
