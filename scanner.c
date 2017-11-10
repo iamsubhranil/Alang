@@ -280,7 +280,7 @@ static Token scanToken() {
         default:
                   printf(line_error("Unexpected character %c!"), scanner.line, c);
                   se++;
-                  break;
+                  return makeToken(TOKEN_EOF);
     }
 }
 

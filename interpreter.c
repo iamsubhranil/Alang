@@ -17,12 +17,11 @@
 static Object resolveExpression(Expression* expression, Environment *env);
 static Object executeBlock(Block b, Environment *env);
 
-static Literal nullLiteral = {0, LIT_NULL, {0}};
 static Object nullObject = {OBJECT_NULL, {{0, LIT_NULL, {0}}}};
 static int instanceCount = 0;
 static Environment *globalEnv = NULL;
 
-static int brk = 0, ret = 0, hasError = 0;
+static int brk = 0, ret = 0;
 
 static int isNumeric(Literal l){
     return l.type == LIT_INT || l.type == LIT_DOUBLE;
@@ -366,8 +365,6 @@ static Object resolveReference(Reference ref, Environment *env){
 
 static Object resolveExpression(Expression* expression, Environment *env){
     //   printf("\nSolving expression : %s", expressionNames[expression->type]);
-    if(hasError)
-        return nullObject;
     switch(expression->type){
         case EXPR_LITERAL:
             return fromLiteral(expression->literal);
@@ -520,13 +517,12 @@ static Object executeWhile(While w, Environment *env){
     return nullObject;
 }
 
-static Object write_array(Expression *id, Expression *initializerExpression, Environment *resEnv, 
+static void write_array(Expression *id, Expression *initializerExpression, Environment *resEnv, 
         Environment *writeEnv, int line){
     Literal index = resolveLiteral(id->arrayExpression.index, line, resEnv);
     if(index.type != LIT_INT){
         printf(runtime_error("Array index must be an integer!"), line);
         stop();
-        return nullObject;
     }
     Object get = env_get(id->arrayExpression.identifier, line, writeEnv);
     if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){
@@ -703,8 +699,6 @@ static Object executeReturn(ReturnStatement rs, Environment *env){
 }
 
 static Object executeStatement(Statement s, Environment *env){
-    if(hasError)
-        return nullObject;
     switch(s.type){
         case STATEMENT_PRINT:
             return executePrint(s.printStatement, env);
@@ -739,12 +733,13 @@ static Object executeStatement(Statement s, Environment *env){
         default:
             break;
     }
+    return nullObject;
 }
 
 void interpret(Code c){
     int i = 0;
     globalEnv = env_new(NULL);
-    while(i < c.count && !hasError){
+    while(i < c.count){
         executeStatement(c.parts[i], globalEnv);
         i++;
     }

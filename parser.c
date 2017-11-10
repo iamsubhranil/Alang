@@ -9,7 +9,7 @@
 #include "stmt.h"
 #include "allocator.h"
 
-static int currentIndentLevel = 0, inWhile = 0, inDo = 0, inFor = 0;
+static int inWhile = 0;
 static int he = 0;
 static TokenList *head = NULL;
 static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1};
@@ -586,6 +586,7 @@ static Statement inputStatement(){
         else{
             printf(line_error("Bad input statement!"), s.inputStatement.line);
             he++;
+            continue;
         }
         s.inputStatement.inputs[s.inputStatement.count - 1] = i;
     } while(match(TOKEN_COMMA));
@@ -714,18 +715,6 @@ static Statement noopStatement(){
     return s;
 }
 
-static TokenList* isEmpty(){
-    TokenList *temp = head;
-    while(temp->value.type != TOKEN_EOF && temp->value.type != TOKEN_NEWLINE){
-        if(temp->value.type != TOKEN_INDENT)
-            return NULL;
-        temp = temp->next;
-    }
-    if(temp->value.type == TOKEN_NEWLINE)
-        temp = temp->next;
-    return temp;
-}
-
 static Statement statement(Compiler *compiler){
     consumeIndent(compiler->indentLevel);
     if(match(TOKEN_NEWLINE))
@@ -760,6 +749,7 @@ static Statement statement(Compiler *compiler){
         printf(line_error("Bad statement %s!"), presentLine(), tokenNames[peek()]);
         advance();
     }
+    return noopStatement();
 }
 
 Statement part(Compiler *c){
