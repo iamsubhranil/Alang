@@ -276,10 +276,12 @@ static Object resolveArray(ArrayExpression ae, Environment *env){
         char *s = get.literal.sVal;
         long le = strlen(s);
         long in = index.lVal;
-        if(in < 1 || le < in){
+        if(in < 1 || in > (le+1)){
             printf(runtime_error("String index out of range [%ld]!"), ae.line, in);
             stop();
         }
+        if(in == le+1)
+            return nullObject;
         char c = s[in - 1];
         char *cs = (char *)mallocate(sizeof(char) * 2);
         cs[0] = c;

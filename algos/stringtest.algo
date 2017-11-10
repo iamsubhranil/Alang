@@ -20,6 +20,7 @@ Routine Main()
     Print "\nSetting j[5] to k.."
     Set j[5] = "k"
     Print "\nNew j : ", j
+    Print "\nAccessing just next to the size of a string returns : ", i[8]
     Print "\nAlang should warn about some extra assignments now ;)"
     Set j[5] = "kaa"
     Print "\ni contains a string, and we're gonna add 5 to it.\nThe result should be awesome ;)\n"
