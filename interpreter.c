@@ -274,21 +274,21 @@ static Object resolveArray(ArrayExpression ae, Environment *env){
     }
     Object get = env_get(ae.identifier, ae.line, env);
     if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){ 
-            char *s = get.literal.sVal;
-            long le = strlen(s);
-            long in = index.lVal;
-            if(in < 1 || le < in){
-                printf(runtime_error("String index out of range [%ld]!"), ae.line, in);
-                stop();
-            }
-            char c = s[in - 1];
-            char *cs = (char *)mallocate(sizeof(char) * 2);
-            cs[0] = c;
-            cs[1] = '\0';
-            Literal l;
-            l.type =  LIT_STRING;
-            l.sVal = cs;
-            return fromLiteral(l);
+        char *s = get.literal.sVal;
+        long le = strlen(s);
+        long in = index.lVal;
+        if(in < 1 || le < in){
+            printf(runtime_error("String index out of range [%ld]!"), ae.line, in);
+            stop();
+        }
+        char c = s[in - 1];
+        char *cs = (char *)mallocate(sizeof(char) * 2);
+        cs[0] = c;
+        cs[1] = '\0';
+        Literal l;
+        l.type =  LIT_STRING;
+        l.sVal = cs;
+        return fromLiteral(l);
     }
     return env_arr_get(ae.identifier, ae.line, index.iVal, env);
 }
@@ -304,9 +304,9 @@ static Object resolveRoutineCall(Call c, Environment *env){
     }
     Environment *routineEnv = env_new(globalEnv);
     int i = 0;
-   // printf("\n[Call] Executing %s Arity : %d\n", r.name, r.arity);
+    // printf("\n[Call] Executing %s Arity : %d\n", r.name, r.arity);
     while(i < r.arity){
-     //   printf(debug("Argument %s"), r.arguments[i]);
+        //   printf(debug("Argument %s"), r.arguments[i]);
         env_put(r.arguments[i], c.line, resolveExpression(c.arguments[i], env), routineEnv);
         i++;
     }
@@ -329,7 +329,7 @@ static Object resolveContainerCall(Call c, Environment *env){
     }
     Environment *containerEnv = env_new(globalEnv);
     int i = 0;
-   // printf("\n[Call] Executing container %s\n", r.name);
+    // printf("\n[Call] Executing container %s\n", r.name);
     while(i < r.arity){
         env_put(r.arguments[i], c.line, resolveExpression(c.arguments[i], env), containerEnv);
         i++;
@@ -361,7 +361,7 @@ static Object resolveReference(Reference ref, Environment *env){
         printf(runtime_error("Invalid member reference!"), ref.line);
         stop();
     }
-    return env_get(ref.member, ref.line, (Environment *)o.instance->environment);
+    return resolveExpression(ref.member, (Environment *)o.instance->environment);
 }
 
 static Object resolveExpression(Expression* expression, Environment *env){
@@ -415,46 +415,46 @@ static void printString(const char *s){
 }
 
 static void printLiteral(Literal result){
-        switch(result.type){
-            case LIT_NULL:
-                printf("Null");
-                break;
-            case LIT_LOGICAL:
-                printf("%s", result.lVal == 0 ? "False" : "True");
-                break;
-            case LIT_DOUBLE:
-                printf("%g", result.dVal);
-                break;
-            case LIT_INT:
-                printf("%ld", result.iVal);
-                break;
-            case LIT_STRING:
-                printString(result.sVal);
-                break;
-        }
+    switch(result.type){
+        case LIT_NULL:
+            printf("Null");
+            break;
+        case LIT_LOGICAL:
+            printf("%s", result.lVal == 0 ? "False" : "True");
+            break;
+        case LIT_DOUBLE:
+            printf("%g", result.dVal);
+            break;
+        case LIT_INT:
+            printf("%ld", result.iVal);
+            break;
+        case LIT_STRING:
+            printString(result.sVal);
+            break;
+    }
 }
 
 static void printObject(Object o){ 
-        switch(o.type){
-            case OBJECT_ARRAY:
-                printf("<array of %d>", o.arr.count);
-                break;
-            case OBJECT_CONTAINER:
-                printf("<container %s>", o.container.name);
-                break;
-            case OBJECT_INSTANCE:
-                printf("<instance of container %s>", o.instance->name);
-                break;
-            case OBJECT_ROUTINE:
-                printf("<routine %s>", o.routine.name);
-                break;
-            case OBJECT_NULL:
-                printf("Null");
-                break;
-            case OBJECT_LITERAL:
-                printLiteral(o.literal);
-                break;
-        }
+    switch(o.type){
+        case OBJECT_ARRAY:
+            printf("<array of %d>", o.arr.count);
+            break;
+        case OBJECT_CONTAINER:
+            printf("<container %s>", o.container.name);
+            break;
+        case OBJECT_INSTANCE:
+            printf("<instance of container %s>", o.instance->name);
+            break;
+        case OBJECT_ROUTINE:
+            printf("<routine %s>", o.routine.name);
+            break;
+        case OBJECT_NULL:
+            printf("Null");
+            break;
+        case OBJECT_LITERAL:
+            printLiteral(o.literal);
+            break;
+    }
 }
 
 static Object executePrint(Print p, Environment *env){
@@ -520,47 +520,73 @@ static Object executeWhile(While w, Environment *env){
     return nullObject;
 }
 
+static Object write_array(Expression *id, Expression *initializerExpression, Environment *resEnv, 
+        Environment *writeEnv, int line){
+    Literal index = resolveLiteral(id->arrayExpression.index, line, resEnv);
+    if(index.type != LIT_INT){
+        printf(runtime_error("Array index must be an integer!"), line);
+        stop();
+        return nullObject;
+    }
+    Object get = env_get(id->arrayExpression.identifier, line, writeEnv);
+    if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){
+        Literal rep = resolveLiteral(initializerExpression, line, resEnv);
+        if(index.lVal < 1){
+            printf(runtime_error("String index must be positive!"), line);
+            stop();
+        }
+        if(rep.type != LIT_STRING){
+            printf(runtime_error("Bad assignment to a string!"), line);
+            stop();
+        }
+        if(strlen(rep.sVal) > 1)
+            printf(warning("[Line %d] Ignoring extra characters while assignment!"), line);
+        get.literal.sVal[index.lVal - 1] = rep.sVal[0];
+    }
+    else
+        env_arr_put(id->arrayExpression.identifier, line, index.iVal, 
+                resolveExpression(initializerExpression, resEnv), writeEnv);
+}
+
+static void write_ref(Expression *id, Expression *init, Environment *resEnv, 
+        Environment *writeEnv, int line){ 
+    Object ref = resolveExpression(id->referenceExpression.containerName, writeEnv);
+    if(ref.type != OBJECT_INSTANCE){
+        printf(runtime_error("Referenced item is not an instance of a container!"), line);
+        stop();
+    }
+    Set s;
+    Expression *mem = id->referenceExpression.member;
+    if(mem->type == EXPR_ARRAY){
+        write_array(mem, init, resEnv, (Environment *)ref.instance->environment, line);
+    }
+    else if(mem->type == EXPR_VARIABLE){
+        Object value = resolveExpression(init, resEnv);
+        env_put(mem->variable.name, s.line, value, (Environment *)ref.instance->environment);
+    }
+    else if(mem->type == EXPR_REFERENCE){
+        write_ref(mem, init, resEnv, (Environment *)ref.instance->environment, line);
+    }
+    else{
+        printf(runtime_error("Bad member access for container type '%s'"), 
+                s.line, ref.instance->name);
+        stop();
+    }
+}
+
 static Object executeSet(Set s, Environment *env){
     //debug("Executing set statement");
     int i = 0;
     while(i < s.count){
         Expression *id = s.initializers[i].identifer;
+        Expression *init = s.initializers[i].initializerExpression;
         if(id->type == EXPR_VARIABLE)
-            env_put(id->variable.name, s.line, resolveExpression(s.initializers[i].initializerExpression, env), env);
+            env_put(id->variable.name, s.line, resolveExpression(init, env), env);
         else if(id->type == EXPR_ARRAY){
-            Literal index = resolveLiteral(id->arrayExpression.index, s.line, env);
-            if(index.type != LIT_INT){
-                printf(runtime_error("Array index must be an integer!"), s.line);
-                stop();
-                return nullObject;
-            }
-            Object get = env_get(id->arrayExpression.identifier, s.line, env);
-            if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){
-                Literal rep = resolveLiteral(s.initializers[i].initializerExpression, s.line, env);
-                if(index.lVal < 1){
-                    printf(runtime_error("String index must be positive!"), s.line);
-                    stop();
-                }
-                if(rep.type != LIT_STRING){
-                    printf(runtime_error("Bad assignment to a string!"), s.line);
-                    stop();
-                }
-                if(strlen(rep.sVal) > 1)
-                    printf(warning("[Line %d] Ignoring extra characters while assignment!"), s.line);
-                get.literal.sVal[index.lVal - 1] = rep.sVal[0];
-            }
-            else
-                env_arr_put(id->arrayExpression.identifier, s.line, index.iVal, 
-                        resolveExpression(s.initializers[i].initializerExpression, env), env);
+            write_array(id, init, env, env, s.line);
         }
         else if(id->type == EXPR_REFERENCE){
-            Object ref = resolveExpression(id->referenceExpression.containerName, env);
-            if(ref.type != OBJECT_INSTANCE){
-                printf(runtime_error("Referenced item is not an instance of a container!"), s.line);
-                stop();
-            }
-            Object value = resolveExpression(s.initializers[i].initializerExpression, env);
-            env_put(id->referenceExpression.member, s.line, value, (Environment *)ref.instance->environment);
+            write_ref(id, init, env, env, s.line);
         }
         else{
             printf(runtime_error("Bad assignment target!"), s.line);
@@ -666,11 +692,11 @@ static Object executeReturn(ReturnStatement rs, Environment *env){
     Object retl = nullObject;
     if(rs.value != NULL)
         retl = resolveExpression(rs.value,  env);
-//    printf(debug("Returing object of type %d"), retl.type);
+    //    printf(debug("Returing object of type %d"), retl.type);
     if(retl.type == OBJECT_INSTANCE){
         retl.instance->fromReturn = 1;
-//        printf(debug("Incrementing ref to %d of %s#%d\n"), retl.instance->refCount,
-//                retl.instance->name, retl.instance->insCount);
+        //        printf(debug("Incrementing ref to %d of %s#%d\n"), retl.instance->refCount,
+        //                retl.instance->name, retl.instance->insCount);
     }
     ret = 1;
     return retl;

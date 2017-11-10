@@ -74,7 +74,7 @@ typedef struct{
 typedef struct{
     int line;
     Expression *containerName;
-    char *member;
+    Expression *member;
 } Reference;
 
 typedef enum{

@@ -1,0 +1,20 @@
+Container Test(x)
+    Set mem = x
+    Array array[x]
+EndContainer
+
+Routine Main()
+    Set i = Test(10)
+    Set i.array[10] = Test(5)
+    Set i.array[10].array[3] = 4
+    Set i.array[10].array[4] = Test(1)
+    Set i.array[10].array[4].array[1] = "Hello World!"
+    Print "\ni : ", i
+    Print "\ni.array : ", i.array
+    Print "\ni.array[10] : ", i.array[10]
+    Print "\ni.array[10].array : ", i.array[10].array
+    Print "\ni.array[10].array[3] : ", i.array[10].array[3]
+    Print "\ni.array[10].array[4] : ", i.array[10].array[4]
+    Print "\ni.array[10].array[4].array : ", i.array[10].array[4].array
+    Print "\ni.array[10].array[4].array[1] : ", i.array[10].array[4].array[1]
+EndRoutine

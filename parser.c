@@ -258,7 +258,7 @@ static Expression* call(){
             ex->type = EXPR_REFERENCE;
             ex->referenceExpression.line = presentLine();
             ex->referenceExpression.containerName = expr;
-            ex->referenceExpression.member = stringOf(consume(TOKEN_IDENTIFIER, "Expected member reference!"));
+            ex->referenceExpression.member = call();
             expr = ex;
         }
         else
