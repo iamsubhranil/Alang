@@ -7,7 +7,7 @@
 #include "preprocessor.h"
 
 static char **inclusionTable = NULL;
-static int count = 0;
+static int count = 0, inprocess = 0;
 
 static char* readline(const char *source, int *pointer){
     char *line = NULL;
@@ -94,7 +94,7 @@ static int has_in_table(const char *source){
 }
 
 static char* str_append(const char *front, const char *back){
-    char *new_str = (char *)mallocate(strlen(front)+strlen(back)+2);
+    char *new_str = (char *)mallocate(strlen(front)+strlen(back)+1);
     new_str[0] = '\0';   // ensures the memory is an empty string
     strcat(new_str, front);
     strcat(new_str, back);
@@ -131,7 +131,8 @@ static int is_end_of_mc(const char *source){
 
 char* preprocess(char *source){
     int i = 0, lcount = 0, hasInclude = 0;
-    char *result = (char *)mallocate(sizeof(char) * 1), *bak;
+    inprocess++;
+    char *result = (char *)mallocate(sizeof(char) * 1), *bak = NULL;
     result[0] = '\0';
     while(source[i] != '\0'){
         char *line = readline(source, &i);
@@ -141,6 +142,8 @@ char* preprocess(char *source){
             char *toInclude = str_part(line, 8); // Include
             if(has_in_table(toInclude)){
                 printf(debug("[Preprocessor] Skipping duplicate inclusion of %s"), toInclude);
+                memfree(toInclude);
+                memfree(line);
                 continue;
             }
             FILE *include = fopen(toInclude, "rb");
@@ -155,6 +158,7 @@ char* preprocess(char *source){
                 memfree(content);
                 memfree(bak);
             }
+            memfree(toInclude);
         }
         else if(!isEmpty(line)){
             if(is_start_of_mc(line)){
@@ -162,21 +166,29 @@ char* preprocess(char *source){
                     memfree(line);
                     line = readline(source, &i);
                 }
+                memfree(line);
             }
             else{
                 bak = result;
                 result = str_append(result, line);
                 memfree(bak);
+                memfree(line);
             }
         }
-        memfree(line);
+       // memfree(line);
     }
+    memfree(source);
     if(hasInclude){
-        bak = result;
         result = preprocess(result);
-        memfree(bak);
     }
-
-
+    inprocess--;
+    if(inprocess == 0){
+        i = 0;
+        while(i < count){
+            memfree(inclusionTable[i]);
+            i++;
+        }
+        memfree(inclusionTable);
+    }
     return result;
 }

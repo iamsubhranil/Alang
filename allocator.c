@@ -72,24 +72,32 @@ void memfree(void *old){
     Object *bak = front, *prev = NULL;
     while(bak != NULL){
         if(bak->pointer == old){
-            if(prev == NULL)
-                front = front->next;
-            else
+            if(prev == NULL){
+                if(rear == front)
+                    rear = front = NULL;
+                else
+                    front = front->next;
+            }
+            else{
                 prev->next = bak->next;
+                if(prev->next == NULL)
+                    rear = prev;
+            }
             free(bak->pointer);
             allocationCount--;
             insertCount--;
             free(bak);
-            break;
+            return;
         }
         prev = bak;
         bak = bak->next;
     }
-    bak = front;
+ /*   bak = front;
     while(bak->next != NULL){
         rear = bak;
         bak = bak->next;
     }
+    */
 }
 
 void memfree_all(){

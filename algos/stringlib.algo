@@ -1,3 +1,4 @@
+// Returns the length of a string
 Routine StringLength(x)
     Set i = 0
     While(x[i+1] != Null)
@@ -5,6 +6,8 @@ Routine StringLength(x)
     EndWhile
     Return i
 EndRoutine
+
+// Checks whether a string starts with a predicate
 Routine StartsWith(string, predicate)
     Set slen = StringLength(string), plen = StringLength(predicate)
     If(slen < plen)
@@ -19,6 +22,8 @@ Routine StartsWith(string, predicate)
     EndWhile
     Return True
 EndRoutine
+
+// Checks whether a string ends with a phrase
 Routine EndsWith(string, end)
     Set slen = StringLength(string), elen = StringLength(end)
     If(elen > slen)
@@ -33,6 +38,8 @@ Routine EndsWith(string, end)
     EndWhile
     Return True
 EndRoutine
+
+// Checks whether a string contains a phrase
 Routine StringContains(string, contain)
     Set slen = StringLength(string), clen = StringLength(contain)
     If(slen < clen)

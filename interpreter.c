@@ -51,7 +51,8 @@ static Object resolveBinary(Binary expr, Environment *env){
     if(left.type == LIT_STRING && right.type == LIT_STRING && expr.op.type == TOKEN_PLUS){
         Literal ret = {expr.line, LIT_STRING, {0}};
         ret.sVal = (char *)mallocate(sizeof(char) * (strlen(left.sVal) + strlen(right.sVal) + 1));
-        strncpy(ret.sVal, left.sVal, strlen(left.sVal));
+        ret.sVal[0] = 0;
+        strcat(ret.sVal, left.sVal);
         strcat(ret.sVal, right.sVal);
         return fromLiteral(ret);
     }
@@ -352,6 +353,9 @@ static Object resolveContainerCall(Call c, Environment *env){
 }
 
 static Object resolveCall(Call c, Environment *env){
+    if(strcmp(c.identifer, "Main") == 0)
+        return resolveRoutineCall(c, env);
+
     Object callee = env_get(c.identifer, c.line, env);
     if(callee.type == OBJECT_ROUTINE)
         return resolveRoutineCall(c, env);
@@ -752,6 +756,7 @@ void interpret(Code c){
     call.argCount = 0;
     call.identifer = strdup("Main");
     call.arguments = NULL;
+    call.line = 0;
     resolveCall(call, globalEnv);
     env_free(globalEnv);
 }

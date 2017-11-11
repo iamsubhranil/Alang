@@ -44,11 +44,13 @@ static Token advance(){
     return errorToken;
 }
 
-static Token present(){
+/*
+static Token advance(){
     Token present = head->value;
     advance();
     return present;
 }
+*/
 
 static int presentLine(){
     return head->value.line;
@@ -184,7 +186,7 @@ static Expression* primary(){
     else if(peek() == TOKEN_NUMBER){
         expr->type = EXPR_LITERAL;
         expr->literal.line = presentLine();
-        char *val = stringOf(present());
+        char *val = stringOf(advance());
         if(isDouble(val)){
             expr->literal.type = LIT_DOUBLE;
             expr->literal.dVal = doubleOf(val);
@@ -198,10 +200,10 @@ static Expression* primary(){
         expr->type = EXPR_LITERAL;
         expr->literal.line = presentLine();
         expr->literal.type = LIT_STRING;
-        expr->literal.sVal = stringOf(present());
+        expr->literal.sVal = stringOf(advance());
     }
     else if(peek() == TOKEN_IDENTIFIER){
-        char *name = stringOf(present());
+        char *name = stringOf(advance());
         if(match(TOKEN_LEFT_SQUARE)){
             expr->type = EXPR_ARRAY;
             expr->arrayExpression.identifier = name;
@@ -221,7 +223,7 @@ static Expression* primary(){
         consume(TOKEN_RIGHT_PAREN, "Expected '(' after expression.");
     }
     else{
-        Token t = present();
+        Token t = advance();
         printf(line_error("Incorrect expression!"), t.line);
     }
     return expr;
@@ -273,7 +275,7 @@ static Expression* tothepower(){
         Expression* multi = newExpression();
         multi->type = EXPR_BINARY;
         multi->binary.line = presentLine();
-        multi->binary.op = present();
+        multi->binary.op = advance();
         multi->binary.left = expr;
         multi->binary.right = tothepower();
         expr = multi;
@@ -287,7 +289,7 @@ static Expression* multiplication(){
         Expression* multi = newExpression();
         multi->type = EXPR_BINARY;
         multi->binary.line = presentLine();
-        multi->binary.op = present();
+        multi->binary.op = advance();
         multi->binary.left = expr;
         multi->binary.right = tothepower();
         expr = multi;
@@ -302,7 +304,7 @@ static Expression* addition(){
         Expression* multi = newExpression();
         multi->type = EXPR_BINARY;
         multi->binary.line = presentLine();
-        multi->binary.op = present();
+        multi->binary.op = advance();
         multi->binary.left = expr;
         multi->binary.right = multiplication();
         expr = multi;
@@ -317,7 +319,7 @@ static Expression* comparison(){
         Expression* multi = newExpression();
         multi->type = EXPR_LOGICAL;
         multi->logical.line = presentLine();
-        multi->logical.op = present();
+        multi->logical.op = advance();
         multi->logical.left = expr;
         multi->logical.right = addition();
         expr = multi;
@@ -331,7 +333,7 @@ static Expression* equality(){
         Expression* multi = newExpression();
         multi->type = EXPR_LOGICAL;
         multi->logical.line = presentLine();
-        multi->logical.op = present();
+        multi->logical.op = advance();
         multi->logical.left = expr;
         multi->logical.right = comparison();
         expr = multi;
@@ -345,7 +347,7 @@ static Expression* andE(){
         Expression* logic = newExpression();
         logic->type = EXPR_LOGICAL;
         logic->logical.line = presentLine();
-        logic->logical.op = present();
+        logic->logical.op = advance();
         logic->logical.left = expr;
         logic->logical.right = equality();
         expr = logic;
@@ -359,7 +361,7 @@ static Expression* orE(){
         Expression* logic = newExpression();
         logic->type = EXPR_LOGICAL;
         logic->logical.line = presentLine();
-        logic->logical.op = present();
+        logic->logical.op = advance();
         logic->logical.left = expr;
         logic->logical.right = andE();
         expr = logic;
@@ -566,11 +568,11 @@ static Statement inputStatement(){
         Input i;
         if(peek() == TOKEN_STRING){
             i.type = INPUT_PROMPT;
-            i.prompt = stringOf(present());
+            i.prompt = stringOf(advance());
         }
         else if(peek() == TOKEN_IDENTIFIER){
             i.type = INPUT_IDENTIFER;
-            i.identifer = stringOf(present());
+            i.identifer = stringOf(advance());
             i.datatype = INPUT_ANY;
             if(match(TOKEN_COLON)){
                 if(match(TOKEN_INT))

@@ -32,7 +32,7 @@ int main(int argc, char **argv){
 
     string = preprocess(string);
     
-    printf(debug("Final source : \n%s\n"), string);
+//    printf(debug("Final source : \n%s\n"), string);
 
     initScanner(string);
 
