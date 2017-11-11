@@ -17,6 +17,7 @@
 static Object resolveExpression(Expression* expression, Environment *env);
 static Object executeBlock(Block b, Environment *env);
 
+static Literal nullLiteral = {0, LIT_NULL, {0}};
 static Object nullObject = {OBJECT_NULL, {{0, LIT_NULL, {0}}}};
 static int instanceCount = 0;
 static Environment *globalEnv = NULL;
@@ -29,6 +30,8 @@ static int isNumeric(Literal l){
 
 static Literal resolveLiteral(Expression *expression, int line, Environment *env){
     Object o = resolveExpression(expression, env);
+    if(o.type == OBJECT_NULL)
+        return nullLiteral;
     if(o.type != OBJECT_LITERAL){
         printf(runtime_error("Expected literal, Received %d!"), line, o.type);
         stop();

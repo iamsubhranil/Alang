@@ -4,7 +4,8 @@ set(SOURCE_FILES    main.c
                     interpreter.c
                     environment.c
                     allocator.c
-                    io.c)
+                    io.c
+                    preprocessor.c)
 
 add_executable(alang   ${SOURCE_FILES})
 target_link_libraries(alang m)

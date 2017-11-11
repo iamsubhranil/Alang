@@ -717,9 +717,7 @@ static Statement noopStatement(){
 
 static Statement statement(Compiler *compiler){
     consumeIndent(compiler->indentLevel);
-    if(match(TOKEN_NEWLINE))
-        return noopStatement();
-    else if(match(TOKEN_BEGIN))
+    if(match(TOKEN_BEGIN))
         return beginStatement();
     else if(match(TOKEN_END))
         return endStatement();
@@ -753,7 +751,7 @@ static Statement statement(Compiler *compiler){
 }
 
 Statement part(Compiler *c){
-    if(peek() == TOKEN_EOF || match(TOKEN_NEWLINE))
+    if(peek() == TOKEN_EOF)
         return noopStatement();
     else if(match(TOKEN_ROUTINE)){
         return routineStatement(c);

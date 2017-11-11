@@ -7,6 +7,7 @@
 #include "stmt.h"
 #include "allocator.h"
 #include "interpreter.h"
+#include "preprocessor.h"
 
 static void p(const char* name, size_t size){
     printf("\n%s : %lu bytes", name, size);
@@ -22,15 +23,16 @@ int main(int argc, char **argv){
     if(argc != 2)
         return 2;
     FILE *f = fopen(argv[1], "rb");
-    fseek(f, 0, SEEK_END);
-    long fsize = ftell(f);
-    fseek(f, 0, SEEK_SET);  //same as rewind(f);
+    if(f == NULL){
+        printf(error("Unable to open file %s!"), argv[1]);
+        return 1;
+    }
 
-    char *string = (char *)mallocate(fsize + 1);
-    fread(string, fsize, 1, f);
-    fclose(f);
+    char *string = read_all(f);
 
-    string[fsize] = 0;
+    string = preprocess(string);
+    
+    printf(debug("Final source : \n%s\n"), string);
 
     initScanner(string);
 

@@ -235,28 +235,7 @@ static Token scanToken() {
         case '.': return makeToken(TOKEN_DOT);
         case '-': return makeToken(TOKEN_MINUS);
         case '+': return makeToken(TOKEN_PLUS);
-        case '/': 
-                  if(peek() == '/'){
-                      while (peek() != '\n' && !isAtEnd()) advance();
-                    //  advance(); // \n
-                      scanner.line++;
-                      return scanToken();
-                  }
-                  else if(peek() == '*'){
-                      while(!(peek() == '*' && peekNext() == '/') && !isAtEnd()){
-                          if(peek() == '\n')
-                              scanner.line++;
-                          advance();
-                      }
-                      if(!isAtEnd()){
-                            advance(); // *
-                            advance(); // /
-                       //     advance(); // \n
-                            scanner.line++;
-                      }
-                    return scanToken();
-                  }
-                  return makeToken(TOKEN_SLASH);
+        case '/': return makeToken(TOKEN_SLASH);
         case '*': return makeToken(TOKEN_STAR);
         case '%': return makeToken(TOKEN_PERCEN);
         case '^': return makeToken(TOKEN_CARET);

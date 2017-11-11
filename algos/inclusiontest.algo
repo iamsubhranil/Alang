@@ -1,0 +1,11 @@
+Include ../algos/stringlib.algo
+
+Routine Main()
+    Set i = "Hello World"
+    Print "\nLength of ",i," is : ", StringLength(i)
+    Print "\nDoes ", i," starts with Hello ? ", StartsWith(i, "Hello")
+    Print "\nDoes ", i," starts with World ? ", StartsWith(i, "World")
+    Print "\nDoes ", i," contains 'ello Worl' ? ", StringContains(i, "ello Worl")
+    Print "\nDoes ", i," ends with Hello ? ", EndsWith(i, "Hello")
+    Print "\nDoes ", i," ends with World ? ", EndsWith(i, "World")
+EndRoutine

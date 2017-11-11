@@ -1,13 +1,12 @@
-
 Routine Main()
-    /*
-    * Multiline comment
-    */
+/*
+* Multiline comment
+*/
     Print "\nHello world!\n"
     Set i = "Welcome"
     
-    // Print Something
-    
+// Print Something
+
     Print i, " to ", "Alang!"
     Set j = " to Alang"
     Print "\ni contains '",i,"' and j contains '",j,"'"

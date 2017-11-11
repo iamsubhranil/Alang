@@ -1,0 +1,59 @@
+Routine StringLength(x)
+    Set i = 0
+    While(x[i+1] != Null)
+        Set i = i+1
+    EndWhile
+    Return i
+EndRoutine
+Routine StartsWith(string, predicate)
+    Set slen = StringLength(string), plen = StringLength(predicate)
+    If(slen < plen)
+        Return False
+    EndIf
+    Set j = 1
+    While(j <= plen)
+        If(string[j] != predicate[j])
+            Return False
+        EndIf
+        Set j = j+1
+    EndWhile
+    Return True
+EndRoutine
+Routine EndsWith(string, end)
+    Set slen = StringLength(string), elen = StringLength(end)
+    If(elen > slen)
+        Return False
+    EndIf
+    Set start = slen - elen + 1, i = 1
+    While(i <= elen)
+        If(string[start] != end[i])
+            Return False
+        EndIf
+        Set start = start+1, i = i+1
+    EndWhile
+    Return True
+EndRoutine
+Routine StringContains(string, contain)
+    Set slen = StringLength(string), clen = StringLength(contain)
+    If(slen < clen)
+        Return False
+    EndIf
+    Set i = 1
+    While(i < slen)
+        If(string[i] == contain[1])
+            Set j = 2, allmatched = True
+            While(j < clen)
+                If(string[i + j - 1] != contain[j])
+                    Set allmatched = False
+                    Break
+                EndIf
+                Set j = j + 1
+            EndWhile
+            If(allmatched)
+                Return True
+            EndIf
+        EndIf
+        Set i = i + 1
+    EndWhile
+    Return False
+EndRoutine
