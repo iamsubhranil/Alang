@@ -642,6 +642,7 @@ static Statement routineStatement(Compiler *compiler){
     s.routine.arity = 0;
     s.routine.arguments = NULL;   
     s.routine.name = NULL;
+    s.routine.isNative = 0;
 
     if(compiler->indentLevel > 0){
         printf(line_error("Routines can only be declared in top level indent!"), presentLine());

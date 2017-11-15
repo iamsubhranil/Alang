@@ -10,6 +10,7 @@
 #include "allocator.h"
 #include "io.h"
 #include "interpreter.h"
+#include "native.h"
 
 #define EPSILON 0.0000000000000000000000001
 
@@ -17,8 +18,6 @@
 static Object resolveExpression(Expression* expression, Environment *env);
 static Object executeBlock(Block b, Environment *env);
 
-static Literal nullLiteral = {0, LIT_NULL, {0}};
-static Object nullObject = {OBJECT_NULL, {{0, LIT_NULL, {0}}}};
 static int instanceCount = 0;
 static Environment *globalEnv = NULL;
 
@@ -315,8 +314,12 @@ static Object resolveRoutineCall(Call c, Environment *env){
         env_put(r.arguments[i], c.line, resolveExpression(c.arguments[i], env), routineEnv);
         i++;
     }
+    Object obj;
+    if(r.isNative == 1)
+        obj = handle_native(c, routineEnv);
     // printf("\n[Call] Executing %s\n", r.name);
-    Object obj = executeBlock(r.code, routineEnv);
+    else
+        obj = executeBlock(r.code, routineEnv);
     if(ret)
         ret = 0;
     env_free(routineEnv);
@@ -748,6 +751,7 @@ static Object executeStatement(Statement s, Environment *env){
 void interpret(Code c){
     int i = 0;
     globalEnv = env_new(NULL);
+    register_native(globalEnv);
     while(i < c.count){
         executeStatement(c.parts[i], globalEnv);
         i++;

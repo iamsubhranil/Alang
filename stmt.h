@@ -119,6 +119,7 @@ typedef struct{
     char *name;
     int arity;
     char **arguments;
+    short isNative;
     Block code;
 } Routine;
 

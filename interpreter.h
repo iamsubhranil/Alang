@@ -41,4 +41,7 @@ struct Object{
     };
 };
 
+static Literal nullLiteral = {0, LIT_NULL, {0}};
+static Object nullObject = {OBJECT_NULL, {{0, LIT_NULL, {0}}}};
+
 #endif
