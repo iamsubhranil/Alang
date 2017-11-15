@@ -6,7 +6,9 @@ set(SOURCE_FILES    main.c
                     allocator.c
                     io.c
                     preprocessor.c
-                    native.c)
+                    native.c
+                    foreign_interface.c)
 
 add_executable(alang   ${SOURCE_FILES})
-target_link_libraries(alang m)
+target_link_libraries(alang m
+                            dl)

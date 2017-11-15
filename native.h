@@ -6,5 +6,5 @@
 
 Object handle_native(Call c, Environment *env);
 void register_native(Environment *env);
-
+void unload_all();
 #endif

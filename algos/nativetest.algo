@@ -1,18 +1,6 @@
-Routine Rad(x)
-    Return (Math_Pi/180)*x
-EndRoutine
+Routine Foreign HelloWorld(x)
 
 Routine Main()
-    Print "\nClock returned : ", Clock()
-    Print "\nClocksPerSecond is : ", ClocksPerSecond
-    Print "\nGetTime returned : ", GetTime()
-    Print "\nPi is : ", Math_Pi
-    Print "\nSin(90) : ", Sin(Rad(90))
-    Print "\nSinh(90) : ", Sinh(Rad(90))
-    Print "\nCos(90) : ", Cos(Rad(90))
-    Print "\nCosh(90) : ", Cosh(Rad(90))
-    Print "\nTan(90) : ", Tan(Rad(90))
-    Print "\nTanh(90) : ", Tanh(Rad(90))
-    Print "\nLog(E) : ", Log(Math_E)
-    Print "\nLog10(1) : ", Log10(1)
+    Call LoadLibrary("./test.so")
+    Set i = HelloWorld(23.32)
 EndRoutine

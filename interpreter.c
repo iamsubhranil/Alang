@@ -762,11 +762,13 @@ void interpret(Code c){
     call.arguments = NULL;
     call.line = 0;
     resolveCall(call, globalEnv);
+    unload_all();
     env_free(globalEnv);
 }
 
 void stop(){
     printf("\n");
+    unload_all();
     memfree_all();
     exit(1);
 }

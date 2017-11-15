@@ -45,12 +45,12 @@ static Token advance(){
 }
 
 /*
-static Token advance(){
-    Token present = head->value;
-    advance();
-    return present;
-}
-*/
+   static Token advance(){
+   Token present = head->value;
+   advance();
+   return present;
+   }
+   */
 
 static int presentLine(){
     return head->value.line;
@@ -648,6 +648,10 @@ static Statement routineStatement(Compiler *compiler){
         printf(line_error("Routines can only be declared in top level indent!"), presentLine());
         he++;
     }
+
+    if(match(TOKEN_FOREIGN))
+        s.routine.isNative = 1;
+    
     s.routine.name = stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!"));
     consume(TOKEN_LEFT_PAREN, "Expected '(' after routine declaration!");
     if(peek() != TOKEN_RIGHT_PAREN){
@@ -662,10 +666,12 @@ static Statement routineStatement(Compiler *compiler){
         advance();
     consume(TOKEN_NEWLINE, "Expected newline after routine declaration!");
 
-    s.routine.code = blockStatement(compiler, BLOCK_FUNC);
+    if(s.routine.isNative == 0){
+        s.routine.code = blockStatement(compiler, BLOCK_FUNC);
 
-    consume(TOKEN_ENDROUTINE, "Expected EndRoutine after routine definition!");
-    consume(TOKEN_NEWLINE, "Expected newline after routine definition!");
+        consume(TOKEN_ENDROUTINE, "Expected EndRoutine after routine definition!");
+        consume(TOKEN_NEWLINE, "Expected newline after routine definition!");
+    }
     return s;
 }
 

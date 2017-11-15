@@ -50,6 +50,7 @@ static Keyword keywords[] = {
     {"EndRoutine", 10, TOKEN_ENDROUTINE},
     {"Call",    4, TOKEN_CALL},
     {"Return",  6, TOKEN_RETURN},
+    {"Foreign", 7, TOKEN_FOREIGN},
 
     {"Container", 9, TOKEN_CONTAINER},
     {"EndContainer", 12, TOKEN_ENDCONTAINER},
