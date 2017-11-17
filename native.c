@@ -29,8 +29,9 @@ static int hasLib(char *name){
     return 0;
 }
 
-static Object load_library(int c, Environment *env){
-    char *s = get_string("x", c, env);
+static Object load_library(int c, Environment *env, char *s){
+    if(env != NULL)
+        s = get_string("x", c, env);
 
     if(hasLib(s))
         return nullObject;
@@ -96,7 +97,7 @@ static Object unload_library(int c, Environment *env){
 static void* get_func(char *identifer, int line){
     int i = 0;
     if(libCount == 0){
-        printf(runtime_error("No libraries loaded!"), line);
+        printf(runtime_error("Unable to call %s : No libraries loaded!"), line, identifer);
         stop();
     }
     while(i < libCount){
@@ -121,7 +122,7 @@ Object handle_native(Call c, Environment *env){
     char *fname = c.identifer;
     int i = 0;
     if(strcmp(fname, "LoadLibrary") == 0)
-        return load_library(c.line, env);
+        return load_library(c.line, env, NULL);
     else if(strcmp(fname, "UnloadLibrary") == 0)
         return unload_library(c.line, env);
     else
@@ -160,4 +161,5 @@ void register_native(Environment *env){
     env_routine_put(getSingleArgRoutine("LoadLibrary"), 0, env);
     env_routine_put(getSingleArgRoutine("UnloadLibrary"), 0, env);
     define_cons(env);
+    load_library(0, NULL, "./libnmath.so");
 }
