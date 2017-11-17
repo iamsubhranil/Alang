@@ -31,13 +31,21 @@ static int isNum(char c){
     return c>='0' && c<='9';
 }
 
+static int isSign(char c){
+    return c == '-'|| c == '+';
+}
+
 static int isInt(char *s){
     int i = 0;
+    if(isSign(s[0]))
+        i++;
     while(s[i] != '\0'){
         if(!isNum(s[i]))
             return 0;
         i++;
     }
+    if(isSign(s[0]) && i == 1)
+        return 0;
     return 1;
 }
 
@@ -50,6 +58,8 @@ Literal getInt(int line){
     long l = 0;
     sscanf(s, "%ld", &l);
     memfree(s);
+    if(s[0] == '-')
+        l *= -1;
     Literal lit = {line, LIT_INT, {0}};
     lit.iVal = l;
     return lit;
@@ -57,6 +67,8 @@ Literal getInt(int line){
 
 static int isNumber(char *s){
     int i = 0, hasDot = 0;
+    if(isSign(s[0]))
+        i++;
     while(s[i] != '\0'){
         if(s[i] == '.'){
             if(hasDot == 0)
@@ -68,6 +80,8 @@ static int isNumber(char *s){
             return 0;
         i++;
     }
+    if(isSign(s[0]) && i == 1)
+        return 0;
     return 1;
 }
 
@@ -80,6 +94,8 @@ Literal getFloat(int line){
     double d = 0;
     sscanf(s, "%lf", &d);
     memfree(s);
+    if(s[0] == '-')
+        d *= -1;
     Literal lit = {line, LIT_DOUBLE, {0}};
     lit.dVal = d;
     return lit;
