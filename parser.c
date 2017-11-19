@@ -73,6 +73,12 @@ static void synchronize(){
         head = head->next;
 }
 
+static void printToken(Token t){
+    int i = 0;
+    while(i < t.length)
+        printf("%c", t.start[i++]);
+}
+
 static Token consume(TokenType type, const char* err){
     //printf("\n[Info] Have %s expected %s", tokenNames[peek()], tokenNames[type]);
     if(peek() == type){
@@ -80,7 +86,13 @@ static Token consume(TokenType type, const char* err){
         return advance();
     }
     else{
-        printf(line_error("%s"), presentLine(), err);
+        printf(line_error("%s Got %s"), presentLine(), err, tokenNames[peek()]);
+        if(peek() == TOKEN_NUMBER || peek() == TOKEN_IDENTIFIER || peek() == TOKEN_STRING){
+            printf("(");
+            printToken(advance());
+            printf(")");
+        }
+        printf("!");
         he++;
         synchronize();
     }
@@ -182,6 +194,15 @@ static Expression* primary(){
         expr->type = EXPR_LITERAL;
         expr->literal.line = presentLine();
         expr->literal.type = LIT_NULL;
+    }
+    else if(peek() == TOKEN_MINUS){ // desugaring -x to 0 - x
+        expr->type = EXPR_BINARY;
+        expr->binary.left = newExpression();
+        expr->binary.left->type = EXPR_LITERAL;
+        expr->binary.left->literal.type = LIT_INT;
+        expr->binary.left->literal.dVal = 0;
+        expr->binary.op = advance();
+        expr->binary.right = expression();
     }
     else if(peek() == TOKEN_NUMBER){
         expr->type = EXPR_LITERAL;

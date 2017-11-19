@@ -48,3 +48,7 @@ Object Log10(int i, Environment *env){
 Object Exp(int i, Environment *env){
     return fromDouble(exp(get_double("x", i, env)));
 }
+
+Object Abs(int i, Environment *env){
+    return fromDouble(fabs(get_double("x", i, env)));
+}

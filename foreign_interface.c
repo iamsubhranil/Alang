@@ -9,7 +9,7 @@ static int is_num(Object obj){
 }
 
 static double get_val(Literal lit){
-    return lit.type == LIT_INT ? lit.lVal : lit.dVal;
+    return lit.type == LIT_INT ? lit.iVal : lit.dVal;
 }
 
 double get_double(char *identifer, int line, Environment *env){

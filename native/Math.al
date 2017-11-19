@@ -10,6 +10,7 @@ Routine Foreign Tanh(x)
 Routine Foreign Log(x)
 Routine Foreign Log10(x)
 Routine Foreign Exp(x)
+Routine Foreign Abs(x)
 
 Routine Radian(x)
     Return (Math_Pi/180)*x
