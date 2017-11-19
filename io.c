@@ -57,9 +57,9 @@ Literal getInt(int line){
     }
     long l = 0;
     sscanf(s, "%ld", &l);
-    memfree(s);
     if(s[0] == '-')
         l *= -1;
+    memfree(s);
     Literal lit = {line, LIT_INT, {0}};
     lit.iVal = l;
     return lit;
@@ -93,9 +93,9 @@ Literal getFloat(int line){
     }
     double d = 0;
     sscanf(s, "%lf", &d);
-    memfree(s);
     if(s[0] == '-')
         d *= -1;
+    memfree(s);
     Literal lit = {line, LIT_DOUBLE, {0}};
     lit.dVal = d;
     return lit;

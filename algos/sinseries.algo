@@ -1,0 +1,25 @@
+Include ../native/Math.al
+
+Routine Main()
+    Print "\nEnter the value of angle(in degree) : "
+    Input deg:Float
+    Set rad = (Math_Pi/180)*deg
+    Set sine = rad, sign = -1, index = 3
+    While(True)
+        Set numer = rad^index, denom = 1, j = 1
+        While(j <= index)
+            Set denom = denom * j
+            Set j = j + 1
+        EndWhile
+        If(numer/denom < 0.0001)
+            Break
+        EndIf
+        Set term = (sign * numer)/denom
+        Set sine = sine + term, index = index + 2, sign = sign * -1
+    EndWhile
+    Set orig = Sin(rad)
+    Set error = Abs(sine - orig)
+    Print "\nThe value of sin(",rad,") as per series : ", sine
+    Print "\nThe value of sin(",rad,") as per library function : ", orig
+    Print "\nAbsolute error : ", error, "\n"
+EndRoutine
