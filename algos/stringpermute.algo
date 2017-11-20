@@ -1,0 +1,26 @@
+Include ../algos/stringlib.algo
+
+Routine PermuteString(s, i, m)
+    If(i == m)
+        Set j = 1
+        While(j <= m)
+            Print " ", s[j]
+            Set j = j+1
+        EndWhile
+        Print "\n"
+    Else
+        Set j = i
+        While(j <= m)
+            Set c = s[i], s[i] = s[j], s[j] = c
+            Call PermuteString(s, i + 1, m)
+            Set c = s[i], s[i] = s[j], s[j] = c
+            Set j = j + 1
+        EndWhile
+    EndIf
+EndRoutine
+
+Routine Main()
+    Input "Enter the string : ", str
+    Print "\nThe required permutations are : \n"
+    Call PermuteString(str, 1, StringLength(str))
+EndRoutine
