@@ -1,0 +1,58 @@
+Routine Hcf(m, n)
+    If(m == 0)
+        Return n
+    Else If(n == 0)
+        Return m
+    Else
+        Return Hcf(n, m%n)
+    EndIf
+EndRoutine
+Routine Lcm(m, n, x)
+    If(m % n != 0)
+        Return Lcm(m + x, n, x)
+    Else
+        Return m
+    EndIf
+EndRoutine
+Routine Main()
+    Print "\nEnter number of elements : "
+    Input num:Int
+    If(num < 1)
+        Print "[Error] Number of elements must be positive!"
+        End
+    EndIf
+    Array A[num]
+    Print "Enter 1st number : "
+    Input n:Int
+    Set A[1] = n, lc = A[1], hc = A[1]
+    Set i = 2
+    While(i <= num)
+        Set suf = i%10
+        Print "Enter ",i
+        If(suf == 1)
+            Print "st"
+        Else If(suf == 2)
+            Print "nd"
+        Else If(suf == 3)
+            Print "rd"
+        Else
+            Print "th"
+        EndIf
+        Print " number : "
+        Input n:Int
+        Set A[i] = n
+
+        If(lc < A[i])
+            Set lc = Lcm(A[i], lc, A[i])
+        Else
+            Set lc = Lcm(lc, A[i], lc)
+        EndIf
+
+        Set hc = Hcf(hc, A[i])
+
+        Set i = i + 1
+    EndWhile
+
+    Print "\nHighest Common Factor : ", hc
+    Print "\nLowest Common Mulitple : ", lc, "\n"
+EndRoutine
