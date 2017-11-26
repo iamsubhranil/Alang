@@ -1,18 +1,32 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "scanner.h"
 #include "display.h"
 #include "parser.h"
-#include "expr.h"
-#include "stmt.h"
 #include "allocator.h"
+
+#include "values.h"
+#include "strings.h"
+#include "interpreter.h"
+#include "routines.h"
+#include "heap.h"
 
 static int inWhile = 0;
 static int he = 0;
+static uint64_t *breakAddresses, breakCount = 0;
 static TokenList *head = NULL;
 static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1};
+
+typedef enum{
+    BLOCK_IF,
+    BLOCK_ELSE,
+    BLOCK_WHILE,
+    BLOCK_FUNC,
+    BLOCK_NONE
+} BlockType;
 
 typedef struct Compiler{
     struct Compiler *parent;
@@ -20,11 +34,11 @@ typedef struct Compiler{
     BlockType blockName;
 } Compiler;
 
-static Compiler* initCompiler(Compiler *parent, int indentLevel, BlockType blockName){
+static Compiler* initCompiler(Compiler *parent, int indentLevel, BlockType name){
     Compiler *ret = (Compiler *)mallocate(sizeof(Compiler));
     ret->parent = parent;
     ret->indentLevel = indentLevel;
-    ret->blockName = blockName;
+    ret->blockName = name;
     return ret;
 }
 
@@ -114,13 +128,7 @@ static int isOperator(TokenType type){
         || type == TOKEN_PERCEN;
 }
 
-static Expression* newExpression(){
-    Expression* expr = (Expression *)mallocate(sizeof(Expression));
-    expr->type = EXPR_NONE;
-    return expr;
-}
-
-static Expression* expression();
+static void expression();
 
 static char* numericString(Token t){
     char* s = (char *)mallocate(sizeof(char) * t.length + 1);
@@ -158,280 +166,241 @@ static double doubleOf(const char *s){
     return d;
 }
 
-static long longOf(const char *s){
-    long l;
-    sscanf(s, "%ld", &l);
+static int64_t longOf(const char *s){
+    int64_t l;
+    sscanf(s,"%" SCNu64, &l);
     return l;
 }
 
-static Expression* primary(){
-    Expression* expr = newExpression();
+static uint8_t insFromToken(Token t){
+    switch(t.type){
+        case TOKEN_CARET:
+            return POW;
+        case TOKEN_STAR:
+            return MUL;
+        case TOKEN_SLASH:
+            return DIV;
+        case TOKEN_PLUS:
+            return ADD;
+        case TOKEN_MINUS:
+            return SUB;
+        case TOKEN_PERCEN:
+            return MOD;
+        case TOKEN_EQUAL_EQUAL:
+            return EQ;
+        case TOKEN_BANG_EQUAL:
+            return NEQ;
+        case TOKEN_GREATER:
+            return GT;
+        case TOKEN_GREATER_EQUAL:
+            return GTE;
+        case TOKEN_LESS:
+            return LT;
+        case TOKEN_LESS_EQUAL:
+            return LTE;
+        case TOKEN_AND:
+            return AND;
+        case TOKEN_OR:
+            return OR;
+        default:
+            return NOOP;
+    }
+}
+
+static void primary(){
     if(match(TOKEN_TRUE)){
-        expr->type = EXPR_LITERAL;
-        expr->literal.line = presentLine();
-        expr->literal.type = LIT_LOGICAL;
-        expr->literal.lVal = 1;
+        ins_add(PUSHL);
+        ins_add_val(heap_add_logical(1));
     }
     else if(match(TOKEN_FALSE)){
-        expr->type = EXPR_LITERAL;
-        expr->literal.line = presentLine();
-        expr->literal.type = LIT_LOGICAL;
-        expr->literal.lVal = 0;
+        ins_add(PUSHL);
+        ins_add_val(heap_add_logical(0));
     }
     else if(match(TOKEN_NULL)){
-        expr->type = EXPR_LITERAL;
-        expr->literal.line = presentLine();
-        expr->literal.type = LIT_NULL;
+        ins_add(PUSHN);
     }
     else if(peek() == TOKEN_NUMBER){
-        expr->type = EXPR_LITERAL;
-        expr->literal.line = presentLine();
         char *val = stringOf(advance());
         if(isDouble(val)){
-            expr->literal.type = LIT_DOUBLE;
-            expr->literal.dVal = doubleOf(val);
+            ins_add(PUSHF);
+            ins_add_val(heap_add_float(doubleOf(val)));
         }
         else{
-            expr->literal.type = LIT_INT;
-            expr->literal.iVal = longOf(val);
+            ins_add(PUSHI);
+            ins_add_val(heap_add_int(longOf(val)));
         }
     }
     else if(peek() == TOKEN_STRING){
-        expr->type = EXPR_LITERAL;
-        expr->literal.line = presentLine();
-        expr->literal.type = LIT_STRING;
-        expr->literal.sVal = stringOf(advance());
+        uint64_t st = str_insert(stringOf(advance()));
+        ins_add(PUSHS);
+        printf("\nPushing string %lu", st);
+        ins_add_val(heap_add_str(st));
     }
     else if(peek() == TOKEN_IDENTIFIER){
-        char *name = stringOf(advance());
+        uint64_t st = str_insert(stringOf(advance()));
         if(match(TOKEN_LEFT_SQUARE)){
-            expr->type = EXPR_ARRAY;
-            expr->arrayExpression.identifier = name;
-            expr->arrayExpression.line = presentLine();
-            expr->arrayExpression.index = expression();
+            expression(); // index
+            ins_add(PUSHID);
+            ins_add_val(heap_add_identifer(st));
+            ins_add(ARRAY);
             consume(TOKEN_RIGHT_SQUARE, "Expected ']' after array index!");
         }
         else{
-            expr->type = EXPR_VARIABLE;
-            expr->variable.line = presentLine();
-            expr->variable.name = name;
+            ins_add(PUSHID);
+            ins_add_val(heap_add_identifer(st));
         }
     }
     else if(match(TOKEN_LEFT_PAREN)){
-        memfree(expr);
-        expr = expression();
-        consume(TOKEN_RIGHT_PAREN, "Expected '(' after expression.");
+        expression();
+        consume(TOKEN_RIGHT_PAREN, "Expected ')' after grouping expression!");
     }
     else{
         Token t = advance();
         printf(line_error("Incorrect expression!"), t.line);
     }
-    return expr;
 }
 
-static Expression* getCall(Expression* expr){
-    Expression *call = newExpression();
-    call->type = EXPR_CALL;
-    call->callExpression.identifer = expr->variable.name;
-    call->callExpression.argCount = 0;
-    call->callExpression.arguments = NULL;
-    call->callExpression.line = presentLine();
-    if(match(TOKEN_RIGHT_PAREN))
-        return call;
-    do{
-        Expression *argument = expression();
-        call->callExpression.argCount++;
-        call->callExpression.arguments = (Expression **)reallocate(call->callExpression.arguments, 
-                sizeof(Expression *)*call->callExpression.argCount);
-        call->callExpression.arguments[call->callExpression.argCount - 1] = argument;
-    } while(match(TOKEN_COMMA));
-    consume(TOKEN_RIGHT_PAREN, "Expected '(' after expression!");
-    return call;
+static void getCall(){
+    uint64_t argCount = 0;
+    if(!match(TOKEN_RIGHT_PAREN)){
+        do{
+            expression();
+            argCount++;
+        } while(match(TOKEN_COMMA));
+        consume(TOKEN_RIGHT_PAREN, "Expected ')' after expression!");
+    }
+    ins_add(PUSHI);
+    ins_add_val(heap_add_int(argCount));
+    ins_add(CALL);
 }
 
-static Expression* call(){
-    Expression* expr = primary();
+static void call(){
+    primary();
     while(true){
         if(match(TOKEN_LEFT_PAREN)){
-            expr  = getCall(expr);
+            getCall();
         }
         else if(match(TOKEN_DOT)){
-            Expression *ex = newExpression();
-            ex->type = EXPR_REFERENCE;
-            ex->referenceExpression.line = presentLine();
-            ex->referenceExpression.containerName = expr;
-            ex->referenceExpression.member = call();
-            expr = ex;
+            call();
+            ins_add(MEMREF);
         }
         else
             break;
     }
-    return expr;
 }
 
-static Expression* tothepower(){
-    Expression* expr = call();
+static void tothepower(){
+    call();
     while(peek() == TOKEN_CARET){
-        Expression* multi = newExpression();
-        multi->type = EXPR_BINARY;
-        multi->binary.line = presentLine();
-        multi->binary.op = advance();
-        multi->binary.left = expr;
-        multi->binary.right = tothepower();
-        expr = multi;
+        uint8_t op = insFromToken(advance());
+        tothepower();
+        ins_add(op);
     }
-    return expr;
 }
 
-static Expression* multiplication(){
-    Expression* expr = tothepower();
+static void multiplication(){
+    tothepower();
     while(peek() == TOKEN_STAR || peek() == TOKEN_SLASH){
-        Expression* multi = newExpression();
-        multi->type = EXPR_BINARY;
-        multi->binary.line = presentLine();
-        multi->binary.op = advance();
-        multi->binary.left = expr;
-        multi->binary.right = tothepower();
-        expr = multi;
+        uint8_t op = insFromToken(advance());
+        tothepower();
+        ins_add(op);
     }
-    return expr;
 }
 
-static Expression* addition(){
-    Expression* expr = multiplication();
+static void addition(){
+    multiplication();
     while(peek() == TOKEN_PLUS || peek() == TOKEN_MINUS
             || peek() == TOKEN_PERCEN){
-        Expression* multi = newExpression();
-        multi->type = EXPR_BINARY;
-        multi->binary.line = presentLine();
-        multi->binary.op = advance();
-        multi->binary.left = expr;
-        multi->binary.right = multiplication();
-        expr = multi;
+        uint8_t op = insFromToken(advance());
+        multiplication();
+        ins_add(op);
     }
-    return expr;
 }
 
-static Expression* comparison(){
-    Expression* expr = addition();
+static void comparison(){
+    addition();
     while(peek() == TOKEN_GREATER || peek() == TOKEN_LESS
             || peek() == TOKEN_GREATER_EQUAL || peek() == TOKEN_LESS_EQUAL){
-        Expression* multi = newExpression();
-        multi->type = EXPR_LOGICAL;
-        multi->logical.line = presentLine();
-        multi->logical.op = advance();
-        multi->logical.left = expr;
-        multi->logical.right = addition();
-        expr = multi;
+        uint8_t op = insFromToken(advance());
+        addition();
+        ins_add(op);
     }
-    return expr;
 }
 
-static Expression* equality(){
-    Expression* expr = comparison();
+static void equality(){
+    comparison();
     while(peek() == TOKEN_EQUAL_EQUAL || peek() == TOKEN_BANG_EQUAL){
-        Expression* multi = newExpression();
-        multi->type = EXPR_LOGICAL;
-        multi->logical.line = presentLine();
-        multi->logical.op = advance();
-        multi->logical.left = expr;
-        multi->logical.right = comparison();
-        expr = multi;
+        uint8_t op = insFromToken(advance());
+        comparison();
+        ins_add(op);
     }
-    return expr;
 }
 
-static Expression* andE(){
-    Expression* expr = equality();
+static void andE(){
+    equality();
     while(peek() == TOKEN_AND){
-        Expression* logic = newExpression();
-        logic->type = EXPR_LOGICAL;
-        logic->logical.line = presentLine();
-        logic->logical.op = advance();
-        logic->logical.left = expr;
-        logic->logical.right = equality();
-        expr = logic;
+        advance();
+        equality();
+        ins_add(AND);
     }
-    return expr;
 }
 
-static Expression* orE(){
-    Expression* expr = andE();
+static void orE(){
+    andE();
     while(peek() == TOKEN_OR){
-        Expression* logic = newExpression();
-        logic->type = EXPR_LOGICAL;
-        logic->logical.line = presentLine();
-        logic->logical.op = advance();
-        logic->logical.left = expr;
-        logic->logical.right = andE();
-        expr = logic;
+        advance();
+        andE();
+        ins_add(OR); 
     }
-    return expr;
 }
 
-static Expression* expression(){
-    return orE();
+static void expression(){
+    orE();
 }
 
-static Statement statement(Compiler *compiler);
+static void statement(Compiler *compiler);
 
-static Block newBlock(){
-    Block b = {0, BLOCK_NONE, NULL};
-    return b;
-}
-
-static void addToBlock(Block* block, Statement statement){
-    block->numStatements += 1;
-    block->statements = (Statement *)reallocate(block->statements, sizeof(Statement) * block->numStatements);
-    block->statements[block->numStatements-1] = statement;
-}
-
-static Block blockStatement(Compiler *compiler, BlockType name){
+static void blockStatement(Compiler *compiler, BlockType name){
     debug("Parsing block statement");
     int indent = compiler->indentLevel+1;
     Compiler *blockCompiler = initCompiler(compiler, indent, name);
-    Block b = newBlock();
-    b.blockName = name;
     while(getNextIndent() == indent){
         debug("Found a block statement");
-        addToBlock(&b, statement(blockCompiler));
+        statement(blockCompiler);
     }
     memfree(blockCompiler);
     debug("Block statement parsed");
-    return b;
 }
 
-static Statement ifStatement(Compiler *compiler){
+static void ifStatement(Compiler *compiler){
     debug("Parsing if statement");
-    Statement s;
-    s.type = STATEMENT_IF;
-    s.ifStatement.line = presentLine();
-    s.ifStatement.thenBranch.numStatements = 0;
-    s.ifStatement.elseBranch.numStatements = 0;
 
     consume(TOKEN_LEFT_PAREN, "Conditionals must start with an openning brace['('] after If!");
-    s.ifStatement.condition = expression();
+    expression();
     consume(TOKEN_RIGHT_PAREN, "Conditional must end with a closing brace[')'] after If!");
     consume(TOKEN_NEWLINE, "Expected newline after If!");
-
+    ins_add(PUSHI);
+    uint64_t jmp = ins_add_val(heap_add_int(0));
+    ins_add(JUMP_IF_FALSE);
     if(getNextIndent() == compiler->indentLevel){
         consumeIndent(compiler->indentLevel);
         consume(TOKEN_THEN, "Expected Then on the same indent!");
         consume(TOKEN_NEWLINE, "Expected newline after Then!");
     }
 
-    s.ifStatement.thenBranch = blockStatement(compiler, BLOCK_IF);
+    blockStatement(compiler, BLOCK_IF);
     consumeIndent(compiler->indentLevel);
-
+    ins_add(PUSHI);
+    uint64_t skip = ins_add_val(heap_add_int(0));
+    ins_add(JUMP);
+    ins_set_val(jmp, heap_add_int(ip_get()));
     if(match(TOKEN_ELSE)){
         if(match(TOKEN_IF)){
-            Block elseifBlock = {0, BLOCK_ELSE, NULL};
-            addToBlock(&elseifBlock, ifStatement(compiler));
-            s.ifStatement.elseBranch = elseifBlock;
+            ifStatement(compiler);
         }
         else{
             consume(TOKEN_NEWLINE, "Expected newline after Else!");
-            s.ifStatement.elseBranch = blockStatement(compiler, BLOCK_ELSE);
+            blockStatement(compiler, BLOCK_ELSE);
             consumeIndent(compiler->indentLevel);
             consume(TOKEN_ENDIF, "Expected EndIf after If!");
             consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
@@ -441,36 +410,46 @@ static Statement ifStatement(Compiler *compiler){
         consume(TOKEN_ENDIF, "Expected EndIf after If!");
         consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
     }
+    ins_set_val(skip, heap_add_int(ip_get()));
     debug("If statement parsed");
-
-    return s;
 }
 
-static Statement whileStatement(Compiler* compiler){
+static void whileStatement(Compiler* compiler){
     debug("Parsing while statement");
-
-    Statement s;
-    s.type = STATEMENT_WHILE;
-    inWhile++;
     consume(TOKEN_LEFT_PAREN, "Expected left paren before conditional!");
-    s.whileStatement.line = presentLine();
-    s.whileStatement.condition = expression();
+    uint64_t start = ip_get();
+    expression();
     consume(TOKEN_RIGHT_PAREN, "Expected right paren after conditional!");
     consume(TOKEN_NEWLINE, "Expected newline after While!");
-
+    ins_add(PUSHI);
+    uint64_t jmp = ins_add_val(heap_add_int(0));
+    ins_add(JUMP_IF_FALSE);
     if(getNextIndent() == compiler->indentLevel){
         consumeIndent(compiler->indentLevel);
         consume(TOKEN_BEGIN, "Expected Begin on same indent!");
         consume(TOKEN_NEWLINE, "Expected newline after begin!");
     }
-
-    s.whileStatement.body = blockStatement(compiler, BLOCK_WHILE);
+    inWhile++;
+    blockStatement(compiler, BLOCK_WHILE);
+    ins_add(PUSHI);
+    ins_add_val(heap_add_int(start));
+    ins_add(JUMP);
+    ins_set_val(jmp, heap_add_int(ip_get()));
     consumeIndent(compiler->indentLevel);
     consume(TOKEN_ENDWHILE, "Expected EndWhile after while on same indent!");
     consume(TOKEN_NEWLINE, "Expected newline after EndWhile!");
     debug("While statement parsed");
+    uint64_t i = 0;
+    while(i < breakCount){
+        ins_set_val(breakAddresses[i], heap_add_int(ip_get()));
+        i++;
+    }
     inWhile--;
-    return s;
+    if(inWhile == 0){
+        breakCount = 0;
+        memfree(breakAddresses);
+        breakAddresses = NULL;
+    }
 }
 
 // Not used now
@@ -499,150 +478,107 @@ static Statement whileStatement(Compiler* compiler){
   return s;
   }*/
 
-static Statement breakStatement(){
+static void breakStatement(){
     debug("Parsing break statement");
-    Statement s;
-    s.type = STATEMENT_BREAK;
-    s.breakStatement.pos = head->value;
     if(inWhile == 0){
         printf(line_error("Break without While or Do!"), presentLine());
         he++;
     }
+    else{
+        breakAddresses = (uint64_t *)reallocate(breakAddresses, 64*++breakCount);
+        ins_add(PUSHI);
+        uint64_t ba = ins_add_val(heap_add_int(0));
+        breakAddresses[breakCount - 1] = ba;
+        ins_add(JUMP);
+    }
     consume(TOKEN_NEWLINE, "Expected newline after Break!");
     debug("Break statement parsed");
-    return s;
 }
 
-static Statement setStatement(){
-    Statement s;
-    s.type = STATEMENT_SET;
+static void setStatement(){
     debug("Parsing set statement");
-    s.setStatement.line = presentLine();
-    s.setStatement.count = 0;
-    s.setStatement.initializers = NULL;
     do{
-        s.setStatement.count++;
-        s.setStatement.initializers = (Initializer *)reallocate(s.setStatement.initializers, sizeof(Initializer) * s.setStatement.count);
-        s.setStatement.initializers[s.setStatement.count - 1].identifer = expression();
+        expression();
+        if(ins_get(ip_get() - 1) == ARRAY)
+            ins_set(ip_get() - 1, NOOP);
         consume(TOKEN_EQUAL, "Expected '=' after identifer!");
-        s.setStatement.initializers[s.setStatement.count - 1].initializerExpression = expression();
+        expression();
+        ins_add(SET);
     } while(match(TOKEN_COMMA));
     consume(TOKEN_NEWLINE, "Expected newline after Set statement!");
     debug("Set statement parsed");
-    return s;
 }
 
-static Statement arrayStatement(){
-    Statement s;
-    s.type = STATEMENT_ARRAY;
+static void arrayStatement(){
     debug("Parsing array statement");
-    s.arrayStatement.line = presentLine();
-    s.arrayStatement.count = 0;
-    s.arrayStatement.initializers = NULL;
 
     do{
-        s.arrayStatement.count++;
-        s.arrayStatement.initializers = (Expression **)reallocate(s.arrayStatement.initializers, 
-                sizeof(Expression *) * s.arrayStatement.count);
-        s.arrayStatement.initializers[s.arrayStatement.count - 1] = expression();
-        if(s.arrayStatement.initializers[s.arrayStatement.count - 1]->type != EXPR_ARRAY){
-            printf(line_error("Expected array expression!"), s.arrayStatement.line);
+        expression();
+        if(ins_get(ip_get()-1) != ARRAY){
+            printf(line_error("Expected array expression!"), presentLine());
             he++;
         }
+        ins_set(ip_get()-1, MAKE_ARRAY);
     } while(match(TOKEN_COMMA));
     consume(TOKEN_NEWLINE, "Expected newline after Array statement!");
     debug("Array statement parsed");
-    return s;
 }
 
-static Statement inputStatement(){
-    Statement s;
-    s.type = STATEMENT_INPUT;
+static void inputStatement(){
     debug("Parsing input statement");
-    s.inputStatement.line = presentLine();
-    s.inputStatement.count = 0;
-    s.inputStatement.inputs = 0;
     do{
-        s.inputStatement.count++;
-        s.inputStatement.inputs = (Input *)reallocate(s.inputStatement.inputs, sizeof(Input) * s.inputStatement.count);
-        Input i;
-        if(peek() == TOKEN_STRING){
-            i.type = INPUT_PROMPT;
-            i.prompt = stringOf(advance());
-        }
-        else if(peek() == TOKEN_IDENTIFIER){
-            i.type = INPUT_IDENTIFER;
-            i.identifer = stringOf(advance());
-            i.datatype = INPUT_ANY;
+        if(peek() == TOKEN_IDENTIFIER){
+            uint64_t name = str_insert(stringOf(advance()));
+            uint8_t op = INPUTS;
             if(match(TOKEN_COLON)){
                 if(match(TOKEN_INT))
-                    i.datatype = INPUT_INT;
+                    op = INPUTI;
                 else if(match(TOKEN_FLOAT))
-                    i.datatype = INPUT_FLOAT;
+                    op = INPUTF;
                 else{
-                    printf(line_error("Bad input format specifier!"), s.inputStatement.line);
+                    printf(line_error("Bad input format specifier!"), presentLine());
                     he++;
                 }
             }
+            ins_add(PUSHID);
+            ins_add_val(heap_add_identifer(name));
+            ins_add(op);
         }
         else{
-            printf(line_error("Bad input statement!"), s.inputStatement.line);
+            printf(line_error("Bad input statement!"), presentLine());
             he++;
             continue;
         }
-        s.inputStatement.inputs[s.inputStatement.count - 1] = i;
     } while(match(TOKEN_COMMA));
 
     consume(TOKEN_NEWLINE, "Expected newline after Input!");
-    return s;
 }
 
-static Statement printStatement(){
-    Statement s;
-    s.type = STATEMENT_PRINT;
+static void printStatement(){
     debug("Parsing print statement");
-
-    int count = 1;
-    Expression** exps = (Expression **)mallocate(sizeof(Expression *));
-    exps[0] = expression();
-    s.printStatement.line = presentLine();
-    while(match(TOKEN_COMMA)){
-        count++;
-        exps = (Expression **)reallocate(exps, sizeof(Expression *)*count);
-        exps[count - 1] = expression();
-    }
-    s.printStatement.argCount = count;
-    s.printStatement.expressions = exps;
+    do{
+        expression();
+        ins_add(PRINT);
+    } while(match(TOKEN_COMMA));
     consume(TOKEN_NEWLINE, "Expected newline after Print!");
     debug("Print statement parsed");
-    return s;
 }
 
-static Statement beginStatement(){
-    Statement s;
-    s.type = STATEMENT_BEGIN;
+static void beginStatement(){
     debug("Parsing begin statement");
     consume(TOKEN_NEWLINE, "Expected newline after Begin!");
+    ins_add(NOOP);
     debug("Begin statement parsed");
-    return s;
 }
 
-static Statement endStatement(){
-    Statement s;
-    s.type = STATEMENT_END;
+static void endStatement(){
     debug("End statement parsed");
+    ins_add(HALT);
     consume(TOKEN_NEWLINE, "Expected newline after End!");
-    return s;
 }
 
-static Statement routineStatement(Compiler *compiler){
-    Statement s;
-    s.type = STATEMENT_ROUTINE;
-    s.routine.line = presentLine();
-    s.routine.arity = 0;
-    s.routine.arguments = NULL;   
-    s.routine.name = NULL;
-    s.routine.isNative = 0;
+static void routineStatement(Compiler *compiler){
+    Routine2 *routine = routine_new();
 
     if(compiler->indentLevel > 0){
         printf(line_error("Routines can only be declared in top level indent!"), presentLine());
@@ -650,15 +586,13 @@ static Statement routineStatement(Compiler *compiler){
     }
 
     if(match(TOKEN_FOREIGN))
-        s.routine.isNative = 1;
-    
-    s.routine.name = stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!"));
+        routine->isNative = 1;
+
+    routine->name = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!")));
     consume(TOKEN_LEFT_PAREN, "Expected '(' after routine declaration!");
     if(peek() != TOKEN_RIGHT_PAREN){
         do{
-            s.routine.arity++;
-            s.routine.arguments = (char **)reallocate(s.routine.arguments, sizeof(char *) * s.routine.arity);
-            s.routine.arguments[s.routine.arity - 1] = stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!"));
+            routine_add_arg(routine, stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
         } while(match(TOKEN_COMMA));
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
     }
@@ -666,65 +600,64 @@ static Statement routineStatement(Compiler *compiler){
         advance();
     consume(TOKEN_NEWLINE, "Expected newline after routine declaration!");
 
-    if(s.routine.isNative == 0){
-        s.routine.code = blockStatement(compiler, BLOCK_FUNC);
-
+    if(routine->isNative == 0){
+        routine->startAddress = ip_get();
+        blockStatement(compiler, BLOCK_FUNC);
+        if(ins_get(ip_get() - 1) != RETURN){
+            ins_add(PUSHN);
+            ins_add(RETURN);
+        }
         consume(TOKEN_ENDROUTINE, "Expected EndRoutine after routine definition!");
         consume(TOKEN_NEWLINE, "Expected newline after routine definition!");
     }
-    return s;
+    routine_add(routine);
 }
 
-static Statement callStatement(){
-    Statement s;
-    s.type = STATEMENT_CALL;
-    s.callStatement.callee = NULL;
-    s.callStatement.line = presentLine();
-    s.callStatement.callee = call();
+static void callStatement(){
+    call();
     consume(TOKEN_NEWLINE, "Expected newline after routine call!");
-    return s;
 }
 
-static Statement returnStatement(){
-    Statement s;
-    s.type = STATEMENT_RETURN;
-    s.returnStatement.line = presentLine();
-    if(peek() == TOKEN_NEWLINE)
-        s.returnStatement.value = NULL;
-    else
-        s.returnStatement.value = expression();
-    consume(TOKEN_NEWLINE, "Expected newline after Return!");
-    return s;
-}
-
-static Statement containerStatement(Compiler *c){
-    Statement s;
-    s.type = STATEMENT_CONTAINER;
-    s.container.name = stringOf(head->value);
-    s.container.line = presentLine();
-    s.container.arity = 0;
-    consume(TOKEN_IDENTIFIER, "Expected container identifer!");
-    consume(TOKEN_LEFT_PAREN, "Expected '(' after container name");
-    while(!match(TOKEN_RIGHT_PAREN) && !match(TOKEN_EOF)){
-        s.container.arity++;
-        s.container.arguments = (char **)mallocate(sizeof(char *) * s.container.arity);
-        s.container.arguments[s.container.arity - 1] = stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!"));
+static void returnStatement(){
+    if(peek() == TOKEN_NEWLINE){
+        ins_add(PUSHN);
     }
-    consume(TOKEN_NEWLINE, "Expected newline after container declaration!");
-    s.container.constructor = blockStatement(c, BLOCK_FUNC) ;
-    consumeIndent(c->indentLevel);
-    consume(TOKEN_ENDCONTAINER, "Expected EndContainer on the same indent!");
-    consume(TOKEN_NEWLINE, "Expected newline after EndContainer!");
-    return s;
+    else
+        expression();
+    ins_add(RETURN);
+    consume(TOKEN_NEWLINE, "Expected newline after Return!");
 }
 
-static Statement noopStatement(){
-    Statement s;
-    s.type = STATEMENT_NOOP;
-    return s;
-}
-
-static Statement statement(Compiler *compiler){
+/*
+   static Statement containerStatement(Compiler *c){
+   Statement s;
+   s.type = STATEMENT_CONTAINER;
+   s.container.name = stringOf(head->value);
+   s.container.line = presentLine();
+   s.container.arity = 0;
+   consume(TOKEN_IDENTIFIER, "Expected container identifer!");
+   consume(TOKEN_LEFT_PAREN, "Expected '(' after container name");
+   while(!match(TOKEN_RIGHT_PAREN) && !match(TOKEN_EOF)){
+   s.container.arity++;
+   s.container.arguments = (char **)mallocate(sizeof(char *) * s.container.arity);
+   s.container.arguments[s.container.arity - 1] = stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!"));
+   }
+   consume(TOKEN_NEWLINE, "Expected newline after container declaration!");
+   s.container.constructor = blockStatement(c, BLOCK_FUNC) ;
+   consumeIndent(c->indentLevel);
+   consume(TOKEN_ENDCONTAINER, "Expected EndContainer on the same indent!");
+   consume(TOKEN_NEWLINE, "Expected newline after EndContainer!");
+   return s;
+   }
+   */
+/*
+   static Statement noopStatement(){
+   Statement s;
+   s.type = STATEMENT_NOOP;
+   return s;
+   }
+   */
+static void statement(Compiler *compiler){
     consumeIndent(compiler->indentLevel);
     if(match(TOKEN_BEGIN))
         return beginStatement();
@@ -756,12 +689,11 @@ static Statement statement(Compiler *compiler){
         printf(line_error("Bad statement %s!"), presentLine(), tokenNames[peek()]);
         advance();
     }
-    return noopStatement();
 }
 
-Statement part(Compiler *c){
+void part(Compiler *c){
     if(peek() == TOKEN_EOF)
-        return noopStatement();
+        beginStatement();
     else if(match(TOKEN_ROUTINE)){
         return routineStatement(c);
     }
@@ -771,9 +703,9 @@ Statement part(Compiler *c){
     else if(match(TOKEN_ARRAY)){
         return arrayStatement();
     }
-    else if(match(TOKEN_CONTAINER)){
-        return containerStatement(c);
-    }
+    //    else if(match(TOKEN_CONTAINER)){
+    //        return containerStatement(c);
+    //    }
     else{
         printf(line_error("Bad top level statement %s!"), presentLine(), tokenNames[peek()]);
         he++;
@@ -782,17 +714,13 @@ Statement part(Compiler *c){
     }
 }
 
-Code parse(TokenList *list){
-    Code c = {0, NULL};
+void parse(TokenList *list){
     head = list;
     Compiler *comp = initCompiler(NULL, 0, BLOCK_NONE);
     while(!match(TOKEN_EOF)){
-        c.count++;
-        c.parts = (Statement *)reallocate(c.parts, sizeof(Statement) * c.count);
-        c.parts[c.count - 1] = part(comp);
+        part(comp);
     }
     memfree(comp);
-    return c;
 }
 
 int hasParseError(){

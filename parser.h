@@ -2,9 +2,8 @@
 #define PARSER_H
 
 #include "scanner.h"
-#include "stmt.h"
 
-Code parse(TokenList *list);
+void parse(TokenList *list);
 int hasParseError();
 
 #endif

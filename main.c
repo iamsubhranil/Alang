@@ -4,18 +4,12 @@
 #include "scanner.h"
 #include "parser.h"
 #include "display.h"
-#include "stmt.h"
 #include "allocator.h"
-#include "interpreter.h"
 #include "preprocessor.h"
+#include "interpreter.h"
 
 static void p(const char* name, size_t size){
     printf("\n%s : %lu bytes", name, size);
-}
-
-static void printSize(){
-    p("Expression", sizeof(Expression));
-    p("Statement", sizeof(Statement));
 }
 
 int main(int argc, char **argv){
@@ -44,15 +38,16 @@ int main(int argc, char **argv){
     }
 //    printList(tokens);
 
-    Code all = parse(tokens);
+    parse(tokens);
     if(hasParseError()){
         printf(error("%d errors occured while parsing. Correct them and try to run again.\n"), hasParseError());
         memfree_all();
         return 1;
     }
-
+    
+    ins_print();
     freeList(tokens);
-    interpret(all);
+    interpret();
 
     memfree_all();
 

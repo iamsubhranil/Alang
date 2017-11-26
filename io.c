@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "allocator.h"
-#include "expr.h"
+#include "values.h"
 #include "io.h"
 #include "display.h"
 
@@ -20,11 +20,9 @@ static char* readString(){
     return ret;
 }
 
-Literal getString(int line){
+Data* getString(){
     char *s = readString();
-    Literal ret = {line, LIT_STRING, {0}};
-    ret.sVal = s;
-    return ret;
+    return new_str(s);
 }
 
 static int isNum(char c){
@@ -49,7 +47,7 @@ static int isInt(char *s){
     return 1;
 }
 
-Literal getInt(int line){
+Data* getInt(){
     char *s = readString();
     while(!isInt(s)){
         printf(warning("[Input Error] Not an integer : %s!\n[Re-Input] "), s);
@@ -58,11 +56,7 @@ Literal getInt(int line){
     long l = 0;
     sscanf(s, "%ld", &l);
     memfree(s);
-    if(s[0] == '-')
-        l *= -1;
-    Literal lit = {line, LIT_INT, {0}};
-    lit.iVal = l;
-    return lit;
+    return new_int(l);
 }
 
 static int isNumber(char *s){
@@ -85,7 +79,7 @@ static int isNumber(char *s){
     return 1;
 }
 
-Literal getFloat(int line){
+Data* getFloat(){
     char *s = readString();
     while(!isNumber(s)){
         printf(warning("[Input Error] Not a number : %s!\n[Re-Input] "), s);
@@ -94,9 +88,5 @@ Literal getFloat(int line){
     double d = 0;
     sscanf(s, "%lf", &d);
     memfree(s);
-    if(s[0] == '-')
-        d *= -1;
-    Literal lit = {line, LIT_DOUBLE, {0}};
-    lit.dVal = d;
-    return lit;
+    return new_float(d);
 }

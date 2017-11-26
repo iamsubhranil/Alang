@@ -1,10 +1,10 @@
 #ifndef IO_H
 #define IO_H
 
-#include "expr.h"
+#include "values.h"
 
-Literal getString(int line);
-Literal getInt(int line);
-Literal getFloat(int line);
+Data* getString();
+Data* getInt();
+Data* getFloat();
 
 #endif

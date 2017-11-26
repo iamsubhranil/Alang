@@ -2,7 +2,8 @@ Routine Main()
     Set loop = True
     Array n[20]
     While(loop)
-        Input "\nEnter two integers : ", a:Int, b:Int
+        Print "\nEnter two integers : "
+        Input a:Int, b:Int
         If(a < 1 Or b < 1)
             Print "Invalid input!\n"
             End
@@ -33,7 +34,8 @@ Routine Main()
         EndWhile
         Print " = ",s
         Print " which is equal to ",a," * ",b," = ",a*b
-        Input "\nDo you want to continue (y/n) ? ", choice
+        Print "\nDo you want to continue (y/n) ? "
+        Input choice
         If(choice != "Y" And choice != "y")
             Set loop = False
         EndIf

@@ -1,7 +1,8 @@
 Include ../native/Math.al
 
 Routine Main()
-    Input "\nEnter the degree : ", x:Float
+    Print "\nEnter the degree : "
+    Input x:Float
     Set y = Radian(x)
     Print "\n", x, " degree is ", y, " radian!"
     Print "\nCalling math functions : "

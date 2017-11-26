@@ -11,7 +11,8 @@ EndRoutine
 
 Routine LargeRoutine()
     Array large[100000]
-    Input "\nEnter anything to exit : ", j
+    Print "\nEnter anything to exit : "
+    Input j
 EndRoutine
 
 Routine ArbitraryTerminate(x)
@@ -27,7 +28,8 @@ EndRoutine
 Routine Main()
     Set j = 1
     Print "\nHello world From main!"
-    Input "\nEnter an integer to check factorial for : ", f:Int
+    Print "\nEnter an integer to check factorial for : "
+    Input f:Int
     Print "\nFact(",f,") : ",Fact(f)
     Print "\nBy default, each function returns : ", NoRet(7)
     Call LargeRoutine()

@@ -1,400 +1,221 @@
-#include <stdlib.h>
-#include <math.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <string.h>
+#include <inttypes.h>
 
-#include "stmt.h"
-#include "expr.h"
-#include "display.h"
-#include "environment.h"
 #include "allocator.h"
-#include "io.h"
 #include "interpreter.h"
-#include "native.h"
+#include "strings.h"
+#include "values.h"
+#include "heap.h"
 
-#define EPSILON 0.0000000000000000000000001
+static uint8_t *instructions = NULL;
+static uint64_t ip = 0;
 
-
-static Object resolveExpression(Expression* expression, Environment *env);
-static Object executeBlock(Block b, Environment *env);
-
-static int instanceCount = 0;
-static Environment *globalEnv = NULL;
-
-static int brk = 0, ret = 0;
-
-static int isNumeric(Literal l){
-    return l.type == LIT_INT || l.type == LIT_DOUBLE;
+uint64_t ins_add(uint8_t ins){
+    instructions = (uint8_t *)reallocate(instructions, 8*++ip);
+    instructions[ip - 1] = ins;
+    return ip - 1;
 }
 
-static Literal resolveLiteral(Expression *expression, int line, Environment *env){
-    Object o = resolveExpression(expression, env);
-    if(o.type == OBJECT_NULL)
-        return nullLiteral;
-    if(o.type != OBJECT_LITERAL){
-        printf(runtime_error("Expected literal, Received %d!"), line, o.type);
-        stop();
-    }
-    return o.literal;
+void ins_set(uint64_t mem, uint8_t ins){
+    instructions[mem] = ins;
 }
 
-static Object fromLiteral(Literal l){
-    Object o = {OBJECT_LITERAL, {l}};
-    return o;
-}
-
-static Object resolveBinary(Binary expr, Environment *env){
-    Literal left = resolveLiteral(expr.left, expr.line, env);
-    Literal right = resolveLiteral(expr.right, expr.line, env);
-    //   printf("\n[Binary] Got %s and %s for operator %s", literalNames[left.type], literalNames[right.type], tokenNames[expr.op.type]);
-    if(left.type == LIT_STRING && right.type == LIT_STRING && expr.op.type == TOKEN_PLUS){
-        Literal ret = {expr.line, LIT_STRING, {0}};
-        ret.sVal = (char *)mallocate(sizeof(char) * (strlen(left.sVal) + strlen(right.sVal) + 1));
-        ret.sVal[0] = 0;
-        strcat(ret.sVal, left.sVal);
-        strcat(ret.sVal, right.sVal);
-        return fromLiteral(ret);
-    }
-    else if (!isNumeric(left) || !isNumeric(right)){
-        printf(runtime_error("Binary operation can only be done on numerical values!"), expr.line);
-        stop();
-        return nullObject;
-    }
-    Literal ret = {expr.line, LIT_NULL, {0}};
-    ret.line = left.line;
-    if(left.type == LIT_INT && right.type == LIT_INT){
-        ret.type = LIT_INT;
-        switch(expr.op.type){
-            case TOKEN_PLUS:
-                ret.iVal = left.iVal + right.iVal;
-                break;
-            case TOKEN_MINUS:
-                ret.iVal = left.iVal - right.iVal;
-                break;
-            case TOKEN_STAR:
-                ret.iVal = left.iVal * right.iVal;
-                break;
-            case TOKEN_SLASH:
-                ret.iVal = left.iVal / right.iVal;
-                break;
-            case TOKEN_CARET:
-                ret.iVal = pow(left.iVal, right.iVal);
-                break;
-            case TOKEN_PERCEN:
-                ret.iVal = left.iVal % right.iVal;
-                break;
-            default:
-                break;
-        }
-    }
-    else{
-        ret.type = LIT_DOUBLE;
-        double a = left.type == LIT_INT?left.iVal:left.dVal;
-        double b = right.type == LIT_INT?right.iVal:right.dVal;
-        switch(expr.op.type){
-            case TOKEN_PLUS:
-                ret.dVal = a + b;
-                break;
-            case TOKEN_MINUS:
-                ret.dVal = a - b;
-                break;
-            case TOKEN_STAR:
-                ret.dVal = a * b;
-                break;
-            case TOKEN_SLASH:
-                ret.dVal = a / b;
-                break;
-            case TOKEN_CARET:
-                ret.dVal = pow(a, b);
-                break;
-            case TOKEN_PERCEN:
-                printf(runtime_error("%% can only be applied between two integers!"), expr.line);
-                stop();
-                break;
-            default:
-                break;
-        }
-    }
-    return fromLiteral(ret);
-}
-
-static Object compareInstance(Logical expr, Environment *env){
-    Object a = resolveExpression(expr.left, env);
-    Object b = resolveExpression(expr.right, env);
-    if(a.type == OBJECT_INSTANCE && b.type == OBJECT_INSTANCE){
-        Literal ret = {expr.line, LIT_LOGICAL, {0}};
-        switch(expr.op.type){
-            case TOKEN_EQUAL_EQUAL:
-                ret.lVal = a.instance == b.instance;
-                break;
-            case TOKEN_BANG_EQUAL:
-                ret.lVal = a.instance != b.instance;
-                break;
-            default:
-                printf(runtime_error("Can't compare container instances!"), expr.line);
-                stop();
-                break;
-        }
-        return fromLiteral(ret);
-    }
-    else if((a.type == OBJECT_INSTANCE && b.type == OBJECT_LITERAL)
-            || (a.type == OBJECT_LITERAL && b.type == OBJECT_INSTANCE)){
-        Literal lit = a.type == OBJECT_LITERAL ? a.literal : b.literal;
-        Instance* o = a.type == OBJECT_INSTANCE ? a.instance : b.instance;
-        if(lit.type != LIT_NULL){
-            printf(runtime_error("Unable to compare between literal and instances!"), expr.line);
-            stop();
-        }
-        Literal ret = {expr.line, LIT_LOGICAL, {0}};
-        switch(expr.op.type){
-            case TOKEN_EQUAL_EQUAL: 
-                ret.lVal = o == NULL;
-                break;
-            case TOKEN_BANG_EQUAL:
-                ret.lVal = o != NULL;
-                break;
-            default:
-                printf(runtime_error("Null can't be compared!"), expr.line);
-                stop();
-                break;
-        }
-        return fromLiteral(ret);
-    }
-    return nullObject;
-}
-
-static Object resolveLogical(Logical expr, Environment *env){
-    Object r = compareInstance(expr, env);
-    if(r.type != OBJECT_NULL)
-        return r;
-    Literal left = resolveLiteral(expr.left, expr.line, env);
-    Literal right = resolveLiteral(expr.right, expr.line, env);
-    //    printf("\n[Logical] Got %s and %s for operator %s", literalNames[left.type], literalNames[right.type], tokenNames[expr.op.type]);
-    if(left.type == LIT_NULL || right.type == LIT_NULL){
-        Literal ret = {expr.line, LIT_LOGICAL, {0}};
-        switch(expr.op.type){
-            case TOKEN_EQUAL_EQUAL:
-                ret.lVal = left.type == LIT_NULL && right.type == LIT_NULL;
-                break;
-            case TOKEN_BANG_EQUAL:
-                ret.lVal = left.type != LIT_NULL || right.type != LIT_NULL;
-                break;
-            default:
-                printf(runtime_error("Unable to compare Null!"), expr.line);
-                break;
-        }
-        return fromLiteral(ret);
-    }
-    if(left.type == LIT_STRING && right.type == LIT_STRING){
-        Literal ret = {expr.line, LIT_LOGICAL, {0}};
-        ret.line = left.line;
-        switch(expr.op.type){
-            case TOKEN_GREATER:
-                ret.lVal = strlen(left.sVal) > strlen(right.sVal);
-                break;
-            case TOKEN_GREATER_EQUAL:
-                ret.lVal = strlen(left.sVal) >= strlen(right.sVal);
-                break;
-            case TOKEN_LESS:
-                ret.lVal = strlen(left.sVal) < strlen(right.sVal);
-                break;
-            case TOKEN_LESS_EQUAL:
-                ret.lVal = strlen(left.sVal) <= strlen(right.sVal);
-                break;
-            case TOKEN_EQUAL_EQUAL:
-                ret.lVal = strcmp(left.sVal, right.sVal) == 0?1:0;
-                break;
-            case TOKEN_BANG_EQUAL:
-                ret.lVal = strcmp(left.sVal, right.sVal) == 0?0:1;
-                break;
-            default:
-                printf(runtime_error("Bad logical operator between string operands!"), expr.line);
-                stop();
-                break;
-        }
-        return fromLiteral(ret);
-    }
-    else if((!isNumeric(left) && left.type != LIT_LOGICAL) 
-            || (!isNumeric(right) && right.type != LIT_LOGICAL)){
-        printf(runtime_error("Bad operand for logical operator!"), expr.line);
-        stop();
-        return nullObject;
-    }
-    Literal ret;
-    ret.type = LIT_LOGICAL;
-    ret.line = left.line;
-    double a = left.type == LIT_INT?left.iVal:left.dVal;
-    double b = right.type == LIT_INT?right.iVal:right.dVal;
-    switch(expr.op.type){
-        case TOKEN_GREATER:
-            ret.lVal = a > b;
-            break;
-        case TOKEN_GREATER_EQUAL:
-            ret.lVal = a >= b;
-            break;
-        case TOKEN_LESS:
-            ret.lVal = a < b;
-            break;
-        case TOKEN_LESS_EQUAL:
-            ret.lVal = a <= b;
-            break;
-        case TOKEN_EQUAL_EQUAL:
-            ret.lVal = fabs(a - b) <= EPSILON;
-            break;
-        case TOKEN_BANG_EQUAL:
-            ret.lVal = fabs(a - b) > EPSILON;
-            break;
-        case TOKEN_AND:
-            if(left.type != LIT_LOGICAL || right.type != LIT_LOGICAL){
-                printf(runtime_error("'And' can only be applied over logical expressions!"), expr.line);
-                stop();
-            }
-            ret.lVal = left.lVal & right.lVal;
-            break;
-        case TOKEN_OR:
-            if(left.type != LIT_LOGICAL || right.type != LIT_LOGICAL){
-                printf(runtime_error("'Or' can only be applied over logical expressions!"), expr.line);
-                stop();
-            }
-            ret.lVal = left.lVal | right.lVal;
-            break;
-        default:
-            break;
-    }
-    return fromLiteral(ret);
-}
-
-static Object resolveVariable(Variable expr, Environment *env){
-    return env_get(expr.name, expr.line, env);
-}
-
-static Object resolveArray(ArrayExpression ae, Environment *env){
-    Literal index = resolveLiteral(ae.index, ae.line, env);
-    if(index.type != LIT_INT){
-        printf(runtime_error("Array index must be an integer!"), ae.line);
-        stop();
-    }
-    Object get = env_get(ae.identifier, ae.line, env);
-    if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){ 
-        char *s = get.literal.sVal;
-        long le = strlen(s);
-        long in = index.lVal;
-        if(in < 1 || in > (le+1)){
-            printf(runtime_error("String index out of range [%ld]!"), ae.line, in);
-            stop();
-        }
-        if(in == le+1)
-            return nullObject;
-        char c = s[in - 1];
-        char *cs = (char *)mallocate(sizeof(char) * 2);
-        cs[0] = c;
-        cs[1] = '\0';
-        Literal l;
-        l.type =  LIT_STRING;
-        l.sVal = cs;
-        return fromLiteral(l);
-    }
-    return env_arr_get(ae.identifier, ae.line, index.iVal, env);
-}
-
-static Object resolveRoutineCall(Call c, Environment *env){
-    Routine r = env_routine_get(c.identifer, c.line, globalEnv);
-    //printf("\nResolving call to %s", c.identifer);
-    if(r.arity != c.argCount){
-        printf(runtime_error("Argument count mismatch for routine %s! Expected : %d Received %d!"), 
-                c.line, c.identifer, r.arity, c.argCount);
-        stop();
-        return nullObject;
-    }
-    Environment *routineEnv = env_new(globalEnv);
-    int i = 0;
-    // printf("\n[Call] Executing %s Arity : %d\n", r.name, r.arity);
-    while(i < r.arity){
-        //   printf(debug("Argument %s"), r.arguments[i]);
-        env_put(r.arguments[i], c.line, resolveExpression(c.arguments[i], env), routineEnv);
+uint64_t ins_add_val(uint64_t store){
+    printf("\nStoring %lu at %lu : 0x", store, ip);
+    instructions = (uint8_t *)reallocate(instructions, 8*(ip + 8));
+    uint64_t i = 0;
+    while(i < 8){
+        instructions[ip + i] = (store >> ((7-i)*8)) & 0xff;
+        printf("%x", instructions[ip + i]);
         i++;
     }
-    Object obj;
-    if(r.isNative == 1)
-        obj = handle_native(c, routineEnv);
-    // printf("\n[Call] Executing %s\n", r.name);
-    else
-        obj = executeBlock(r.code, routineEnv);
-    if(ret)
-        ret = 0;
-    env_free(routineEnv);
-    return obj;
+    ip += 8;
+    ins_get_val(ip - 8);
+
+    //    ins_print();
+    return ip - 8;
 }
 
-static Object resolveContainerCall(Call c, Environment *env){
-    Container r = env_container_get(c.identifer, c.line, globalEnv);
-    //printf("\nResolving call to %s", c.identifer); 
-    if(r.arity != c.argCount){
-        printf(runtime_error("Argument count mismatch for container %s! Expected : %d Received %d!"), 
-                c.line, c.identifer, r.arity, c.argCount);
-        stop();
-        return nullObject;
-    }
-    Environment *containerEnv = env_new(globalEnv);
-    int i = 0;
-    // printf("\n[Call] Executing container %s\n", r.name);
-    while(i < r.arity){
-        env_put(r.arguments[i], c.line, resolveExpression(c.arguments[i], env), containerEnv);
+void ins_set_val(uint64_t mem, uint64_t store){
+    printf("\nReStoring %lu at %lu : 0x", store, mem);
+    uint64_t i = 0;
+    while(i < 8){
+        instructions[mem + i] = (store >> ((7-i)*8)) & 0xff;
+        printf("%x", instructions[mem + i]);
         i++;
     }
-    // printf("\n[Call] Executing %s\n", r.name);
-    executeBlock(r.constructor, containerEnv);
-    Object o;
-    o.type = OBJECT_INSTANCE;
-    o.instance = (Instance *)mallocate(sizeof(Instance));
-    o.instance->name = r.name;
-    o.instance->environment = containerEnv;
-    o.instance->refCount = 0;
-    o.instance->insCount = ++instanceCount;
-    o.instance->fromReturn = 0;
-    return o;
+    ins_get_val(mem);
 }
 
-static Object resolveCall(Call c, Environment *env){
-    if(strcmp(c.identifer, "Main") == 0)
-        return resolveRoutineCall(c, env);
-
-    Object callee = env_get(c.identifer, c.line, env);
-    if(callee.type == OBJECT_ROUTINE)
-        return resolveRoutineCall(c, env);
-    else
-        return resolveContainerCall(c, env);
-}
-
-static Object resolveReference(Reference ref, Environment *env){
-    Object o = resolveExpression(ref.containerName, env);
-    if(o.type != OBJECT_INSTANCE){
-        printf(runtime_error("Invalid member reference!"), ref.line);
-        stop();
+uint64_t ins_get_val(uint64_t mem){
+    uint64_t ret = instructions[mem];
+    uint64_t i = 1;
+    //    printf("[Bytes : 0x%x", instructions[mem]);
+    while(i < 8){
+        //        printf("%x", instructions[mem + i]);
+        ret = (ret << 8) | instructions[mem + i++];
     }
-    return resolveExpression(ref.member, (Environment *)o.instance->environment);
+    //    printf(" , Returing %g from %lu] ", (double)ret, mem);
+    return ret;
 }
 
-static Object resolveExpression(Expression* expression, Environment *env){
-    //   printf("\nSolving expression : %s", expressionNames[expression->type]);
-    switch(expression->type){
-        case EXPR_LITERAL:
-            return fromLiteral(expression->literal);
-        case EXPR_BINARY:
-            return resolveBinary(expression->binary, env);
-        case EXPR_LOGICAL:
-            return resolveLogical(expression->logical, env);
-        case EXPR_NONE:
-            return nullObject;
-        case EXPR_VARIABLE:
-            return resolveVariable(expression->variable, env);
-        case EXPR_ARRAY:
-            return resolveArray(expression->arrayExpression, env);
-        case EXPR_CALL:
-            return resolveCall(expression->callExpression, env);
-        case EXPR_REFERENCE:
-            return resolveReference(expression->referenceExpression, env);
+uint8_t ins_get(uint64_t mem){
+    return instructions[mem];
+}
+
+uint64_t ip_get(){
+    return ip;
+}
+
+void ins_print(){
+    uint64_t i = 0;
+    printf("\n\nPrinting memory[ip : %lu]..\n", ip);
+    while(i < ip){
+        printf("%x ", instructions[i]);
+        i++;
+        if(i > 0 && (i % 8 == 0))
+            printf("] [");
     }
+    //    stop();
+    i = 0;
+    printf("\nPrinting instructions..\n");
+    while(i < ip){
+        printf("ip %lu : ", i);
+        switch(instructions[i]){
+            case PUSHF:
+                printf("pushf %g", heap_get_float(ins_get_val(++i)));
+                i += 7;
+                break;
+            case PUSHI:
+                printf("pushi %" PRId64, heap_get_int(ins_get_val(++i)));
+                i += 7;
+                break;
+            case PUSHL:
+                printf("pushl %s", heap_get_logical(ins_get_val(++i))==0?"false":"true");
+                i += 7;
+                break;
+            case PUSHS:
+                printf("pushs %s", str_get(heap_get_str(ins_get_val(++i))));
+                i += 7;
+                break;
+            case PUSHID:
+                printf("pushid %s", str_get(heap_get_str(ins_get_val(++i))));
+                i += 7;
+                break;
+            case PUSHN:
+                printf("pushn");
+                break;
+            case ADD:
+                printf("add");
+                break;
+            case SUB:
+                printf("sub");
+                break;
+            case MUL:
+                printf("mul");
+                break;
+            case DIV:
+                printf("div");
+                break;
+            case POW:
+                printf("pow");
+                break;
+            case MOD:
+                printf("mod");
+                break;
+            case GT:
+                printf("gt");
+                break;
+            case GTE:
+                printf("gte");
+                break;
+            case LT:
+                printf("lt");
+                break;
+            case LTE:
+                printf("lte");
+                break;
+            case EQ:
+                printf("eq");
+                break;
+            case NEQ:
+                printf("neq");
+                break;
+            case AND:
+                printf("and");
+                break;
+            case OR:
+                printf("or");
+                break;
+            case SET:
+                printf("set");
+                break;
+            case INPUTI:
+                printf("inputi");
+                break;
+            case INPUTS:
+                printf("inputs");
+                break;
+            case INPUTF:
+                printf("inputf");
+                break;
+            case PRINT:
+                printf("print");
+                break;
+            case HALT:
+                printf("halt");
+                break;
+            case JUMP:
+                printf("jump");
+                break;
+            case JUMP_IF_TRUE:
+                printf("jump_if_true");
+                break;
+            case JUMP_IF_FALSE:
+                printf("jump_if_false");
+                break;
+            case CALL:
+                printf("call");
+                break;
+            case RETURN:
+                printf("return");
+                break;
+            case ARRAY:
+                printf("array");
+                break;
+            case MEMREF:
+                printf("memref");
+                break;
+            case MAKE_ARRAY:
+                printf("make_array");
+                break;
+            case NOOP:
+                printf("noop");
+                break;
+            default:
+                printf("[Error] Unknown opcode 0x%x", instructions[i]);
+                break;
+        }
+        i++;
+        printf("\n");
+    }
+}
+
+#include "datastack.h"
+#include <string.h>
+#include "display.h"
+#include <math.h>
+#include "env.h"
+#include "routines.h"
+#include "callframe.h"
+#include "io.h"
+
+static uint8_t run = 1;
+
+void stop(){
+    memfree_all();
+    exit(0);
 }
 
 static void printString(const char *s){
@@ -423,352 +244,550 @@ static void printString(const char *s){
     }
 }
 
-static void printLiteral(Literal result){
-    switch(result.type){
-        case LIT_NULL:
-            printf("Null");
-            break;
-        case LIT_LOGICAL:
-            printf("%s", result.lVal == 0 ? "False" : "True");
-            break;
-        case LIT_DOUBLE:
-            printf("%g", result.dVal);
-            break;
-        case LIT_INT:
-            printf("%ld", result.iVal);
-            break;
-        case LIT_STRING:
-            printString(result.sVal);
-            break;
-    }
-}
-
-static void printObject(Object o){ 
-    switch(o.type){
-        case OBJECT_ARRAY:
-            printf("<array of %d>", o.arr.count);
-            break;
-        case OBJECT_CONTAINER:
-            printf("<container %s>", o.container.name);
-            break;
-        case OBJECT_INSTANCE:
-            printf("<instance of container %s>", o.instance->name);
-            break;
-        case OBJECT_ROUTINE:
-            printf("<routine %s>", o.routine.name);
-            break;
-        case OBJECT_NULL:
-            printf("Null");
-            break;
-        case OBJECT_LITERAL:
-            printLiteral(o.literal);
-            break;
-    }
-}
-
-static Object executePrint(Print p, Environment *env){
-    int i = 0;
-    while(i < p.argCount){
-        Object o = resolveExpression(p.expressions[i], env);
-        printObject(o);
-        i = i+1;
-    }
-    return nullObject;
-}
-
-static Object executeStatement(Statement s, Environment *env);
-
-static Object executeBlock(Block b, Environment *env){
-    //debug("Executing block statement");
-    int num = 0;
-    Object retl = nullObject;
-    while(num < b.numStatements){
-        retl = executeStatement(b.statements[num], env);
-        if(brk || ret)
-            break;
-        num++;
-    }
-    return retl;
-}
-
-static Object executeIf(If ifs, Environment *env){
-    //debug("Executing if statement");
-    Literal cond = resolveLiteral(ifs.condition, ifs.line, env);
-    if(cond.type != LIT_LOGICAL){
-        printf(runtime_error("Not a logical expression as condition!"), ifs.line);
-        stop();
-        return nullObject;
-    }
-    if(cond.lVal){
-        return executeBlock(ifs.thenBranch, env);
-    }
-    else{
-        return executeBlock(ifs.elseBranch, env);
-    }
-}
-
-static Object executeWhile(While w, Environment *env){
-    //debug("Executing while statement");
-    Literal cond = resolveLiteral(w.condition, w.line, env);
-    if(cond.type != LIT_LOGICAL){
-        printf(runtime_error("Not a logical expression as condition!"), w.line);
-        stop();
-        return nullObject;
-    }
-    Object retl = nullObject;
-    while(cond.lVal){
-        retl = executeBlock(w.body, env);
-        if(brk){
-            brk = 0;
-            break;
-        }
-        if(ret)
-            return retl;
-        cond = resolveLiteral(w.condition, w.line, env);
-    }
-    return nullObject;
-}
-
-static void write_array(Expression *id, Expression *initializerExpression, Environment *resEnv, 
-        Environment *writeEnv, int line){
-    Literal index = resolveLiteral(id->arrayExpression.index, line, resEnv);
-    if(index.type != LIT_INT){
-        printf(runtime_error("Array index must be an integer!"), line);
-        stop();
-    }
-    Object get = env_get(id->arrayExpression.identifier, line, writeEnv);
-    if(get.type == OBJECT_LITERAL && get.literal.type == LIT_STRING){
-        Literal rep = resolveLiteral(initializerExpression, line, resEnv);
-        if(index.lVal < 1){
-            printf(runtime_error("String index must be positive!"), line);
-            stop();
-        }
-        if(rep.type != LIT_STRING){
-            printf(runtime_error("Bad assignment to a string!"), line);
-            stop();
-        }
-        if(strlen(rep.sVal) > 1)
-            printf(warning("[Line %d] Ignoring extra characters while assignment!"), line);
-        get.literal.sVal[index.lVal - 1] = rep.sVal[0];
-    }
-    else
-        env_arr_put(id->arrayExpression.identifier, line, index.iVal, 
-                resolveExpression(initializerExpression, resEnv), writeEnv);
-}
-
-static void write_ref(Expression *id, Expression *init, Environment *resEnv, 
-        Environment *writeEnv, int line){ 
-    Object ref = resolveExpression(id->referenceExpression.containerName, writeEnv);
-    if(ref.type != OBJECT_INSTANCE){
-        printf(runtime_error("Referenced item is not an instance of a container!"), line);
-        stop();
-    }
-    Set s;
-    Expression *mem = id->referenceExpression.member;
-    if(mem->type == EXPR_ARRAY){
-        write_array(mem, init, resEnv, (Environment *)ref.instance->environment, line);
-    }
-    else if(mem->type == EXPR_VARIABLE){
-        Object value = resolveExpression(init, resEnv);
-        env_put(mem->variable.name, s.line, value, (Environment *)ref.instance->environment);
-    }
-    else if(mem->type == EXPR_REFERENCE){
-        write_ref(mem, init, resEnv, (Environment *)ref.instance->environment, line);
-    }
-    else{
-        printf(runtime_error("Bad member access for container type '%s'"), 
-                s.line, ref.instance->name);
-        stop();
-    }
-}
-
-static Object executeSet(Set s, Environment *env){
-    //debug("Executing set statement");
-    int i = 0;
-    while(i < s.count){
-        Expression *id = s.initializers[i].identifer;
-        Expression *init = s.initializers[i].initializerExpression;
-        if(id->type == EXPR_VARIABLE)
-            env_put(id->variable.name, s.line, resolveExpression(init, env), env);
-        else if(id->type == EXPR_ARRAY){
-            write_array(id, init, env, env, s.line);
-        }
-        else if(id->type == EXPR_REFERENCE){
-            write_ref(id, init, env, env, s.line);
-        }
-        else{
-            printf(runtime_error("Bad assignment target!"), s.line);
-            stop();
-            return nullObject;
-        }
-        i++;
-    }
-    return nullObject;
-}
-
-static Object executeArray(ArrayInit ai, Environment *env){
-    int i = 0;
-    while(i < ai.count){
-        Expression *iden = ai.initializers[i];
-        Literal init = resolveLiteral(iden->arrayExpression.index, ai.line, env);
-        if(init.type != LIT_INT){
-            printf(runtime_error("Array dimension must be an integer!"), ai.line);
-            stop();
-            return nullObject;
-        }
-        env_arr_new(iden->arrayExpression.identifier, ai.line, init.iVal, env);
-        i++;
-    }
-    return nullObject;
-}
-
-static Object executeInput(InputStatement is, Environment *env){
-    int i = 0;
-    while(i < is.count){
-        Input in = is.inputs[i];
-        switch(in.type){
-            case INPUT_PROMPT:
-                printString(in.prompt);
+void interpret(){
+    dataStack = NULL;
+    sp = 0;
+    stackSize = 0;
+    Environment *env = env_new();
+    env->parent = NULL;
+    CallFrame *c = cf_new();
+    c->env = env;
+    c->returnAddress = 0;
+    cf_push(c);
+    ip = routine_get(str_insert("Main"))->startAddress;
+    while(run){
+        switch(instructions[ip]){
+            case PUSHF:
+                dpushf(heap_get_float(ins_get_val(++ip)));
+                ip += 7;
                 break;
-            case INPUT_IDENTIFER:
-                {
-                    char *ide = in.identifer;
-                    switch(in.datatype){
-                        case INPUT_ANY:
-                            env_put(ide, is.line, fromLiteral(getString(is.line)), env);
-                            break;
-                        case INPUT_FLOAT:
-                            env_put(ide, is.line, fromLiteral(getFloat(is.line)), env);
-                            break;
-                        case INPUT_INT:
-                            env_put(ide, is.line, fromLiteral(getInt(is.line)), env);
-                            break;
-                    }
-                }
+            case PUSHI:
+                dpushi(heap_get_int(ins_get_val(++ip)));
+                ip += 7;
+                break;
+            case PUSHL:
+                dpushl(heap_get_logical(ins_get_val(++ip)));
+                ip += 7;
+                break;
+            case PUSHS:{
+                           const char *str = str_get(heap_get_str(ins_get_val(++ip)));
+                           dpushs(str);
+                           //   printf("\n[Info] Pushing string [sp : %lu] %s", sp, str);
+                           ip += 7;
+                           //      Data *d;
+                           //      dpopv(d, env);
+                           //     printf("\n[Info] Stored : %s", str_get(d->svalue));
+                       }
+                       break;
+            case PUSHID:
+                       dpushid(str_get(heap_get_str(ins_get_val(++ip))));
+                       ip += 7;
+                       break;
+            case PUSHN:
+                       dpushn();
+                       break;
+            case ADD:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isstr(d1) && isstr(d2)){
+                               size_t s1 = strlen(str_get(d1->svalue)), s2 = (strlen(str_get(d2->svalue)));
+                               char *res = (char *)mallocate(sizeof(char) * (s1 + s2 + 1));
+                               res[0] = '\0';
+                               strcat(res, str_get(d2->svalue));
+                               strcat(res, str_get(d1->svalue));
+                               res[s1+s2] = '\0';
+                               dpushs(res);
+                           }
+                           else if(isnum(d1) && isnum(d2)){
+                               uint8_t resFloat = 0;
+                               if(isfloat(d1) || isfloat(d2)){
+                                   double res = tnum(d1) + tnum(d2);
+                                   dpushf(res);
+                               }
+                               else{
+                                   int64_t res = tint(d1) + tint(d2);
+                                   dpushi(res);
+                               }
+                           }
+                           else{
+                               error("Bad operands for operator '+'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case SUB:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isnum(d1) && isnum(d2)){
+                               if(isfloat(d1) || isfloat(d2)){
+                                   double res = tnum(d2) - tnum(d1);
+                                   dpushf(res);
+                               }
+                               else{
+                                   int64_t res = tint(d2) - tint(d1);
+                                   dpushi(res);
+                               }
+                           }
+                           else{
+                               error("Bad operands for operator '-'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case MUL:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isnum(d1) && isnum(d2)){
+                               if(isfloat(d1) || isfloat(d2)){
+                                   double res = tnum(d2) * tnum(d1);
+                                   dpushf(res);
+                               }
+                               else{
+                                   int64_t res = tint(d2) * tint(d1);
+                                   dpushi(res);
+                               }
+                           }
+                           else{
+                               error("Bad operands for operator '*'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case DIV:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isnum(d1) && isnum(d2)){
+                               if(isfloat(d1) || isfloat(d2)){
+                                   double res = tnum(d2) / tnum(d1);
+                                   dpushf(res);
+                               }
+                               else{
+                                   int64_t res = tint(d2) / tint(d1);
+                                   dpushi(res);
+                               }
+                           }
+                           else{
+                               error("Bad operands for operator '*'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case POW:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isint(d1) && isnum(d2)){
+                               dpushf(pow(tnum(d2), tint(d1)));
+                           }
+                           else{
+                               error("Bad operands for operator '^'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case MOD:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isint(d1) && isint(d2)){
+                               dpushi(tint(d2) % tint(d1));
+                           }
+                           else{
+                               error("Bad operands for operator '%'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case GT:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isstr(d1) && isstr(d2)){
+                               dpushl(strlen(str_get(d2->svalue)) > strlen(str_get(d1->svalue)));
+                           }
+                           else if(isnum(d1) && isnum(d2)){
+                               dpushl(tnum(d2) > tnum(d1));
+                           }
+                           else{
+                               error("Bad operands for operator '>'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case GTE:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isstr(d1) && isstr(d2)){
+                               dpushl(strlen(str_get(d2->svalue)) >= strlen(str_get(d1->svalue)));
+                           }
+                           else if(isnum(d1) && isnum(d2)){
+                               dpushl(tnum(d2) >= tnum(d1));
+                           }
+                           else{
+                               error("Bad operands for operator '>='!");
+                               stop();
+                           }
+                           break;
+                       }
+            case LT:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isstr(d1) && isstr(d2)){
+                               dpushl(strlen(str_get(d2->svalue)) < strlen(str_get(d1->svalue)));
+                           }
+                           else if(isnum(d1) && isnum(d2)){
+                               dpushl(tnum(d2) < tnum(d1));
+                           }
+                           else{
+                               error("Bad operands for operator '<'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case LTE:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isstr(d1) && isstr(d2)){
+                               dpushl(strlen(str_get(d2->svalue)) <= strlen(str_get(d1->svalue)));
+                           }
+                           else if(isnum(d1) && isnum(d2)){
+                               dpushl(tnum(d2) <= tnum(d1));
+                           }
+                           else{
+                               error("Bad operands for operator '<='!");
+                               stop();
+                           }
+                           break;
+                       }
+            case EQ:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isstr(d1) && isstr(d2)){
+                               dpushl(d2->svalue == d1->svalue);
+                           }
+                           else if(isnum(d1) && isnum(d2)){
+                               //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
+                               dpushl(tnum(d2) == tnum(d1));
+                           }
+                           else{
+                               error("Bad operands for operator '=='!");
+                               stop();
+                           }
+                           break;
+                       }
+            case NEQ:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(isstr(d1) && isstr(d2)){
+                               dpushl(d1->svalue != d2->svalue);
+                           }
+                           else if(isnum(d1) && isnum(d2)){
+                               dpushl(tnum(d2) != tnum(d1));
+                           }
+                           else{
+                               error("Bad operands for operator '!='!");
+                               stop();
+                           }
+                           break;
+                       }
+            case AND:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(islogical(d1) && islogical(d2)){
+                               dpushl(d1->ivalue && d2->ivalue);
+                           }
+                           else{
+                               error("Bad operands for operator 'And'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case OR:
+                       {
+                           Data *d1, *d2;
+                           dpopv(d1, env); dpopv(d2, env);
+                           if(islogical(d1) && islogical(d2)){
+                               dpushl(d1->ivalue || d2->ivalue);
+                           }
+                           else{
+                               error("Bad operands for operator 'Or'!");
+                               stop();
+                           }
+                           break;
+                       }
+            case SET:
+                       {
+                           Data *id, *value;
+                           dpopv(value, env);
+                           dpop(id); 
+                           if(isidentifer(id)){
+                               Data *var= env_get(id->svalue, env, 1);
+                               if(var == NULL || !isarray(var)) 
+                                   env_put(id->svalue, value, env);
+                               else{
+                                   Data *index;
+                                   dpopv(index, env);
+                                   if(isint(index)){
+                                       if(tint(index) < 1 || tint(index) > var->numElements){
+                                           printf(error("Array index out of range : %" PRId64), tint(index));
+                                           stop();
+                                       }
+                                       else{
+                                           var->arr[tint(index) - 1] = (struct Data *)value;
+                                       }
+                                   }
+                                   else{
+                                       printf(error("Array index must be an integer!"));
+                                       stop();
+                                   }
+                               }
+                           }
+                           else{
+                               printf(error("Bad assignment target!"));
+                               stop();
+                           }
+                           break;
+                       }
+            case INPUTI:
+                       {
+                           Data *id;
+                           dpop(id);
+                           if(isidentifer(id)){
+                               env_put(id->svalue, getInt(), env);
+                           }
+                           else{
+                               printf(error("Bad input target!"));
+                               stop();
+                           }
+                           break;
+                       }
+            case INPUTS:
+                       {
+                           Data *id;
+                           dpop(id);
+                           if(isidentifer(id)){
+                               env_put(id->svalue, getString(), env);
+                           }
+                           else{
+                               printf(error("Bad input target!"));
+                               stop();
+                           }
+                           break;
+                       }
+            case INPUTF:
+                       {
+                           Data *id;
+                           dpop(id);
+                           if(isidentifer(id)){
+                               env_put(id->svalue, getFloat(), env);
+                           }
+                           else{
+                               printf(error("Bad input target!"));
+                               stop();
+                           }
+                           break;
+                       }
+            case PRINT:
+                       {
+                           //printf("\n[Info] Printing [sp : %lu]", sp);
+                           Data *value;
+                           dpopv(value, env);
+                           //printf("\nType : %d", (int)value->type);
+                           switch(value->type){
+                               case FLOAT:
+                                   printf("%g", value->cvalue);
+                                   break;
+                               case INT:
+                                   printf("%" PRId64, value->ivalue);
+                                   break;
+                               case LOGICAL:
+                                   printf("%s", value->ivalue == 0?"False":"True");
+                                   break;
+                               case NIL:
+                                   printf("Null");
+                                   break;
+                               case STRING:
+                                   printString(str_get(value->svalue));
+                                   break;
+                               case INSTANCE:
+                                   printf("<instance of %s#%"PRIu64">", str_get(value->pvalue->container_key),
+                                           value->pvalue->id);
+                                   break;
+                               case IDENTIFIER:
+                                   printf("<identifer %s>", str_get(value->svalue));
+                                   break;
+                               case ARR:
+                                   printf("<array of %" PRIu64 ">", value->numElements);
+                                   break;
+                           }
+                           break;
+                       }
+            case HALT:
+                       run = 0;
+                       break;
+            case JUMP:
+                       {
+                           uint64_t ja;
+                           dpopi(ja);
+                           ip = ja;
+                           continue;
+                       }
+            case JUMP_IF_TRUE:
+                       {
+                           Data *c;
+                           int64_t ja;
+                           dpopi(ja);  dpopv(c, env); 
+                           if(islogical(c)){
+                               if(tint(c)){
+                                   ip = ja;
+                                   continue;
+                               }
+                               else
+                                   break;
+                           }
+                           else{
+                               error("Illogical jump!");
+                               stop();
+                           }
+                       }
+            case JUMP_IF_FALSE:
+                       {
+                           Data *c;
+                           int64_t ja;
+                           dpopi(ja); dpopv(c, env);
+                           if(islogical(c)){
+                               if(!tint(c)){
+                                   ip = ja;
+                                   continue;
+                               }
+                               else{
+                                   //        printf("\nCond is true!");
+                                   break;
+                               }
+                           }
+                           else{
+                               error("Illogical jump!");
+                               stop();
+                           }
+                       }
+            case CALL:
+                       {
+                           int64_t numArg, i = 1;
+                           dpopi(numArg);
+                           Data **args = (Data **)mallocate(sizeof(Data *)*numArg);
+                           while(i <= numArg){
+                               Data *d;
+                               dpopv(d, env);
+                               args[numArg - i] = d;
+                               i++;
+                           }
+                           Data *r;
+                           dpop(r);
+                           Routine2 *routine = routine_get(r->svalue);
+                           if(routine->arity != numArg){
+                               error("Argument count mismatch!");
+                               stop();
+                           }
+                           CallFrame *nf = cf_new();
+                           nf->env = env_new(NULL);
+                           nf->returnAddress = ip + 1;
+                           i = 0;
+                           while(i < routine->arity){
+                               //       printf(debug("Defining %s!"), str_get(routine->arguments[i]));
+                               env_put(routine->arguments[i], args[i], nf->env);
+                               i++;
+                           }
+                           cf_push(nf);
+                           ip = routine->startAddress;
+                           env = nf->env;
+                           memfree(args);
+                           continue;
+                       }
+            case RETURN:
+                       {
+                           CallFrame *prev = cf_pop();
+                           ip = prev->returnAddress;
+                          // printf(debug("Returning to %lu"), ip);
+                           cf_free(prev);
+                           CallFrame *present = cf_peek();
+                           if(present == NULL || ip == 0){
+                           //    printf(debug("No parent frame to return!"));
+                               stop();
+                           }
+                           env = present->env;
+                           continue;
+                       }
+            case ARRAY:
+                       {
+                           Data *id, *index;
+                           dpop(id); dpopv(index, env);
+                           Data *arr = env_get(id->svalue, env, 0);
+                           if(!isarray(arr)){
+                               printf(error("'%s' is not an array!"), str_get(id->svalue));
+                               stop();
+                           }
+                           if(isint(index)){
+                               if(tint(index) < 1 || tint(index) > arr->numElements){
+                                   printf(error("Array index out of range : %" PRId64), tint(index));
+                                   stop();
+                               }
+                               else{
+                                   dpush((Data *)arr->arr[tint(index) - 1]);
+                               }
+                           }
+                           else{
+                               printf(error("Array index must be an integer!"));
+                               stop();
+                           }
+                           break;
+                       }
+            case MEMREF:
+                       printf("memref(noop)");
+                       break;
+            case MAKE_ARRAY:
+                       {
+                           Data *size, *id;
+                           dpop(id); dpopv(size, env); 
+                           if(isint(size)){
+                               if(isidentifer(id)){
+                                   if(env_get(id->svalue, env, 1) != NULL){
+                                       printf(error("Variable '%s' is already defined!"), str_get(id->svalue));
+                                       stop();
+                                   }
+                                   if(tint(size) > 0){
+                                       env_put(id->svalue, new_array(tint(size)), env);
+                                   }
+                                   else{
+                                       printf(error("Array size must be positive!"));
+                                       stop();
+                                   }
+                               }
+                               else{
+                                   printf(error("Expected array identifer!"));
+                                   stop();
+                               }
+                           }
+                           else{
+                               printf(error("Array size must be integer!"));
+                           }
+                           break;
+                       }
+            case NOOP:
+                       break;
+            default:
+                       printf("[Error] Unknown opcode 0x%x", instructions[ip]);
+                       break;
         }
-        i++;
+        ip++;
     }
-    return nullObject;
-}
-
-static Object executeBreak(){
-    //debug("Executing break statement");
-    brk = 1;
-    return nullObject;
-}
-
-static Object executeEnd(){
-    //debug("Executing end statement");
-    memfree_all();
-    exit(0);
-    return nullObject;
-}
-
-static Object executeBegin(){
-    //debug("Executing begin statement");
-    warning("Begin is a no-op!\n");
-    return nullObject;
-}
-
-static Object registerRoutine(Routine r){
-    env_routine_put(r, r.line, globalEnv);
-    return nullObject;
-}
-
-static Object registerContainer(Container c){
-    env_container_put(c, c.line, globalEnv);
-    return nullObject;
-}
-
-static Object executeCall(CallStatement cs, Environment *env){
-    if(cs.callee->type != EXPR_CALL){
-        printf(runtime_error("Expected call expression!"), cs.line);
-        stop();
-    }
-    else{
-        Object o = resolveCall(cs.callee->callExpression, env);
-        if(o.type != OBJECT_NULL)
-            printf(warning("[Line %d] Ignoring return value!"), cs.line);
-        if(o.type == OBJECT_INSTANCE){
-            gc_obj(o);
-        }
-    }
-    return nullObject;
-}
-
-static Object executeReturn(ReturnStatement rs, Environment *env){
-    Object retl = nullObject;
-    if(rs.value != NULL)
-        retl = resolveExpression(rs.value,  env);
-    //    printf(debug("Returing object of type %d"), retl.type);
-    if(retl.type == OBJECT_INSTANCE){
-        retl.instance->fromReturn = 1;
-        //        printf(debug("Incrementing ref to %d of %s#%d\n"), retl.instance->refCount,
-        //                retl.instance->name, retl.instance->insCount);
-    }
-    ret = 1;
-    return retl;
-}
-
-static Object executeStatement(Statement s, Environment *env){
-    switch(s.type){
-        case STATEMENT_PRINT:
-            return executePrint(s.printStatement, env);
-        case STATEMENT_IF:
-            return executeIf(s.ifStatement, env);
-        case STATEMENT_WHILE:
-            return executeWhile(s.whileStatement, env);
-        case STATEMENT_SET:
-            return executeSet(s.setStatement, env);
-        case STATEMENT_ARRAY:
-            return executeArray(s.arrayStatement, env);
-        case STATEMENT_INPUT:
-            return executeInput(s.inputStatement, env);
-        case STATEMENT_BREAK:
-            return executeBreak();
-        case STATEMENT_END:
-            return executeEnd();
-        case STATEMENT_BEGIN:
-            return executeBegin();
-            //       case STATEMENT_DO:
-            //           executeDo(s.)
-        case STATEMENT_ROUTINE:
-            return registerRoutine(s.routine);
-        case STATEMENT_CONTAINER:
-            return registerContainer(s.container);
-        case STATEMENT_CALL:
-            return executeCall(s.callStatement, env);
-        case STATEMENT_NOOP:
-            break;
-        case STATEMENT_RETURN:
-            return executeReturn(s.returnStatement, env);
-        default:
-            break;
-    }
-    return nullObject;
-}
-
-void interpret(Code c){
-    int i = 0;
-    globalEnv = env_new(NULL);
-    register_native(globalEnv);
-    while(i < c.count){
-        executeStatement(c.parts[i], globalEnv);
-        i++;
-    }
-    Call call;
-    call.argCount = 0;
-    call.identifer = strdup("Main");
-    call.arguments = NULL;
-    call.line = 0;
-    resolveCall(call, globalEnv);
-    unload_all();
-    env_free(globalEnv);
-}
-
-void stop(){
-    printf("\n");
-    unload_all();
-    memfree_all();
-    exit(1);
 }
