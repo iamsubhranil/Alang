@@ -270,8 +270,7 @@ void interpret(){
                 ip += 7;
                 break;
             case PUSHS:{
-                           const char *str = str_get(heap_get_str(ins_get_val(++ip)));
-                           dpushs(str);
+                           dpushsk(heap_get_str(ins_get_val(++ip)));
                            //   printf("\n[Info] Pushing string [sp : %lu] %s", sp, str);
                            ip += 7;
                            //      Data *d;
@@ -280,7 +279,8 @@ void interpret(){
                        }
                        break;
             case PUSHID:
-                       dpushid(str_get(heap_get_str(ins_get_val(++ip))));
+                       
+                       dpushidk(heap_get_str(ins_get_val(++ip)));
                        ip += 7;
                        break;
             case PUSHN:
@@ -288,14 +288,13 @@ void interpret(){
                        break;
             case ADD:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isstr(d1) && isstr(d2)){
-                               size_t s1 = strlen(str_get(d1->svalue)), s2 = (strlen(str_get(d2->svalue)));
+                               size_t s1 = strlen(str_get(tstrk(d1))), s2 = (strlen(str_get(tstrk(d2))));
                                char *res = (char *)mallocate(sizeof(char) * (s1 + s2 + 1));
                                res[0] = '\0';
-                               strcat(res, str_get(d2->svalue));
-                               strcat(res, str_get(d1->svalue));
+                               strcat(res, str_get(tstrk(d2)));
+                               strcat(res, str_get(tstrk(d1)));
                                res[s1+s2] = '\0';
                                dpushs(res);
                            }
@@ -318,8 +317,7 @@ void interpret(){
                        }
             case SUB:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) - tnum(d1);
@@ -338,8 +336,7 @@ void interpret(){
                        }
             case MUL:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) * tnum(d1);
@@ -358,8 +355,7 @@ void interpret(){
                        }
             case DIV:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) / tnum(d1);
@@ -378,8 +374,7 @@ void interpret(){
                        }
             case POW:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isint(d1) && isnum(d2)){
                                dpushf(pow(tnum(d2), tint(d1)));
                            }
@@ -391,8 +386,7 @@ void interpret(){
                        }
             case MOD:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isint(d1) && isint(d2)){
                                dpushi(tint(d2) % tint(d1));
                            }
@@ -404,10 +398,9 @@ void interpret(){
                        }
             case GT:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isstr(d1) && isstr(d2)){
-                               dpushl(strlen(str_get(d2->svalue)) > strlen(str_get(d1->svalue)));
+                               dpushl(strlen(str_get(tstrk(d2))) > strlen(str_get(tstrk(d1))));
                            }
                            else if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) > tnum(d1));
@@ -420,10 +413,9 @@ void interpret(){
                        }
             case GTE:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isstr(d1) && isstr(d2)){
-                               dpushl(strlen(str_get(d2->svalue)) >= strlen(str_get(d1->svalue)));
+                               dpushl(strlen(str_get(tstrk(d2))) >= strlen(str_get(tstrk(d1))));
                            }
                            else if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) >= tnum(d1));
@@ -436,10 +428,9 @@ void interpret(){
                        }
             case LT:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isstr(d1) && isstr(d2)){
-                               dpushl(strlen(str_get(d2->svalue)) < strlen(str_get(d1->svalue)));
+                               dpushl(strlen(str_get(tstrk(d2))) < strlen(str_get(tstrk(d1))));
                            }
                            else if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) < tnum(d1));
@@ -452,10 +443,9 @@ void interpret(){
                        }
             case LTE:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isstr(d1) && isstr(d2)){
-                               dpushl(strlen(str_get(d2->svalue)) <= strlen(str_get(d1->svalue)));
+                               dpushl(strlen(str_get(tstrk(d2))) <= strlen(str_get(tstrk(d1))));
                            }
                            else if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) <= tnum(d1));
@@ -468,10 +458,9 @@ void interpret(){
                        }
             case EQ:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isstr(d1) && isstr(d2)){
-                               dpushl(d2->svalue == d1->svalue);
+                               dpushl(tstrk(d2) == tstrk(d1));
                            }
                            else if(isnum(d1) && isnum(d2)){
                                //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
@@ -485,10 +474,10 @@ void interpret(){
                        }
             case NEQ:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(isstr(d1) && isstr(d2)){
-                               dpushl(d1->svalue != d2->svalue);
+                               dpushl(tstrk(d1) != tstrk(d1));
                            }
                            else if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) != tnum(d1));
@@ -501,10 +490,9 @@ void interpret(){
                        }
             case AND:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(islogical(d1) && islogical(d2)){
-                               dpushl(d1->ivalue && d2->ivalue);
+                               dpushl(tint(d1) && tint(d2));
                            }
                            else{
                                error("Bad operands for operator 'And'!");
@@ -514,10 +502,9 @@ void interpret(){
                        }
             case OR:
                        {
-                           Data *d1, *d2;
-                           dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
                            if(islogical(d1) && islogical(d2)){
-                               dpushl(d1->ivalue || d2->ivalue);
+                               dpushl(tint(d1) || tint(d2));
                            }
                            else{
                                error("Bad operands for operator 'Or'!");
@@ -527,23 +514,24 @@ void interpret(){
                        }
             case SET:
                        {
-                           Data *id, *value;
+                           Data id, value;
                            dpopv(value, env);
                            dpop(id); 
                            if(isidentifer(id)){
-                               Data *var= env_get(id->svalue, env, 1);
-                               if(var == NULL || !isarray(var)) 
-                                   env_put(id->svalue, value, env);
+                               Data var= env_get(tstrk(id), env, 1);
+                               if(isnull(var) || !isarray(var)) 
+                                   env_put(tstrk(id), value, env);
                                else{
-                                   Data *index;
+                                   Data index;
                                    dpopv(index, env);
                                    if(isint(index)){
-                                       if(tint(index) < 1 || tint(index) > var->numElements){
+                                       if(tint(index) < 1 || tint(index) > var.numElements){
                                            printf(error("Array index out of range : %" PRId64), tint(index));
                                            stop();
                                        }
                                        else{
-                                           var->arr[tint(index) - 1] = (struct Data *)value;
+                                           Data *d = (Data *)var.arr;
+                                           d[tint(index) - 1] = (Data)value;
                                        }
                                    }
                                    else{
@@ -560,10 +548,10 @@ void interpret(){
                        }
             case INPUTI:
                        {
-                           Data *id;
+                           Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(id->svalue, getInt(), env);
+                               env_put(tstrk(id), getInt(), env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -573,10 +561,10 @@ void interpret(){
                        }
             case INPUTS:
                        {
-                           Data *id;
+                           Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(id->svalue, getString(), env);
+                               env_put(tstrk(id), getString(), env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -586,10 +574,10 @@ void interpret(){
                        }
             case INPUTF:
                        {
-                           Data *id;
+                           Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(id->svalue, getFloat(), env);
+                               env_put(tstrk(id), getFloat(), env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -600,34 +588,37 @@ void interpret(){
             case PRINT:
                        {
                            //printf("\n[Info] Printing [sp : %lu]", sp);
-                           Data *value;
+                           Data value;
                            dpopv(value, env);
                            //printf("\nType : %d", (int)value->type);
-                           switch(value->type){
+                           switch(value.type){
                                case FLOAT:
-                                   printf("%g", value->cvalue);
+                                   printf("%g", tfloat(value));
                                    break;
                                case INT:
-                                   printf("%" PRId64, value->ivalue);
+                                   printf("%" PRId64, tint(value));
                                    break;
                                case LOGICAL:
-                                   printf("%s", value->ivalue == 0?"False":"True");
+                                   printf("%s", tint(value) == 0?"False":"True");
                                    break;
                                case NIL:
                                    printf("Null");
                                    break;
                                case STRING:
-                                   printString(str_get(value->svalue));
+                                   printString(str_get(tstrk(value)));
                                    break;
                                case INSTANCE:
-                                   printf("<instance of %s#%"PRIu64">", str_get(value->pvalue->container_key),
-                                           value->pvalue->id);
+                                   printf("<instance of %s#%"PRIu64">", str_get(value.pvalue->container_key),
+                                           value.pvalue->id);
                                    break;
                                case IDENTIFIER:
-                                   printf("<identifer %s>", str_get(value->svalue));
+                                   printf("<identifer %s>", str_get(tstrk(value)));
                                    break;
                                case ARR:
-                                   printf("<array of %" PRIu64 ">", value->numElements);
+                                   printf("<array of %" PRIu64 ">", value.numElements);
+                                   break;
+                               case NONE:
+                                   printf("<none>");
                                    break;
                            }
                            break;
@@ -644,7 +635,7 @@ void interpret(){
                        }
             case JUMP_IF_TRUE:
                        {
-                           Data *c;
+                           Data c;
                            int64_t ja;
                            dpopi(ja);  dpopv(c, env); 
                            if(islogical(c)){
@@ -662,7 +653,7 @@ void interpret(){
                        }
             case JUMP_IF_FALSE:
                        {
-                           Data *c;
+                           Data c;
                            int64_t ja;
                            dpopi(ja); dpopv(c, env);
                            if(islogical(c)){
@@ -684,16 +675,16 @@ void interpret(){
                        {
                            int64_t numArg, i = 1;
                            dpopi(numArg);
-                           Data **args = (Data **)mallocate(sizeof(Data *)*numArg);
+                           Data *args = (Data *)mallocate(sizeof(Data)*numArg);
                            while(i <= numArg){
-                               Data *d;
+                               Data d;
                                dpopv(d, env);
                                args[numArg - i] = d;
                                i++;
                            }
-                           Data *r;
+                           Data r;
                            dpop(r);
-                           Routine2 *routine = routine_get(r->svalue);
+                           Routine2 *routine = routine_get(tstrk(r));
                            if(routine->arity != numArg){
                                error("Argument count mismatch!");
                                stop();
@@ -729,20 +720,20 @@ void interpret(){
                        }
             case ARRAY:
                        {
-                           Data *id, *index;
+                           Data id, index;
                            dpop(id); dpopv(index, env);
-                           Data *arr = env_get(id->svalue, env, 0);
+                           Data arr = env_get(tstrk(id), env, 0);
                            if(!isarray(arr)){
-                               printf(error("'%s' is not an array!"), str_get(id->svalue));
+                               printf(error("'%s' is not an array!"), str_get(tstrk(id)));
                                stop();
                            }
                            if(isint(index)){
-                               if(tint(index) < 1 || tint(index) > arr->numElements){
+                               if(tint(index) < 1 || tint(index) > arr.numElements){
                                    printf(error("Array index out of range : %" PRId64), tint(index));
                                    stop();
                                }
                                else{
-                                   dpush((Data *)arr->arr[tint(index) - 1]);
+                                   dpush(((Data *)arr.arr)[tint(index) - 1]);
                                }
                            }
                            else{
@@ -756,16 +747,16 @@ void interpret(){
                        break;
             case MAKE_ARRAY:
                        {
-                           Data *size, *id;
+                           Data size, id;
                            dpop(id); dpopv(size, env); 
                            if(isint(size)){
                                if(isidentifer(id)){
-                                   if(env_get(id->svalue, env, 1) != NULL){
-                                       printf(error("Variable '%s' is already defined!"), str_get(id->svalue));
+                                   if(env_get(tstrk(id), env, 1).type != NONE){
+                                       printf(error("Variable '%s' is already defined!"), str_get(tstrk(id)));
                                        stop();
                                    }
                                    if(tint(size) > 0){
-                                       env_put(id->svalue, new_array(tint(size)), env);
+                                       env_put(tstrk(id), new_array(tint(size)), env);
                                    }
                                    else{
                                        printf(error("Array size must be positive!"));

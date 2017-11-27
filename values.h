@@ -12,7 +12,8 @@ typedef enum{
     NIL,
     INSTANCE,
     IDENTIFIER,
-    ARR
+    ARR,
+    NONE
 } Datatype;
 
 typedef struct{
@@ -27,7 +28,7 @@ typedef struct{
     union{
         Instance *pvalue;
         struct{
-            struct Data **arr;
+            void *arr;
             uint64_t numElements;
         };
         double cvalue;
@@ -36,31 +37,36 @@ typedef struct{
     };
 } Data;
 
-#define isint(x) (x->type == INT)
-#define isfloat(x) (x->type == FLOAT)
+#define isint(x) (x.type == INT)
+#define isfloat(x) (x.type == FLOAT)
 #define isnum(x) (isint(x) || isfloat(x))
-#define isstr(x) (x->type == STRING)
-#define isins(x) (x->type == INSTANCE)
-#define islogical(x) (x->type == LOGICAL)
-#define isnull(x) (x->type == NIL)
-#define isidentifer(x) (x->type == IDENTIFIER)
-#define isarray(x) (x->type == ARR)
+#define isstr(x) (x.type == STRING)
+#define isins(x) (x.type == INSTANCE)
+#define islogical(x) (x.type == LOGICAL)
+#define isnull(x) (x.type == NIL)
+#define isidentifer(x) (x.type == IDENTIFIER)
+#define isarray(x) (x.type == ARR)
+#define isnone(x) (x.type == NONE)
 
-#define tint(x) (x->ivalue)
-#define tfloat(x) (x->cvalue)
+#define tint(x) (x.ivalue)
+#define tfloat(x) (x.cvalue)
 #define tnum(x) (isint(x)?tint(x):tfloat(x))
-#define tstr(x) (str_get(x->svalue))
-#define tins(x) ((Instance *)x->pvalue)
+#define tstr(x) (str_get(x.svalue))
+#define tstrk(x) (x.svalue)
+#define tins(x) ((Instance *)x.pvalue)
 #define tenv(x) ((Environment *)x->env)
 
 #define new_data() ((Data *)mallocate(sizeof(Data)))
-Data* new_int(int64_t val);
-Data* new_float(double val);
-Data* new_str(const char *val);
-Data* new_identifer(const char *val);
-Data* new_ins(Instance *val);
-Data* new_logical(uint8_t val);
-Data* new_null();
-Data* new_array(uint64_t size);
+#define new_int(x) ((Data){0, INT, {.ivalue = x}})
+#define new_float(x) ((Data){0, FLOAT, {.cvalue = x}})
+#define new_str(x) ((Data){0, STRING, {.svalue = str_insert(x)}})
+#define new_strk(x) ((Data){0, STRING, {.svalue = x}})
+#define new_identifer(x) ((Data){0, IDENTIFIER, {.svalue = str_insert(x)}})
+#define new_identiferk(x) ((Data){0, IDENTIFIER, {.svalue = x}})
+#define new_ins(x) ((Data){0, INSTANCE, {.pvalue = x}})
+#define new_logical(x) ((Data){0, LOGICAL, {.ivalue = x}})
+#define new_null() ((Data){0, NIL, {NULL}})
+#define new_none() ((Data){0, NONE, {NULL}})
+Data new_array(uint64_t size);
 
-void data_free(Data *d);
+void data_free(Data d);

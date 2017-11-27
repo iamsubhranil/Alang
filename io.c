@@ -20,7 +20,7 @@ static char* readString(){
     return ret;
 }
 
-Data* getString(){
+Data getString(){
     char *s = readString();
     return new_str(s);
 }
@@ -47,7 +47,7 @@ static int isInt(char *s){
     return 1;
 }
 
-Data* getInt(){
+Data getInt(){
     char *s = readString();
     while(!isInt(s)){
         printf(warning("[Input Error] Not an integer : %s!\n[Re-Input] "), s);
@@ -79,7 +79,7 @@ static int isNumber(char *s){
     return 1;
 }
 
-Data* getFloat(){
+Data getFloat(){
     char *s = readString();
     while(!isNumber(s)){
         printf(warning("[Input Error] Not a number : %s!\n[Re-Input] "), s);

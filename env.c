@@ -15,16 +15,16 @@ Environment* env_new(Environment *parent){
     return env;
 }
 
-void env_put(uint64_t key, Data* value, Environment *env){
+void env_put(uint64_t key, Data value, Environment *env){
     if(env == NULL)
         return;
     uint64_t i = 0;
-    value->refCount++;
+    value.refCount++;
     while(i < env->keyCount){
         if(env->keys[i] == key){
-            Data *old = env->data[i];
-            old->refCount--;
-            if(old->refCount == 0)
+            Data old = env->data[i];
+            old.refCount--;
+            if(old.refCount == 0)
                 data_free(old);
             env->data[i] = value;
             return;
@@ -33,21 +33,21 @@ void env_put(uint64_t key, Data* value, Environment *env){
     }
     env->keys = (uint64_t *)reallocate(env->keys, 64*++env->keyCount);
     env->keys[env->keyCount - 1] = key;
-    env->data = (Data **)reallocate(env->data, sizeof(Data *)*env->keyCount);
+    env->data = (Data *)reallocate(env->data, sizeof(Data)*env->keyCount);
     env->data[env->keyCount - 1] = value;
 }
 
-Data* env_get(uint64_t key, Environment *env, uint8_t beSilent){
+Data env_get(uint64_t key, Environment *env, uint8_t beSilent){
     if(env == NULL)
-        return NULL;
+        return new_none();
     uint64_t i = 0;
     while(i < env->keyCount){
         if(env->keys[i] == key)
             return env->data[i];
         i++;
     }
-    Data* p = env_get(key, env->parent, beSilent);
-    if(p == NULL && !beSilent){
+    Data p = env_get(key, env->parent, beSilent);
+    if(isnone(p) && !beSilent){
         printf(error("Uninitialized variable '%s'!\n"), str_get(key));
         stop();
     }

@@ -3,8 +3,8 @@
 
 #include "values.h"
 
-Data* getString();
-Data* getInt();
-Data* getFloat();
+Data getString();
+Data getInt();
+Data getFloat();
 
 #endif
