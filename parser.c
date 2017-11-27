@@ -233,7 +233,7 @@ static void primary(){
     else if(peek() == TOKEN_STRING){
         uint64_t st = str_insert(stringOf(advance()));
         ins_add(PUSHS);
-        printf("\nPushing string %lu", st);
+    //    printf("\nPushing string %lu", st);
         ins_add_val(heap_add_str(st));
     }
     else if(peek() == TOKEN_IDENTIFIER){

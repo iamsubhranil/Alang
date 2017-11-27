@@ -22,12 +22,12 @@ void ins_set(uint64_t mem, uint8_t ins){
 }
 
 uint64_t ins_add_val(uint64_t store){
-    printf("\nStoring %lu at %lu : 0x", store, ip);
+//    printf("\nStoring %lu at %lu : 0x", store, ip);
     instructions = (uint8_t *)reallocate(instructions, 8*(ip + 8));
     uint64_t i = 0;
     while(i < 8){
         instructions[ip + i] = (store >> ((7-i)*8)) & 0xff;
-        printf("%x", instructions[ip + i]);
+//        printf("%x", instructions[ip + i]);
         i++;
     }
     ip += 8;
@@ -38,11 +38,11 @@ uint64_t ins_add_val(uint64_t store){
 }
 
 void ins_set_val(uint64_t mem, uint64_t store){
-    printf("\nReStoring %lu at %lu : 0x", store, mem);
+//    printf("\nReStoring %lu at %lu : 0x", store, mem);
     uint64_t i = 0;
     while(i < 8){
         instructions[mem + i] = (store >> ((7-i)*8)) & 0xff;
-        printf("%x", instructions[mem + i]);
+//        printf("%x", instructions[mem + i]);
         i++;
     }
     ins_get_val(mem);
