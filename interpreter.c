@@ -250,9 +250,9 @@ void interpret(){
     stackSize = 0;
     Environment *env = env_new();
     env->parent = NULL;
-    CallFrame *c = cf_new();
-    c->env = env;
-    c->returnAddress = 0;
+    CallFrame c = cf_new();
+    c.env = env;
+    c.returnAddress = 0;
     cf_push(c);
     ip = routine_get(str_insert("Main"))->startAddress;
     while(run){
@@ -689,33 +689,33 @@ void interpret(){
                                error("Argument count mismatch!");
                                stop();
                            }
-                           CallFrame *nf = cf_new();
-                           nf->env = env_new(NULL);
-                           nf->returnAddress = ip + 1;
+                           CallFrame nf = cf_new();
+                           nf.env = env_new(NULL);
+                           nf.returnAddress = ip + 1;
                            i = 0;
                            while(i < routine->arity){
                                //       printf(debug("Defining %s!"), str_get(routine->arguments[i]));
-                               env_put(routine->arguments[i], args[i], nf->env);
+                               env_put(routine->arguments[i], args[i], nf.env);
                                i++;
                            }
                            cf_push(nf);
                            ip = routine->startAddress;
-                           env = nf->env;
+                           env = nf.env;
                            memfree(args);
                            continue;
                        }
             case RETURN:
                        {
-                           CallFrame *prev = cf_pop();
-                           ip = prev->returnAddress;
+                           CallFrame prev = cf_pop();
+                           ip = prev.returnAddress;
                           // printf(debug("Returning to %lu"), ip);
                            cf_free(prev);
-                           CallFrame *present = cf_peek();
-                           if(present == NULL || ip == 0){
+                           CallFrame present = cf_peek();
+                           if(ip == 0){
                            //    printf(debug("No parent frame to return!"));
                                stop();
                            }
-                           env = present->env;
+                           env = present.env;
                            continue;
                        }
             case ARRAY:
