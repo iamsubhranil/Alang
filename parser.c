@@ -207,6 +207,19 @@ static uint8_t insFromToken(Token t){
     }
 }
 
+static void getCall(){
+    uint64_t argCount = 0;
+    if(!match(TOKEN_RIGHT_PAREN)){
+        do{
+            expression();
+            argCount++;
+        } while(match(TOKEN_COMMA));
+        consume(TOKEN_RIGHT_PAREN, "Expected ')' after expression!");
+    }
+    ins_add(PUSHI);
+    ins_add_val(heap_add_int(argCount));
+}
+
 static void primary(){
     if(match(TOKEN_TRUE)){
         ins_add(PUSHL);
@@ -245,6 +258,12 @@ static void primary(){
             ins_add(ARRAY);
             consume(TOKEN_RIGHT_SQUARE, "Expected ']' after array index!");
         }
+        else if(match(TOKEN_LEFT_PAREN)){
+            getCall();
+            ins_add(PUSHID);
+            ins_add_val(heap_add_identifer(st));
+            ins_add(CALL);
+        }
         else{
             ins_add(PUSHID);
             ins_add_val(heap_add_identifer(st));
@@ -260,27 +279,10 @@ static void primary(){
     }
 }
 
-static void getCall(){
-    uint64_t argCount = 0;
-    if(!match(TOKEN_RIGHT_PAREN)){
-        do{
-            expression();
-            argCount++;
-        } while(match(TOKEN_COMMA));
-        consume(TOKEN_RIGHT_PAREN, "Expected ')' after expression!");
-    }
-    ins_add(PUSHI);
-    ins_add_val(heap_add_int(argCount));
-    ins_add(CALL);
-}
-
 static void call(){
     primary();
     while(true){
-        if(match(TOKEN_LEFT_PAREN)){
-            getCall();
-        }
-        else if(match(TOKEN_DOT)){
+        if(match(TOKEN_DOT)){
             call();
             ins_add(MEMREF);
         }
@@ -578,7 +580,7 @@ static void endStatement(){
 }
 
 static void routineStatement(Compiler *compiler){
-    Routine2 *routine = routine_new();
+    Routine2 routine = routine_new();
 
     if(compiler->indentLevel > 0){
         printf(line_error("Routines can only be declared in top level indent!"), presentLine());
@@ -586,13 +588,13 @@ static void routineStatement(Compiler *compiler){
     }
 
     if(match(TOKEN_FOREIGN))
-        routine->isNative = 1;
+        routine.isNative = 1;
 
-    routine->name = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!")));
+    routine.name = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!")));
     consume(TOKEN_LEFT_PAREN, "Expected '(' after routine declaration!");
     if(peek() != TOKEN_RIGHT_PAREN){
         do{
-            routine_add_arg(routine, stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
+            routine_add_arg(&routine, stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
         } while(match(TOKEN_COMMA));
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
     }
@@ -600,8 +602,8 @@ static void routineStatement(Compiler *compiler){
         advance();
     consume(TOKEN_NEWLINE, "Expected newline after routine declaration!");
 
-    if(routine->isNative == 0){
-        routine->startAddress = ip_get();
+    if(routine.isNative == 0){
+        routine.startAddress = ip_get();
         blockStatement(compiler, BLOCK_FUNC);
         if(ins_get(ip_get() - 1) != RETURN){
             ins_add(PUSHN);

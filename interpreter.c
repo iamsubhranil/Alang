@@ -248,13 +248,13 @@ void interpret(){
     dataStack = NULL;
     sp = 0;
     stackSize = 0;
-    Environment *env = env_new();
-    env->parent = NULL;
+    Environment env = env_new();
+    env.parent = NULL;
     CallFrame c = cf_new();
     c.env = env;
     c.returnAddress = 0;
     cf_push(c);
-    ip = routine_get(str_insert("Main"))->startAddress;
+    ip = routine_get(str_insert("Main")).startAddress;
     while(run){
         switch(instructions[ip]){
             case PUSHF:
@@ -518,9 +518,9 @@ void interpret(){
                            dpopv(value, env);
                            dpop(id); 
                            if(isidentifer(id)){
-                               Data var= env_get(tstrk(id), env, 1);
+                               Data var= env_get(tstrk(id), &env, 1);
                                if(isnull(var) || !isarray(var)) 
-                                   env_put(tstrk(id), value, env);
+                                   env_put(tstrk(id), value, &env);
                                else{
                                    Data index;
                                    dpopv(index, env);
@@ -551,7 +551,7 @@ void interpret(){
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(tstrk(id), getInt(), env);
+                               env_put(tstrk(id), getInt(), &env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -564,7 +564,7 @@ void interpret(){
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(tstrk(id), getString(), env);
+                               env_put(tstrk(id), getString(), &env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -577,7 +577,7 @@ void interpret(){
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(tstrk(id), getFloat(), env);
+                               env_put(tstrk(id), getFloat(), &env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -674,18 +674,10 @@ void interpret(){
             case CALL:
                        {
                            int64_t numArg, i = 1;
-                           dpopi(numArg);
-                           Data *args = (Data *)mallocate(sizeof(Data)*numArg);
-                           while(i <= numArg){
-                               Data d;
-                               dpopv(d, env);
-                               args[numArg - i] = d;
-                               i++;
-                           }
                            Data r;
-                           dpop(r);
-                           Routine2 *routine = routine_get(tstrk(r));
-                           if(routine->arity != numArg){
+                           dpop(r); dpopi(numArg);
+                           Routine2 routine = routine_get(tstrk(r));
+                           if(routine.arity != numArg){
                                error("Argument count mismatch!");
                                stop();
                            }
@@ -693,15 +685,15 @@ void interpret(){
                            nf.env = env_new(NULL);
                            nf.returnAddress = ip + 1;
                            i = 0;
-                           while(i < routine->arity){
+                           while(i < routine.arity){
                                //       printf(debug("Defining %s!"), str_get(routine->arguments[i]));
-                               env_put(routine->arguments[i], args[i], nf.env);
+                               Data d; dpopv(d, env);
+                               env_put(routine.arguments[i], d, &nf.env);
                                i++;
                            }
                            cf_push(nf);
-                           ip = routine->startAddress;
+                           ip = routine.startAddress;
                            env = nf.env;
-                           memfree(args);
                            continue;
                        }
             case RETURN:
@@ -722,7 +714,7 @@ void interpret(){
                        {
                            Data id, index;
                            dpop(id); dpopv(index, env);
-                           Data arr = env_get(tstrk(id), env, 0);
+                           Data arr = env_get(tstrk(id), &env, 0);
                            if(!isarray(arr)){
                                printf(error("'%s' is not an array!"), str_get(tstrk(id)));
                                stop();
@@ -751,12 +743,12 @@ void interpret(){
                            dpop(id); dpopv(size, env); 
                            if(isint(size)){
                                if(isidentifer(id)){
-                                   if(env_get(tstrk(id), env, 1).type != NONE){
+                                   if(env_get(tstrk(id), &env, 1).type != NONE){
                                        printf(error("Variable '%s' is already defined!"), str_get(tstrk(id)));
                                        stop();
                                    }
                                    if(tint(size) > 0){
-                                       env_put(tstrk(id), new_array(tint(size)), env);
+                                       env_put(tstrk(id), new_array(tint(size)), &env);
                                    }
                                    else{
                                        printf(error("Array size must be positive!"));

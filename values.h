@@ -54,7 +54,7 @@ typedef struct{
 #define tstr(x) (str_get(x.svalue))
 #define tstrk(x) (x.svalue)
 #define tins(x) ((Instance *)x.pvalue)
-#define tenv(x) ((Environment *)x->env)
+#define tenv(x) (*(Environment *)x->env)
 
 #define new_data() ((Data *)mallocate(sizeof(Data)))
 #define new_int(x) ((Data){0, INT, {.ivalue = x}})

@@ -7,7 +7,7 @@
 typedef struct{
     uint16_t arity;
     uint64_t returnAddress;
-    Environment *env;
+    Environment env;
 } CallFrame;
 
 CallFrame cf_new();

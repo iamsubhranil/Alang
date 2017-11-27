@@ -6,12 +6,12 @@
 #include "strings.h"
 #include "interpreter.h"
 
-Environment* env_new(Environment *parent){
-    Environment* env = (Environment *)mallocate(sizeof(Environment));
-    env->data = NULL;
-    env->keys = NULL;
-    env->keyCount = 0;
-    env->parent = parent;
+Environment env_new(Environment *parent){
+    Environment env;
+    env.data = NULL;
+    env.keys = NULL;
+    env.keyCount = 0;
+    env.parent = parent;
     return env;
 }
 
@@ -54,13 +54,12 @@ Data env_get(uint64_t key, Environment *env, uint8_t beSilent){
     return p;
 }
 
-void env_free(Environment *env){
+void env_free(Environment env){
     uint64_t i = 0;
-    while(i < env->keyCount){
-        data_free(env->data[i]);
+    while(i < env.keyCount){
+        data_free(env.data[i]);
         i++;
     }
-    memfree(env->data);
-    memfree(env->keys);
-    memfree(env);
+    memfree(env.data);
+    memfree(env.keys);
 }
