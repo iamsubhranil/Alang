@@ -68,8 +68,12 @@ Data* new_array(uint64_t size){
 }
 
 void data_free(Data *d){
-    if(d == NULL || d->refCount > 0)
+    if(d == NULL)
         return;
+    else if(d->refCount > 0){
+        d->refCount--;
+        return;
+    }
     if(d->type == STRING){
         str_ref_decr(d->cvalue);
     }

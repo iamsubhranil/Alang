@@ -24,8 +24,8 @@ void env_put(uint64_t key, Data* value, Environment *env){
         if(env->keys[i] == key){
             Data *old = env->data[i];
             old->refCount--;
-           // if(old->refCount == 0)
-           //     data_free(old);
+            if(old->refCount == 0)
+                data_free(old);
             env->data[i] = value;
             return;
         }
