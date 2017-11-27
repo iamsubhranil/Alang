@@ -248,12 +248,10 @@ void interpret(){
     dataStack = NULL;
     sp = 0;
     stackSize = 0;
-    Environment env = env_new();
-    env.parent = NULL;
-    CallFrame c = cf_new();
-    c.env = env;
-    c.returnAddress = 0;
-    cf_push(c);
+    CallFrame callFrame = cf_new();
+    callFrame.env = env_new(NULL);
+    callFrame.returnAddress = 0;
+    callFrame.arity = 27;
     ip = routine_get(str_insert("Main")).startAddress;
     while(run){
         switch(instructions[ip]){
@@ -274,7 +272,7 @@ void interpret(){
                            //   printf("\n[Info] Pushing string [sp : %lu] %s", sp, str);
                            ip += 7;
                            //      Data *d;
-                           //      dpopv(d, env);
+                           //      dpopv(d,callFrame);
                            //     printf("\n[Info] Stored : %s", str_get(d->svalue));
                        }
                        break;
@@ -288,7 +286,7 @@ void interpret(){
                        break;
             case ADD:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                size_t s1 = strlen(str_get(tstrk(d1))), s2 = (strlen(str_get(tstrk(d2))));
                                char *res = (char *)mallocate(sizeof(char) * (s1 + s2 + 1));
@@ -317,7 +315,7 @@ void interpret(){
                        }
             case SUB:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) - tnum(d1);
@@ -336,7 +334,7 @@ void interpret(){
                        }
             case MUL:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) * tnum(d1);
@@ -355,7 +353,7 @@ void interpret(){
                        }
             case DIV:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) / tnum(d1);
@@ -374,7 +372,7 @@ void interpret(){
                        }
             case POW:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isint(d1) && isnum(d2)){
                                dpushf(pow(tnum(d2), tint(d1)));
                            }
@@ -386,7 +384,7 @@ void interpret(){
                        }
             case MOD:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isint(d1) && isint(d2)){
                                dpushi(tint(d2) % tint(d1));
                            }
@@ -398,7 +396,7 @@ void interpret(){
                        }
             case GT:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(strlen(str_get(tstrk(d2))) > strlen(str_get(tstrk(d1))));
                            }
@@ -413,7 +411,7 @@ void interpret(){
                        }
             case GTE:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(strlen(str_get(tstrk(d2))) >= strlen(str_get(tstrk(d1))));
                            }
@@ -428,7 +426,7 @@ void interpret(){
                        }
             case LT:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(strlen(str_get(tstrk(d2))) < strlen(str_get(tstrk(d1))));
                            }
@@ -443,7 +441,7 @@ void interpret(){
                        }
             case LTE:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(strlen(str_get(tstrk(d2))) <= strlen(str_get(tstrk(d1))));
                            }
@@ -458,7 +456,7 @@ void interpret(){
                        }
             case EQ:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(tstrk(d2) == tstrk(d1));
                            }
@@ -475,7 +473,7 @@ void interpret(){
             case NEQ:
                        {
                            
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(tstrk(d1) != tstrk(d1));
                            }
@@ -490,7 +488,7 @@ void interpret(){
                        }
             case AND:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(islogical(d1) && islogical(d2)){
                                dpushl(tint(d1) && tint(d2));
                            }
@@ -502,7 +500,7 @@ void interpret(){
                        }
             case OR:
                        {
-                           Data d1, d2; dpopv(d1, env); dpopv(d2, env);
+                           Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(islogical(d1) && islogical(d2)){
                                dpushl(tint(d1) || tint(d2));
                            }
@@ -515,15 +513,16 @@ void interpret(){
             case SET:
                        {
                            Data id, value;
-                           dpopv(value, env);
+                           dpopv(value, callFrame);
                            dpop(id); 
                            if(isidentifer(id)){
-                               Data var= env_get(tstrk(id), &env, 1);
-                               if(isnull(var) || !isarray(var)) 
-                                   env_put(tstrk(id), value, &env);
+                               Data var = env_get(tstrk(id), &callFrame.env, 1);
+                               if(isnull(var) || !isarray(var)){
+                                   env_put(tstrk(id), value, &callFrame.env);
+                               }
                                else{
                                    Data index;
-                                   dpopv(index, env);
+                                   dpopv(index, callFrame);
                                    if(isint(index)){
                                        if(tint(index) < 1 || tint(index) > var.numElements){
                                            printf(error("Array index out of range : %" PRId64), tint(index));
@@ -551,7 +550,7 @@ void interpret(){
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(tstrk(id), getInt(), &env);
+                               env_put(tstrk(id), getInt(), &callFrame.env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -564,7 +563,7 @@ void interpret(){
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(tstrk(id), getString(), &env);
+                               env_put(tstrk(id), getString(), &callFrame.env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -577,7 +576,7 @@ void interpret(){
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
-                               env_put(tstrk(id), getFloat(), &env);
+                               env_put(tstrk(id), getFloat(), &callFrame.env);
                            }
                            else{
                                printf(error("Bad input target!"));
@@ -589,7 +588,7 @@ void interpret(){
                        {
                            //printf("\n[Info] Printing [sp : %lu]", sp);
                            Data value;
-                           dpopv(value, env);
+                           dpopv(value, callFrame);
                            //printf("\nType : %d", (int)value->type);
                            switch(value.type){
                                case FLOAT:
@@ -637,7 +636,7 @@ void interpret(){
                        {
                            Data c;
                            int64_t ja;
-                           dpopi(ja);  dpopv(c, env); 
+                           dpopi(ja);  dpopv(c,callFrame); 
                            if(islogical(c)){
                                if(tint(c)){
                                    ip = ja;
@@ -655,7 +654,7 @@ void interpret(){
                        {
                            Data c;
                            int64_t ja;
-                           dpopi(ja); dpopv(c, env);
+                           dpopi(ja); dpopv(c,callFrame);
                            if(islogical(c)){
                                if(!tint(c)){
                                    ip = ja;
@@ -686,35 +685,34 @@ void interpret(){
                            nf.returnAddress = ip + 1;
                            i = 0;
                            while(i < routine.arity){
-                               //       printf(debug("Defining %s!"), str_get(routine->arguments[i]));
-                               Data d; dpopv(d, env);
+                       //               printf(debug("Defining %s!"), str_get(routine.arguments[i]));
+                               Data d; dpopv(d, callFrame);
                                env_put(routine.arguments[i], d, &nf.env);
                                i++;
                            }
-                           cf_push(nf);
+                           cf_push(callFrame);
                            ip = routine.startAddress;
-                           env = nf.env;
+                           callFrame = nf;
                            continue;
                        }
             case RETURN:
                        {
-                           CallFrame prev = cf_pop();
-                           ip = prev.returnAddress;
-                          // printf(debug("Returning to %lu"), ip);
-                           cf_free(prev);
-                           CallFrame present = cf_peek();
+                           ip = callFrame.returnAddress;
                            if(ip == 0){
                            //    printf(debug("No parent frame to return!"));
                                stop();
                            }
-                           env = present.env;
+                        //   printf(debug("Returning to %lu"), ip);
+                           cf_free(callFrame);
+                           callFrame = cf_pop();
+                       //    printf("\nReStoring address : %lu", callFrame.returnAddress);
                            continue;
                        }
             case ARRAY:
                        {
                            Data id, index;
-                           dpop(id); dpopv(index, env);
-                           Data arr = env_get(tstrk(id), &env, 0);
+                           dpop(id); dpopv(index, callFrame);
+                           Data arr = env_get(tstrk(id), &callFrame.env, 0);
                            if(!isarray(arr)){
                                printf(error("'%s' is not an array!"), str_get(tstrk(id)));
                                stop();
@@ -740,15 +738,15 @@ void interpret(){
             case MAKE_ARRAY:
                        {
                            Data size, id;
-                           dpop(id); dpopv(size, env); 
+                           dpop(id); dpopv(size, callFrame); 
                            if(isint(size)){
                                if(isidentifer(id)){
-                                   if(env_get(tstrk(id), &env, 1).type != NONE){
+                                   if(env_get(tstrk(id), &callFrame.env, 1).type != NONE){
                                        printf(error("Variable '%s' is already defined!"), str_get(tstrk(id)));
                                        stop();
                                    }
                                    if(tint(size) > 0){
-                                       env_put(tstrk(id), new_array(tint(size)), &env);
+                                       env_put(tstrk(id), new_array(tint(size)), &callFrame.env);
                                    }
                                    else{
                                        printf(error("Array size must be positive!"));

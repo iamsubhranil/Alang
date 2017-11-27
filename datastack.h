@@ -32,7 +32,7 @@ static uint64_t sp = 0, stackSize = 0;
 
 #define dpeek() dataStack[sp - 1]
 #define dpop(x) {x = dataStack[--sp]; decr();}
-#define dpopv(x, env) {x = dataStack[--sp]; x = isidentifer(x)?env_get(tstrk(x), &env, 0):x; decr();}
+#define dpopv(x, frame) {x = dataStack[--sp]; x = isidentifer(x)?env_get(tstrk(x), &frame.env, 0):x; decr();}
 #define dpopi(x) {x = tint(dataStack[--sp]); decr();}
 #define dpopf(x) {x = tfloat(dataStack[--sp]); decr();}
 #define dpops(x) {x = tstr(dataStack[--sp]); decr();}
