@@ -8,43 +8,50 @@
 
 Environment env_new(Environment *parent){
     Environment env;
-    env.data = NULL;
-    env.keys = NULL;
-    env.keyCount = 0;
+    env.records = NULL;
     env.parent = parent;
     return env;
+}
+
+static Record* new_record(uint64_t key, Data value){
+    Record *record = (Record *)mallocate(sizeof(Record));
+    record->key = key;
+    record->data = value;
+    record->next = NULL;
+    return record;
 }
 
 void env_put(uint64_t key, Data value, Environment *env){
     if(env == NULL)
         return;
-    uint64_t i = 0;
+    Record *top = env->records, *prev = NULL;
     value.refCount++;
-    while(i < env->keyCount){
-        if(env->keys[i] == key){
-            Data old = env->data[i];
+    while(top!=NULL){
+        if(top->key == key){
+            Data old = top->data;
             old.refCount--;
             if(old.refCount == 0)
                 data_free(old);
-            env->data[i] = value;
+            top->data = value;
             return;
         }
-        i++;
+        prev = top;
+        top = top->next;
     }
-    env->keys = (uint64_t *)reallocate(env->keys, 64*++env->keyCount);
-    env->keys[env->keyCount - 1] = key;
-    env->data = (Data *)reallocate(env->data, sizeof(Data)*env->keyCount);
-    env->data[env->keyCount - 1] = value;
+    if(prev == NULL)
+        env->records = new_record(key, value);
+    else
+        prev->next = new_record(key, value);
 }
 
 Data env_get(uint64_t key, Environment *env, uint8_t beSilent){
     if(env == NULL)
         return new_none();
-    uint64_t i = 0;
-    while(i < env->keyCount){
-        if(env->keys[i] == key)
-            return env->data[i];
-        i++;
+    Record *top = env->records;
+    while(top!=NULL){
+        if(top->key == key)
+            return top->data;
+        top = top->next;
     }
     Data p = env_get(key, env->parent, beSilent);
     if(isnone(p) && !beSilent){
@@ -56,10 +63,11 @@ Data env_get(uint64_t key, Environment *env, uint8_t beSilent){
 
 void env_free(Environment env){
     uint64_t i = 0;
-    while(i < env.keyCount){
-        data_free(env.data[i]);
-        i++;
+    Record *top = env.records;
+    while(top!=NULL){
+        Record *bak = top->next;
+        data_free(top->data);
+        memfree(top);
+        top = bak;
     }
-    memfree(env.data);
-    memfree(env.keys);
 }

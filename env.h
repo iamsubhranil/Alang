@@ -3,10 +3,14 @@
 #include "values.h"
 #include "strings.h"
 
+typedef struct Record{
+    uint64_t key;
+    Data data;
+    struct Record *next;
+} Record;
+
 typedef struct Environment{
-    uint64_t *keys;
-    uint64_t keyCount;
-    Data *data;
+    Record *records;
     struct Environment *parent;
 } Environment;
 
