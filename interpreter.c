@@ -475,7 +475,7 @@ void interpret(){
                            
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
-                               dpushl(tstrk(d1) != tstrk(d1));
+                               dpushl(tstrk(d1) != tstrk(d2));
                            }
                            else if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) != tnum(d1));
