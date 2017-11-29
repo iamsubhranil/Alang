@@ -6,18 +6,21 @@
 
 static Data *dataStack = NULL;
 static uint64_t sp = 0, stackSize = 0;
+int64_t stackLastIncremented = 0;
 
-#define SPEC_INC 100
+#define STACK_INC_CACHE -10 // Preven stack decrement if it was incremented recently 
 
 #define dStackInit() {stackSize = 10; dataStack = (Data *)mallocate(sizeof(Data)*stackSize);}
 
 #define incr() if(sp >= stackSize){\
         stackSize *= 2; \
+        stackLastIncremented = 0; \
         dataStack = (Data *)reallocate(dataStack, sizeof(Data)*stackSize);}
 
-#define decr() if(stackSize > 10 && (sp+1) < stackSize/2){\
+#define decr() if(stackLastIncremented < STACK_INC_CACHE && stackSize > 10 && (sp+1) < stackSize/2){\
         stackSize /= 2; \
-        dataStack = (Data *)reallocate(dataStack, sizeof(Data)*stackSize);}
+        dataStack = (Data *)reallocate(dataStack, sizeof(Data)*stackSize);\
+        stackLastIncremented--;}
 
 #define dpush(x) {incr(); dataStack[sp++] = x;}
 #define dpushi(x) {incr(); dataStack[sp++] = new_int(x);}
