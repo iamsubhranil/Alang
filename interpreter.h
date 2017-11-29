@@ -20,11 +20,11 @@ void stop();
 // Instructions
 
 // Load
-#define PUSHS 0x00 // String => push index
-#define PUSHID 0x01 // Identifer
-#define PUSHI 0x02 // Int => push constant
-#define PUSHF 0x03 // Float => push constant
-#define PUSHL 0x04 // Logical => push 0/1
+#define PUSHF 0x00 // String => push index
+#define PUSHI 0x01 // Identifer
+#define PUSHL 0x02 // Int => push constant
+#define PUSHS 0x03 // Float => push constant
+#define PUSHID 0x04 // Logical => push 0/1
 #define PUSHN 0x05 // Null => pushN
 // Arithmetic
 #define ADD 0x06
@@ -45,8 +45,8 @@ void stop();
 // Basic IO operations
 #define SET 0x14
 #define INPUTI 0x15
-#define INPUTF 0x16
-#define INPUTS 0x17
+#define INPUTS 0x16
+#define INPUTF 0x17
 #define PRINT 0x18
 #define HALT 0x19
 // Control flow and branching
