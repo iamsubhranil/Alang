@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "stmt.h"
 #include "expr.h"
@@ -761,7 +762,10 @@ void interpret(Code c){
     call.identifer = strdup("Main");
     call.arguments = NULL;
     call.line = 0;
+    clock_t start = clock();
     resolveCall(call, globalEnv);
+    clock_t end = clock();
+    printf(debug("[Interpreter] Execution time : %gms"), (double)(end-start)/CLOCKS_PER_SEC);
     unload_all();
     env_free(globalEnv);
 }
