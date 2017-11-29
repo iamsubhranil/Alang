@@ -10,7 +10,7 @@ typedef struct Object{
 } Object;
 
 static Object *front = NULL, *rear = NULL;
-static int allocationCount = 0, insertCount = 0;
+static int allocationCount = 0, insertCount = 0, reallocationCount = 0;
 
 static void insert(void *mem){
     insertCount++;
@@ -62,10 +62,15 @@ void* reallocate(void *mem, size_t size){
         printf(error("Unable to extend! Insufficient memory!"));
         exit(1);
     }
+    reallocationCount++;
     exchange(mem, newmem);
 //    printf("\n[Allocator] Reallocated %p to %p", mem, newmem);
 //        fflush(stdout);
     return newmem;
+}
+
+int get_realloc_count(){
+    return reallocationCount;
 }
 
 void memfree(void *old){

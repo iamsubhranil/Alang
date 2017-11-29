@@ -28,6 +28,7 @@ void routine_add_arg(Routine2 *r, const char *arg){
 
 void routine_add(Routine2 r){
     routines = (Routine2 *)reallocate(routines, sizeof(Routine2)*++index);
+//    printf(debug("[Routine] Adding routine : [%s]"), str_get(r.name));
     routines[index - 1] = r;
 }
 
@@ -39,7 +40,7 @@ Routine2 routine_get(uint64_t name){
             return routines[i];
         i++;
     }
-    printf(error("Routine not found : '%s'!\n"), str_get(name));
+ //   printf(error("Routine not found : '%s'!\n"), str_get(name));
     stop();
     return (Routine2){0};
 }

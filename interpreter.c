@@ -214,6 +214,7 @@ void ins_print(){
 static uint8_t run = 1;
 
 void stop(){
+    printf("\nRealloc called : %d times\n", get_realloc_count());
     memfree_all();
     exit(0);
 }

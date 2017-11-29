@@ -47,10 +47,12 @@ int main(int argc, char **argv){
     
 //    ins_print();
     freeList(tokens);
+    printf(debug("Before interpreting, realloc called : %d"), get_realloc_count());
+    
     interpret();
 
     memfree_all();
-
-    printf("\n");
+    
+    printf(debug("After interpreting, realloc called : %d times\n"), get_realloc_count());
     return 0;
 }

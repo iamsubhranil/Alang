@@ -2,6 +2,7 @@
 
 #include "strings.h"
 #include "allocator.h"
+#include "display.h"
 
 typedef struct{
     const char *value;
@@ -28,6 +29,7 @@ uint64_t str_insert(const char *str){
     while(i < stringCount){
         if(strarray[i]->hash == has){
             strarray[i]->refCount++;
+//            printf(debug("[Strings] Match found for [%s] at %lu[%s]"), str, i, strarray[i]->value);
             return i;
         }
         i++;
@@ -37,7 +39,7 @@ uint64_t str_insert(const char *str){
     strarray[stringCount - 1]->hash = has;
     strarray[stringCount - 1]->value = str;
     strarray[stringCount - 1]->refCount = 1;
-//    printf("\nAdding %s", str);
+//    printf(debug("[Strings] Adding [%s]"), str);
     return stringCount - 1;
 }
 
@@ -51,6 +53,7 @@ void str_ref_decr(uint64_t index){
         String *s = strarray[index];
         strarray[index] = strarray[stringCount - 1];
         strarray = (String **)reallocate(strarray, sizeof(String *) * --stringCount);
+//        printf(debug("[Strings] Freeing [%s]"), s->value);
         memfree((void *)s->value);
         memfree(s);
     }
