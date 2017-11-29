@@ -7,10 +7,7 @@
 #include "interpreter.h"
 
 Environment env_new(Environment *parent){
-    Environment env;
-    env.records = NULL;
-    env.parent = parent;
-    return env;
+    return (Environment){NULL, parent};
 }
 
 static Record* new_record(uint64_t key, Data value){
@@ -21,17 +18,29 @@ static Record* new_record(uint64_t key, Data value){
     return record;
 }
 
+static Environment* env_match(uint64_t key, Environment *env){
+    if(env == NULL)
+        return NULL;
+    Record *top = env->records;
+//    printf(debug("[Env:Match] Searching in %p[parent : %p] for [%s]"), env, env->parent, str_get(key));
+    while(top!=NULL){
+        if(top->key == key)
+            return env;
+        top = top->next;
+    }
+    return env_match(key, env->parent);
+}
+
 void env_put(uint64_t key, Data value, Environment *env){
     if(env == NULL)
         return;
-    Record *top = env->records, *prev = NULL;
-    value.refCount++;
+//    printf(debug("[Env:Put] Putting [%s]"), str_get(key));
+    Environment *match = env_match(key, env);
+    if(match == NULL)
+        match = env;
+    Record *top = match->records, *prev = NULL;
     while(top!=NULL){
         if(top->key == key){
-            Data old = top->data;
-            old.refCount--;
-            if(old.refCount == 0)
-                data_free(old);
             top->data = value;
             return;
         }
@@ -45,24 +54,26 @@ void env_put(uint64_t key, Data value, Environment *env){
 }
 
 Data env_get(uint64_t key, Environment *env, uint8_t beSilent){
-    if(env == NULL)
-        return new_none();
-    Record *top = env->records;
+    //printf(debug("[Env:Get] Getting [%s]"), str_get(key));
+    Environment *match = env_match(key, env);
+    if(match == NULL){
+        if(!beSilent){
+            printf(error("Uninitialized variable '%s'!\n"), str_get(key));
+            stop();
+        }
+        else
+            return new_none();
+    }
+    Record *top = match->records;
     while(top!=NULL){
         if(top->key == key)
             return top->data;
         top = top->next;
     }
-    Data p = env_get(key, env->parent, beSilent);
-    if(isnone(p) && !beSilent){
-        printf(error("Uninitialized variable '%s'!\n"), str_get(key));
-        stop();
-    }
-    return p;
+    return new_none();
 }
 
 void env_free(Environment env){
-    uint64_t i = 0;
     Record *top = env.records;
     while(top!=NULL){
         Record *bak = top->next;

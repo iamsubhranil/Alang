@@ -10,7 +10,7 @@ static Data *heap = NULL;
 static uint64_t hp = 0;
 
 #define heap_check() if(address > hp){ \
-        printf("[Error: Bad heap access : %ld] ", address); \
+        printf(error("Bad heap access : %ld"), address); \
         return 0;}
 
 uint64_t heap_add_int(int64_t i){

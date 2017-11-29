@@ -14,7 +14,7 @@ typedef struct Environment{
     struct Environment *parent;
 } Environment;
 
-Environment env_new();
+Environment env_new(Environment *parent);
 void env_put(uint64_t key, Data value, Environment *env);
 Data env_get(uint64_t key, Environment *env, uint8_t beSilent);
 void env_free(Environment env);

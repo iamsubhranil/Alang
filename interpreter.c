@@ -259,7 +259,7 @@ void interpret(){
     callFrame.env = env_new(NULL);
     callFrame.returnAddress = 0;
     callFrame.arity = 27;
-    ip = routine_get(str_insert("Main")).startAddress;
+    ip = 0;
     tmStart = clock();
     static const void *dispatchTable[35] = {&&DO_PUSHF, &&DO_PUSHI, &&DO_PUSHL, &&DO_PUSHS, &&DO_PUSHID, &&DO_PUSHN,
         &&DO_ADD, &&DO_SUB, &&DO_MUL, &&DO_DIV, &&DO_POW, &&DO_MOD,
@@ -267,6 +267,7 @@ void interpret(){
         &&DO_SET, &&DO_INPUTI, &&DO_INPUTS, &&DO_INPUTF, &&DO_PRINT,
         &&DO_HALT, &&DO_JUMP, &&DO_JUMP_IF_TRUE, &&DO_JUMP_IF_FALSE, &&DO_CALL, &&DO_RETURN,
         &&DO_ARRAY, &&DO_MEMREF, &&DO_MAKE_ARRAY, &&DO_NOOP};
+
 #define DISPATCH() {goto *dispatchTable[instructions[++ip]];}
 #define DISPATCH_WINC() {goto *dispatchTable[instructions[ip]];}
 
@@ -315,7 +316,6 @@ DO_ADD:
                  DISPATCH();
              }
              if(isnum(d1) && isnum(d2)){
-                 uint8_t resFloat = 0;
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d1) + tnum(d2);
                      dpushf(res);
@@ -614,7 +614,7 @@ DO_PRINT:
                      printString(str_get(tstrk(value)));
                      DISPATCH();
                  case INSTANCE:
-                     printf("<instance of %s#%"PRIu64">", str_get(value.pvalue->container_key),
+                     printf("<instance of %s#%" PRIu64 ">", str_get(value.pvalue->container_key),
                              value.pvalue->id);
                      DISPATCH();
                  case IDENTIFIER:
@@ -676,7 +676,7 @@ DO_JUMP_IF_FALSE:
          }
 DO_CALL:
          {
-             int64_t numArg, i = 1;
+             uint64_t numArg, i = 1;
              Data r;
              dpop(r); dpopi(numArg);
              Routine2 routine = routine_get(tstrk(r));
@@ -684,17 +684,17 @@ DO_CALL:
                  error("Argument count mismatch!");
                  stop();
              }
+             cf_push(callFrame);
              CallFrame nf = cf_new();
-             nf.env = env_new(NULL);
+             nf.env = env_new(cf_root_env());
              nf.returnAddress = ip + 1;
              i = 0;
              while(i < routine.arity){
-                 //               printf(debug("Defining %s!"), str_get(routine.arguments[i]));
+                 //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
                  Data d; dpopv(d, callFrame);
                  env_put(routine.arguments[i], d, &nf.env);
                  i++;
              }
-             cf_push(callFrame);
              ip = routine.startAddress;
              callFrame = nf;
              DISPATCH_WINC();

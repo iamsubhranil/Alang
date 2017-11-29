@@ -693,17 +693,27 @@ static void statement(Compiler *compiler){
     }
 }
 
+uint64_t lastjump = 0;
+
 void part(Compiler *c){
     if(peek() == TOKEN_EOF)
         beginStatement();
     else if(match(TOKEN_ROUTINE)){
-        return routineStatement(c);
+        routineStatement(c);
     }
     else if(match(TOKEN_SET)){
-        return setStatement();
+        ins_set_val(lastjump, heap_add_int(ip_get())); // Patch the last jump
+        setStatement();
+        ins_add(PUSHI); // Make a jump to next global statement
+        lastjump = ins_add_val(heap_add_int(0));
+        ins_add(JUMP);
     }
     else if(match(TOKEN_ARRAY)){
-        return arrayStatement();
+        ins_set_val(lastjump, heap_add_int(ip_get())); // Patch the last jump
+        arrayStatement();
+        ins_add(PUSHI); // Make a jump to next global statement
+        lastjump = ins_add_val(heap_add_int(0));
+        ins_add(JUMP);
     }
     //    else if(match(TOKEN_CONTAINER)){
     //        return containerStatement(c);
@@ -719,9 +729,26 @@ void part(Compiler *c){
 void parse(TokenList *list){
     head = list;
     Compiler *comp = initCompiler(NULL, 0, BLOCK_NONE);
+    ins_add(PUSHI);
+    lastjump = ins_add_val(heap_add_int(0)); // The first location will tell the address of first instruction
+                                    // to be executed, which will be either a global 'Set'/'Array',
+                                    // or the routine 'Main'
+    ins_add(JUMP); // Jump to the first global instruction
     while(!match(TOKEN_EOF)){
         part(comp);
     }
+    routine_get(str_insert("Main")); // Check if Main is defined
+
+    uint64_t callMain = ins_add(PUSHI); // Add an implicit call to Main()
+    ins_add_val(heap_add_int(0));
+    ins_add(PUSHID);
+    ins_add_val(heap_add_identifer(str_insert("Main")));
+    ins_add(CALL);
+    
+    ins_set_val(lastjump, heap_add_int(callMain)); // After all globals statements are
+                                    // executed, jump to the routine 'Main'
+    ins_add(HALT); // After Main returns, halt the machine
+    
     memfree(comp);
 }
 
