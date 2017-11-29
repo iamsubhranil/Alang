@@ -1,7 +1,7 @@
 Routine Main()
     Print "Give an integer to search prime factors for : "
     Input N:Int
-    If(N < 1)
+    If(N < 2)
         Print "[Error] Input must be >= 2"
         End
     EndIf
