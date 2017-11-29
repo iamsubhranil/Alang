@@ -1,8 +1,14 @@
 #include "callframe.h"
 #include "allocator.h"
 
-static CallFrame *cf_stack = NULL;
+typedef struct CallStack{
+    CallFrame frame;
+    struct CallStack *next;
+} CallStack;
+
+static CallStack *top = NULL;
 static uint64_t index = 0, size = 0;
+
 
 #define CF_INC 20
 
@@ -11,30 +17,25 @@ CallFrame cf_new(){
 }
 
 void cf_push(CallFrame frame){
-    if(index >= size){
-        size += CF_INC;
-        cf_stack = (CallFrame *)reallocate(cf_stack, sizeof(CallFrame)*size);
-    }
-    cf_stack[index++] = frame;
+    CallStack *ns = (CallStack *)mallocate(sizeof(CallStack));
+    ns->next = top;
+    ns->frame = frame;
+    top = ns;
 }
 
 CallFrame cf_peek(){
-    if(cf_stack == NULL)
+    if(top == NULL)
         return cf_new();
-    return cf_stack[index - 1];
+    return top->frame;
 }
 
 CallFrame cf_pop(){
-    CallFrame ret = cf_stack[--index];
-    if(size-index >= CF_INC){
-        size -= CF_INC;
-        if(size == 0){
-            memfree(cf_stack);
-            cf_stack = NULL;
-        }
-        else
-            cf_stack = (CallFrame *)reallocate(cf_stack, sizeof(CallFrame)*size);
-    }
+    if(top == NULL)
+        return cf_new();
+    CallFrame ret = top->frame;
+    CallStack *bak = top;
+    top = top->next;
+    memfree(bak);
     return ret;
 }
 
