@@ -210,11 +210,15 @@ void ins_print(){
 #include "routines.h"
 #include "callframe.h"
 #include "io.h"
+#include <time.h>
 
 static uint8_t run = 1;
+static clock_t tmStart, tmEnd;
 
 void stop(){
-    printf("\nRealloc called : %d times\n", get_realloc_count());
+    tmEnd = clock();
+    //printf("\nRealloc called : %d times\n", get_realloc_count());
+    printf(debug("Execution time : %gms\n"), (double)(tmEnd - tmStart)/CLOCKS_PER_SEC);
     memfree_all();
     exit(0);
 }
@@ -249,11 +253,14 @@ void interpret(){
     dataStack = NULL;
     sp = 0;
     stackSize = 0;
+    dStackInit();
+
     CallFrame callFrame = cf_new();
     callFrame.env = env_new(NULL);
     callFrame.returnAddress = 0;
     callFrame.arity = 27;
     ip = routine_get(str_insert("Main")).startAddress;
+    tmStart = clock();
     while(run){
         switch(instructions[ip]){
             case PUSHF:

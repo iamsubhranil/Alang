@@ -7,14 +7,16 @@
 static Data *dataStack = NULL;
 static uint64_t sp = 0, stackSize = 0;
 
-#define SPEC_INC 20
+#define SPEC_INC 100
 
-#define incr() if((stackSize - sp) < SPEC_INC){\
-        stackSize = stackSize+SPEC_INC; \
+#define dStackInit() {stackSize = 10; dataStack = (Data *)mallocate(sizeof(Data)*stackSize);}
+
+#define incr() if(sp >= stackSize){\
+        stackSize *= 2; \
         dataStack = (Data *)reallocate(dataStack, sizeof(Data)*stackSize);}
 
-#define decr() if((stackSize - sp) > SPEC_INC){\
-        stackSize = (stackSize/SPEC_INC) * SPEC_INC; \
+#define decr() if(stackSize > 10 && (sp+1) < stackSize/2){\
+        stackSize /= 2; \
         dataStack = (Data *)reallocate(dataStack, sizeof(Data)*stackSize);}
 
 #define dpush(x) {incr(); dataStack[sp++] = x;}
