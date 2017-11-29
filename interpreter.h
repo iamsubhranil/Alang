@@ -48,8 +48,8 @@ void stop();
 #define INPUTS 0x16
 #define INPUTF 0x17
 #define PRINT 0x18
-#define HALT 0x19
 // Control flow and branching
+#define HALT 0x19
 #define JUMP 0x1a
 #define JUMP_IF_TRUE 0x1b
 #define JUMP_IF_FALSE 0x1c

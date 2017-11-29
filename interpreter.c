@@ -218,7 +218,7 @@ static clock_t tmStart, tmEnd;
 void stop(){
     tmEnd = clock();
     //printf("\nRealloc called : %d times\n", get_realloc_count());
-    printf(debug("Execution time : %gms\n"), (double)(tmEnd - tmStart)/CLOCKS_PER_SEC);
+    printf(debug("[Interpreter] Execution time : %gms\n"), (double)(tmEnd - tmStart)/CLOCKS_PER_SEC);
     memfree_all();
     exit(0);
 }
@@ -261,21 +261,30 @@ void interpret(){
     callFrame.arity = 27;
     ip = routine_get(str_insert("Main")).startAddress;
     tmStart = clock();
-    while(run){
-        switch(instructions[ip]){
-            case PUSHF:
+    static const void *dispatchTable[35] = {&&DO_PUSHF, &&DO_PUSHI, &&DO_PUSHL, &&DO_PUSHS, &&DO_PUSHID, &&DO_PUSHN,
+                                    &&DO_ADD, &&DO_SUB, &&DO_MUL, &&DO_DIV, &&DO_POW, &&DO_MOD,
+                                    &&DO_GT, &&DO_GTE, &&DO_LT, &&DO_LTE, &&DO_EQ, &&DO_NEQ, &&DO_AND, &&DO_OR,
+                                    &&DO_SET, &&DO_INPUTI, &&DO_INPUTS, &&DO_INPUTF, &&DO_PRINT,
+                                    &&DO_HALT, &&DO_JUMP, &&DO_JUMP_IF_TRUE, &&DO_JUMP_IF_FALSE, &&DO_CALL, &&DO_RETURN,
+                                    &&DO_ARRAY, &&DO_MEMREF, &&DO_MAKE_ARRAY, &&DO_NOOP};
+    #define DISPATCH() {goto *dispatchTable[instructions[++ip]];}
+    #define DISPATCH_WINC() {goto *dispatchTable[instructions[ip]];}
+
+    DISPATCH_WINC();
+    while(1){
+            DO_PUSHF:
                 dpushf(heap_get_float(ins_get_val(++ip)));
                 ip += 7;
-                break;
-            case PUSHI:
+                DISPATCH();
+            DO_PUSHI:
                 dpushi(heap_get_int(ins_get_val(++ip)));
                 ip += 7;
-                break;
-            case PUSHL:
+                DISPATCH();
+            DO_PUSHL:
                 dpushl(heap_get_logical(ins_get_val(++ip)));
                 ip += 7;
-                break;
-            case PUSHS:{
+                DISPATCH();
+            DO_PUSHS:{
                            dpushsk(heap_get_str(ins_get_val(++ip)));
                            //   printf("\n[Info] Pushing string [sp : %lu] %s", sp, str);
                            ip += 7;
@@ -283,16 +292,16 @@ void interpret(){
                            //      dpopv(d,callFrame);
                            //     printf("\n[Info] Stored : %s", str_get(d->svalue));
                        }
-                       break;
-            case PUSHID:
+                       DISPATCH();
+            DO_PUSHID:
                        
                        dpushidk(heap_get_str(ins_get_val(++ip)));
                        ip += 7;
-                       break;
-            case PUSHN:
+                       DISPATCH();
+            DO_PUSHN:
                        dpushn();
-                       break;
-            case ADD:
+                       DISPATCH();
+            DO_ADD:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
@@ -303,222 +312,210 @@ void interpret(){
                                strcat(res, str_get(tstrk(d1)));
                                res[s1+s2] = '\0';
                                dpushs(res);
+                               DISPATCH();
                            }
-                           else if(isnum(d1) && isnum(d2)){
+                           if(isnum(d1) && isnum(d2)){
                                uint8_t resFloat = 0;
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d1) + tnum(d2);
                                    dpushf(res);
+                                   DISPATCH();
                                }
-                               else{
+
                                    int64_t res = tint(d1) + tint(d2);
                                    dpushi(res);
-                               }
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '+'!");
                                stop();
-                           }
-                           break;
                        }
-            case SUB:
+            DO_SUB:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) - tnum(d1);
                                    dpushf(res);
+                                   DISPATCH();
                                }
-                               else{
-                                   int64_t res = tint(d2) - tint(d1);
-                                   dpushi(res);
-                               }
+
+                                int64_t res = tint(d2) - tint(d1);
+                                dpushi(res);
+                                DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '-'!");
                                stop();
-                           }
-                           break;
                        }
-            case MUL:
+            DO_MUL:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) * tnum(d1);
                                    dpushf(res);
+                                   DISPATCH();
                                }
-                               else{
+                               
                                    int64_t res = tint(d2) * tint(d1);
                                    dpushi(res);
-                               }
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '*'!");
                                stop();
-                           }
-                           break;
-                       }
-            case DIV:
+                        }
+            DO_DIV:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isnum(d1) && isnum(d2)){
                                if(isfloat(d1) || isfloat(d2)){
                                    double res = tnum(d2) / tnum(d1);
                                    dpushf(res);
+                                   DISPATCH();
                                }
-                               else{
                                    int64_t res = tint(d2) / tint(d1);
                                    dpushi(res);
-                               }
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '*'!");
                                stop();
-                           }
-                           break;
                        }
-            case POW:
+            DO_POW:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isint(d1) && isnum(d2)){
                                dpushf(pow(tnum(d2), tint(d1)));
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '^'!");
                                stop();
-                           }
-                           break;
                        }
-            case MOD:
+            DO_MOD:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isint(d1) && isint(d2)){
                                dpushi(tint(d2) % tint(d1));
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '%'!");
                                stop();
-                           }
-                           break;
                        }
-            case GT:
+            DO_GT:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(strlen(str_get(tstrk(d2))) > strlen(str_get(tstrk(d1))));
+                               DISPATCH();
                            }
-                           else if(isnum(d1) && isnum(d2)){
+                           
+                           if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) > tnum(d1));
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '>'!");
                                stop();
-                           }
-                           break;
                        }
-            case GTE:
+            DO_GTE:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(strlen(str_get(tstrk(d2))) >= strlen(str_get(tstrk(d1))));
+                               DISPATCH();
                            }
-                           else if(isnum(d1) && isnum(d2)){
+                            
+                           if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) >= tnum(d1));
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '>='!");
                                stop();
-                           }
-                           break;
                        }
-            case LT:
+            DO_LT:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(strlen(str_get(tstrk(d2))) < strlen(str_get(tstrk(d1))));
+                               DISPATCH();
                            }
-                           else if(isnum(d1) && isnum(d2)){
+                           
+                           if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) < tnum(d1));
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '<'!");
                                stop();
-                           }
-                           break;
                        }
-            case LTE:
+            DO_LTE:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(strlen(str_get(tstrk(d2))) <= strlen(str_get(tstrk(d1))));
+                               DISPATCH();
                            }
-                           else if(isnum(d1) && isnum(d2)){
+                           
+                           if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) <= tnum(d1));
+                                DISPATCH();
                            }
-                           else{
+                           
                                error("Bad operands for operator '<='!");
                                stop();
-                           }
-                           break;
                        }
-            case EQ:
+            DO_EQ:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(tstrk(d2) == tstrk(d1));
+                               DISPATCH();
                            }
-                           else if(isnum(d1) && isnum(d2)){
+                           
+                           if(isnum(d1) && isnum(d2)){
                                //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
                                dpushl(tnum(d2) == tnum(d1));
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '=='!");
                                stop();
-                           }
-                           break;
                        }
-            case NEQ:
+            DO_NEQ:
                        {
                            
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(isstr(d1) && isstr(d2)){
                                dpushl(tstrk(d1) != tstrk(d2));
+                               DISPATCH();
                            }
-                           else if(isnum(d1) && isnum(d2)){
+                           
+                           if(isnum(d1) && isnum(d2)){
                                dpushl(tnum(d2) != tnum(d1));
+                               DISPATCH();
                            }
-                           else{
                                error("Bad operands for operator '!='!");
                                stop();
-                           }
-                           break;
                        }
-            case AND:
+            DO_AND:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(islogical(d1) && islogical(d2)){
                                dpushl(tint(d1) && tint(d2));
+                               DISPATCH();
                            }
-                           else{
+
                                error("Bad operands for operator 'And'!");
                                stop();
-                           }
-                           break;
                        }
-            case OR:
+            DO_OR:
                        {
                            Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
                            if(islogical(d1) && islogical(d2)){
                                dpushl(tint(d1) || tint(d2));
+                               DISPATCH();
                            }
-                           else{
+                        
                                error("Bad operands for operator 'Or'!");
                                stop();
-                           }
-                           break;
+                           
                        }
-            case SET:
+            DO_SET:
                        {
                            Data id, value;
                            dpopv(value, callFrame);
@@ -527,8 +524,9 @@ void interpret(){
                                Data var = env_get(tstrk(id), &callFrame.env, 1);
                                if(isnull(var) || !isarray(var)){
                                    env_put(tstrk(id), value, &callFrame.env);
+                                   DISPATCH();
                                }
-                               else{
+                               
                                    Data index;
                                    dpopv(index, callFrame);
                                    if(isint(index)){
@@ -536,63 +534,64 @@ void interpret(){
                                            printf(error("Array index out of range : %" PRId64), tint(index));
                                            stop();
                                        }
-                                       else{
+                                       
                                            Data *d = (Data *)var.arr;
                                            d[tint(index) - 1] = (Data)value;
-                                       }
+                                           DISPATCH();
+                                       
                                    }
-                                   else{
+                                   
                                        printf(error("Array index must be an integer!"));
                                        stop();
-                                   }
-                               }
+                                   
+                               
                            }
-                           else{
+                           
                                printf(error("Bad assignment target!"));
                                stop();
-                           }
-                           break;
+                           
                        }
-            case INPUTI:
+            DO_INPUTI:
                        {
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
                                env_put(tstrk(id), getInt(), &callFrame.env);
+                               DISPATCH();
                            }
-                           else{
+                           
                                printf(error("Bad input target!"));
                                stop();
-                           }
-                           break;
+                
                        }
-            case INPUTS:
+            DO_INPUTS:
                        {
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
                                env_put(tstrk(id), getString(), &callFrame.env);
+                               DISPATCH();
                            }
-                           else{
+                           
                                printf(error("Bad input target!"));
                                stop();
-                           }
-                           break;
+                        
                        }
-            case INPUTF:
+            DO_INPUTF:
                        {
                            Data id;
                            dpop(id);
                            if(isidentifer(id)){
                                env_put(tstrk(id), getFloat(), &callFrame.env);
+                                DISPATCH();
                            }
-                           else{
+                           
                                printf(error("Bad input target!"));
                                stop();
-                           }
-                           break;
+                           
+                           
                        }
-            case PRINT:
+            DO_PRINT:
                        {
                            //printf("\n[Info] Printing [sp : %lu]", sp);
                            Data value;
@@ -601,46 +600,44 @@ void interpret(){
                            switch(value.type){
                                case FLOAT:
                                    printf("%g", tfloat(value));
-                                   break;
+                                   DISPATCH();
                                case INT:
                                    printf("%" PRId64, tint(value));
-                                   break;
+                                   DISPATCH();
                                case LOGICAL:
                                    printf("%s", tint(value) == 0?"False":"True");
-                                   break;
+                                   DISPATCH();
                                case NIL:
                                    printf("Null");
-                                   break;
+                                   DISPATCH();
                                case STRING:
                                    printString(str_get(tstrk(value)));
-                                   break;
+                                   DISPATCH();
                                case INSTANCE:
                                    printf("<instance of %s#%"PRIu64">", str_get(value.pvalue->container_key),
                                            value.pvalue->id);
-                                   break;
+                                   DISPATCH();
                                case IDENTIFIER:
                                    printf("<identifer %s>", str_get(tstrk(value)));
-                                   break;
+                                   DISPATCH();
                                case ARR:
                                    printf("<array of %" PRIu64 ">", value.numElements);
-                                   break;
+                                   DISPATCH();
                                case NONE:
                                    printf("<none>");
-                                   break;
+                                   DISPATCH();
                            }
-                           break;
                        }
-            case HALT:
-                       run = 0;
-                       break;
-            case JUMP:
+            DO_HALT:
+                       stop();
+            DO_JUMP:
                        {
                            uint64_t ja;
                            dpopi(ja);
                            ip = ja;
-                           continue;
+                           DISPATCH_WINC();
                        }
-            case JUMP_IF_TRUE:
+            DO_JUMP_IF_TRUE:
                        {
                            Data c;
                            int64_t ja;
@@ -648,17 +645,16 @@ void interpret(){
                            if(islogical(c)){
                                if(tint(c)){
                                    ip = ja;
-                                   continue;
+                                   DISPATCH_WINC();
                                }
-                               else
-                                   break;
+                                    DISPATCH();
                            }
-                           else{
+                           
                                error("Illogical jump!");
                                stop();
-                           }
+
                        }
-            case JUMP_IF_FALSE:
+            DO_JUMP_IF_FALSE:
                        {
                            Data c;
                            int64_t ja;
@@ -666,19 +662,19 @@ void interpret(){
                            if(islogical(c)){
                                if(!tint(c)){
                                    ip = ja;
-                                   continue;
+                                   DISPATCH_WINC();
                                }
-                               else{
+                               
                                    //        printf("\nCond is true!");
-                                   break;
-                               }
+                                   DISPATCH();
+                               
                            }
-                           else{
+                        
                                error("Illogical jump!");
                                stop();
-                           }
+                           
                        }
-            case CALL:
+            DO_CALL:
                        {
                            int64_t numArg, i = 1;
                            Data r;
@@ -701,9 +697,9 @@ void interpret(){
                            cf_push(callFrame);
                            ip = routine.startAddress;
                            callFrame = nf;
-                           continue;
+                           DISPATCH_WINC();
                        }
-            case RETURN:
+            DO_RETURN:
                        {
                            ip = callFrame.returnAddress;
                            if(ip == 0){
@@ -714,9 +710,9 @@ void interpret(){
                            cf_free(callFrame);
                            callFrame = cf_pop();
                        //    printf("\nReStoring address : %lu", callFrame.returnAddress);
-                           continue;
+                           DISPATCH_WINC();
                        }
-            case ARRAY:
+            DO_ARRAY:
                        {
                            Data id, index;
                            dpop(id); dpopv(index, callFrame);
@@ -730,20 +726,19 @@ void interpret(){
                                    printf(error("Array index out of range : %" PRId64), tint(index));
                                    stop();
                                }
-                               else{
+                            
                                    dpush(((Data *)arr.arr)[tint(index) - 1]);
-                               }
+                                    DISPATCH();
                            }
-                           else{
+                           
                                printf(error("Array index must be an integer!"));
                                stop();
-                           }
-                           break;
+                           
                        }
-            case MEMREF:
+            DO_MEMREF:
                        printf("memref(noop)");
-                       break;
-            case MAKE_ARRAY:
+                       DISPATCH();
+            DO_MAKE_ARRAY:
                        {
                            Data size, id;
                            dpop(id); dpopv(size, callFrame); 
@@ -755,28 +750,23 @@ void interpret(){
                                    }
                                    if(tint(size) > 0){
                                        env_put(tstrk(id), new_array(tint(size)), &callFrame.env);
+                                       DISPATCH();
                                    }
-                                   else{
+                                   
                                        printf(error("Array size must be positive!"));
                                        stop();
-                                   }
+                                   
                                }
-                               else{
+                               
                                    printf(error("Expected array identifer!"));
                                    stop();
-                               }
+                               
                            }
-                           else{
+                        
                                printf(error("Array size must be integer!"));
-                           }
-                           break;
+                            stop();
                        }
-            case NOOP:
-                       break;
-            default:
-                       printf("[Error] Unknown opcode 0x%x", instructions[ip]);
-                       break;
-        }
-        ip++;
+            DO_NOOP:
+                       DISPATCH();
     }
 }
