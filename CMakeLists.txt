@@ -10,7 +10,6 @@ set(SOURCE_FILES    main.c
                     env.c
                     io.c
                     heap.c
-                    datastack.h
                     callframe.c)
 
 add_executable(alang   ${SOURCE_FILES})

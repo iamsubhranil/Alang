@@ -20,45 +20,45 @@ void stop();
 // Instructions
 
 // Load
-#define PUSHS 0x01 // String => push index
-#define PUSHID 0x02 // Identifer
-#define PUSHI 0x03 // Int => push constant
-#define PUSHF 0x04 // Float => push constant
-#define PUSHL 0x05 // Logical => push 0/1
-#define PUSHN 0x06 // Null => pushN
+#define PUSHS 0x00 // String => push index
+#define PUSHID 0x01 // Identifer
+#define PUSHI 0x02 // Int => push constant
+#define PUSHF 0x03 // Float => push constant
+#define PUSHL 0x04 // Logical => push 0/1
+#define PUSHN 0x05 // Null => pushN
 // Arithmetic
-#define ADD 0x11
-#define SUB 0x12
-#define MUL 0x13
-#define DIV 0x14
-#define POW 0x15
-#define MOD 0x16
+#define ADD 0x06
+#define SUB 0x07
+#define MUL 0x08
+#define DIV 0x09
+#define POW 0x0a
+#define MOD 0x0b
 // Conditional
-#define GT 0x21
-#define GTE 0x22
-#define LT 0x23
-#define LTE 0x24
-#define EQ 0x25
-#define NEQ 0x26
-#define AND 0x27
-#define OR 0x28
+#define GT 0x0c
+#define GTE 0x0d
+#define LT 0x0e
+#define LTE 0x0f
+#define EQ 0x10
+#define NEQ 0x11
+#define AND 0x12
+#define OR 0x13
 // Basic IO operations
-#define SET 0x31
-#define INPUTI 0x32
-#define INPUTF 0x33
-#define INPUTS 0x34
-#define PRINT 0x35
-#define HALT 0x36
+#define SET 0x14
+#define INPUTI 0x15
+#define INPUTF 0x16
+#define INPUTS 0x17
+#define PRINT 0x18
+#define HALT 0x19
 // Control flow and branching
-#define JUMP 0x41
-#define JUMP_IF_TRUE 0x42
-#define JUMP_IF_FALSE 0x43
-#define CALL 0x44
-#define RETURN 0x45
+#define JUMP 0x1a
+#define JUMP_IF_TRUE 0x1b
+#define JUMP_IF_FALSE 0x1c
+#define CALL 0x1d
+#define RETURN 0x1e
 // Data structures
-#define ARRAY 0x51
-#define MEMREF 0x52
-#define MAKE_ARRAY 0x53
+#define ARRAY 0x1f
+#define MEMREF 0x20
+#define MAKE_ARRAY 0x21
 // Noop
-#define NOOP 0xFF
+#define NOOP 0x22
 #endif
