@@ -45,7 +45,7 @@ int main(int argc, char **argv){
         return 1;
     }
     
-    ins_print();
+//    ins_print();
     freeList(tokens);
 //    printf(debug("Before interpreting, realloc called : %d"), get_realloc_count());
     
