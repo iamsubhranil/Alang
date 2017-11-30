@@ -326,16 +326,6 @@ DO_PUSHN:
 DO_ADD:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
-             if(isstr(d1) && isstr(d2)){
-                 size_t s1 = strlen(str_get(tstrk(d1))), s2 = (strlen(str_get(tstrk(d2))));
-                 char *res = (char *)mallocate(sizeof(char) * (s1 + s2 + 1));
-                 res[0] = '\0';
-                 strcat(res, str_get(tstrk(d2)));
-                 strcat(res, str_get(tstrk(d1)));
-                 res[s1+s2] = '\0';
-                 dpushs(res);
-                 DISPATCH();
-             }
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d1) + tnum(d2);
@@ -347,7 +337,17 @@ DO_ADD:
                  dpushi(res);
                  DISPATCH();
              }
-             error("Bad operands for operator '+'!");
+             if(isstr(d1) && isstr(d2)){
+                 size_t s1 = str_len(tstrk(d1)), s2 = str_len(tstrk(d2));
+                 char *res = (char *)mallocate(sizeof(char) * (s1 + s2 + 1));
+                 res[0] = '\0';
+                 strcat(res, str_get(tstrk(d2)));
+                 strcat(res, str_get(tstrk(d1)));
+                 res[s1+s2] = '\0';
+                 dpushs(res);
+                 DISPATCH();
+             }
+             printf(error("Bad operands for operator '+'!"));
              stop();
          }
 DO_SUB:
@@ -364,7 +364,7 @@ DO_SUB:
                  dpushi(res);
                  DISPATCH();
              }
-             error("Bad operands for operator '-'!");
+             printf(error("Bad operands for operator '-'!"));
              stop();
          }
 DO_MUL:
@@ -381,7 +381,7 @@ DO_MUL:
                  dpushi(res);
                  DISPATCH();
              }
-             error("Bad operands for operator '*'!");
+             printf(error("Bad operands for operator '*'!"));
              stop();
          }
 DO_DIV:
@@ -397,7 +397,7 @@ DO_DIV:
                  dpushi(res);
                  DISPATCH();
              }
-             error("Bad operands for operator '*'!");
+             printf(error("Bad operands for operator '*'!"));
              stop();
          }
 DO_POW:
@@ -407,7 +407,7 @@ DO_POW:
                  dpushf(pow(tnum(d2), tint(d1)));
                  DISPATCH();
              }
-             error("Bad operands for operator '^'!");
+             printf(error("Bad operands for operator '^'!"));
              stop();
          }
 DO_MOD:
@@ -417,73 +417,80 @@ DO_MOD:
                  dpushi(tint(d2) % tint(d1));
                  DISPATCH();
              }
-             error("Bad operands for operator '%'!");
+             printf(error("Bad operands for operator '%%'!"));
              stop();
          }
 DO_GT:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(strlen(str_get(tstrk(d2))) > strlen(str_get(tstrk(d1))));
-                 DISPATCH();
-             }
-
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) > tnum(d1));
                  DISPATCH();
              }
-             error("Bad operands for operator '>'!");
+             if(isstr(d1) && isstr(d2)){
+                 dpushl(str_len(tstrk(d2)) > str_len(tstrk(d1)));
+                 DISPATCH();
+             }
+             printf(error("Bad operands for operator '>'!"));
              stop();
          }
 DO_GTE:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(strlen(str_get(tstrk(d2))) >= strlen(str_get(tstrk(d1))));
-                 DISPATCH();
-             }
-
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) >= tnum(d1));
                  DISPATCH();
              }
-             error("Bad operands for operator '>='!");
+
+             if(isstr(d1) && isstr(d2)){
+                 dpushl(str_len(tstrk(d2)) >= str_len(tstrk(d1)));
+                 DISPATCH();
+             }
+             printf(error("Bad operands for operator '>='!"));
              stop();
          }
 DO_LT:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(strlen(str_get(tstrk(d2))) < strlen(str_get(tstrk(d1))));
-                 DISPATCH();
-             }
 
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) < tnum(d1));
                  DISPATCH();
              }
-             error("Bad operands for operator '<'!");
+
+             if(isstr(d1) && isstr(d2)){
+                 dpushl(str_len(tstrk(d2)) < str_len(tstrk(d1)));
+                 DISPATCH();
+             }
+             printf(error("Bad operands for operator '<'!"));
              stop();
          }
 DO_LTE:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(strlen(str_get(tstrk(d2))) <= strlen(str_get(tstrk(d1))));
-                 DISPATCH();
-             }
 
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) <= tnum(d1));
                  DISPATCH();
              }
 
-             error("Bad operands for operator '<='!");
+             if(isstr(d1) && isstr(d2)){
+                 dpushl(str_len(tstrk(d2)) <= str_len(tstrk(d1)));
+                 DISPATCH();
+             }
+
+             printf(error("Bad operands for operator '<='!"));
              stop();
          }
 DO_EQ:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+
+             if(isnum(d1) && isnum(d2)){
+                 //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
+                 dpushl(tnum(d2) == tnum(d1));
+                 DISPATCH();
+             }
 
              if(isnull(d1) || isnull(d2)){
                  dpushl(isnull(d1) && isnull(d2));
@@ -494,19 +501,18 @@ DO_EQ:
                  dpushl(tstrk(d2) == tstrk(d1));
                  DISPATCH();
              }
-
-             if(isnum(d1) && isnum(d2)){
-                 //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
-                 dpushl(tnum(d2) == tnum(d1));
-                 DISPATCH();
-             }
-             error("Bad operands for operator '=='!");
+             printf(error("Bad operands for operator '=='!"));
              stop();
          }
 DO_NEQ:
          {
 
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+
+             if(isnum(d1) && isnum(d2)){
+                 dpushl(tnum(d2) != tnum(d1));
+                 DISPATCH();
+             }
 
              if(isnull(d1) || isnull(d2)){
                  dpushl(!(isnull(d1) && isnull(d2)));
@@ -517,12 +523,7 @@ DO_NEQ:
                  dpushl(tstrk(d1) != tstrk(d2));
                  DISPATCH();
              }
-
-             if(isnum(d1) && isnum(d2)){
-                 dpushl(tnum(d2) != tnum(d1));
-                 DISPATCH();
-             }
-             error("Bad operands for operator '!='!");
+             printf(error("Bad operands for operator '!='!"));
              stop();
          }
 DO_AND:
@@ -533,7 +534,7 @@ DO_AND:
                  DISPATCH();
              }
 
-             error("Bad operands for operator 'And'!");
+             printf(error("Bad operands for operator 'And'!"));
              stop();
          }
 DO_OR:
@@ -544,7 +545,7 @@ DO_OR:
                  DISPATCH();
              }
 
-             error("Bad operands for operator 'Or'!");
+             printf(error("Bad operands for operator 'Or'!"));
              stop();
 
          }
@@ -661,7 +662,7 @@ DO_JUMP_IF_TRUE:
                  DISPATCH();
              }
 
-             error("Illogical jump!");
+             printf(error("Illogical jump!"));
              stop();
 
          }
@@ -681,7 +682,7 @@ DO_JUMP_IF_FALSE:
 
              }
 
-             error("Illogical jump!");
+             printf(error("Illogical jump!"));
              stop();
 
          }
@@ -733,18 +734,37 @@ DO_ARRAY:
              Data id, index;
              dpop(id); dpopv(index, callFrame);
              Data arr = env_get(tstrk(id), &callFrame.env, 0);
-             if(!isarray(arr)){
+             if(!isarray(arr) && !isstr(arr)){
                  printf(error("'%s' is not an array!"), str_get(tstrk(id)));
                  stop();
              }
              if(isint(index)){
-                 if(tint(index) < 1 || tint(index) > arr.numElements){
-                     printf(error("Array index out of range : %" PRId64), tint(index));
+                 if(isarray(arr)){
+                     if(tint(index) < 1 || tint(index) > arr.numElements){
+                         printf(error("Array index out of range : %" PRId64), tint(index));
+                         stop();
+                     }
+
+                     dpush(((Data *)arr.arr)[tint(index) - 1]);
+                     DISPATCH();
+                 }
+
+                 if(tint(index) < 1 || tint(index) > (str_len(tstrk(arr)) + 1)){
+                     printf(error("String index out of range : %" PRId64), tint(index));
                      stop();
                  }
 
-                 dpush(((Data *)arr.arr)[tint(index) - 1]);
+                 if(tint(index) == str_len(tstrk(arr)) + 1){
+                     dpushn();
+                     DISPATCH();
+                 }
+
+                 char *c = (char *)mallocate(sizeof(char) * 2);
+                 c[0] = tstr(arr)[tint(index) - 1];
+                 c[1] = 0;
+                 dpushs(c);
                  DISPATCH();
+
              }
 
              printf(error("Array index must be an integer!"));
@@ -838,7 +858,26 @@ DO_ARRAYREF:
                              printf(error("Array index out of range : %" PRId64), tint(index));
                              stop();
                          }
-                         printf(error("Referenced item is not an array!"));
+                         if(isstr(arr)){
+                             if(tint(index) < 1 || tint(index) > (str_len(tstrk(arr)) + 1)){
+                                 printf(error("String index out of range : %" PRId64), tint(index));
+                                 stop();
+                             }
+
+
+                             if(tint(index) == str_len(tstrk(arr)) + 1){
+                                 dpushn();
+                                 DISPATCH();
+                             }
+                             char *c = (char *)mallocate(sizeof(char) * 2);
+                             c[0] = tstr(arr)[tint(index) - 1];
+                             c[1] = 0;
+                             dpushs(c);
+                             DISPATCH();
+
+                         }
+
+                         printf(error("Referenced item '%s' is not an array!"), tstr(iden));
                          stop();
                      }
                      printf(error("Bad identifer"));
@@ -866,7 +905,25 @@ DO_ARRAYSET:
                              printf(error("Array index out of range : %" PRId64), tint(index));
                              stop();
                          }
-                         printf(error("Referenced item is not an array!"));
+                         if(isstr(arr)){
+                             if(tint(index) < 1 || tint(index) > str_len(tstrk(arr))){
+                                 printf(error("String index out of range : %" PRId64), tint(index));
+                                 stop();
+                             }
+                             if(!isstr(value)){
+                                 printf(error("Bad assignment to string!"));
+                                 stop();
+                             }
+                             if(str_len(tstrk(value)) > 1){
+                                 printf(warning("Ignoring extra characters!"));
+                             }
+                             char *s = strdup(tstr(arr));
+                             s[tint(index) - 1] = tstr(value)[0];
+                             env_put(tstrk(iden), new_str(s), tenv(cont));
+                             DISPATCH();
+                         }
+
+                         printf(error("Referenced item '%s' is not an array!"), tstr(iden));
                          stop();
                      }
                      printf(error("Bad identifer"));
@@ -893,7 +950,24 @@ DO_ARRAYWRITE:
                          printf(error("Array index out of range : %" PRId64), tint(index));
                          stop();
                      }
-                     printf(error("Referenced item is not an array!"));
+                     if(isstr(arr)){
+                         if(tint(index) < 1 || tint(index) > str_len(tstrk(arr))){
+                             printf(error("String index out of range : %" PRId64), tint(index));
+                             stop();
+                         }
+                         if(!isstr(value)){
+                             printf(error("Bad assignment to string!"));
+                             stop();
+                         }
+                         if(str_len(tstrk(value)) > 1){
+                             printf(warning("Ignoring extra characters!"));
+                         }
+                         char *s = strdup(tstr(arr));
+                         s[tint(index) - 1] = tstr(value)[0];
+                         env_put(tstrk(iden), new_str(s), &callFrame.env);
+                         DISPATCH();
+                     }
+                     printf(error("Referenced item '%s' is not an array!"), tstr(iden));
                      stop();
                  }
                  printf(error("Bad identifer"));

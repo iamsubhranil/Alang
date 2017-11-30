@@ -252,7 +252,6 @@ static void primary(){
     else if(peek() == TOKEN_IDENTIFIER){
         uint64_t st = str_insert(stringOf(advance()));
         if(match(TOKEN_LEFT_SQUARE)){
-            printf(debug("Found array statement at line %d"), presentLine());
             expression(); // index
             ins_add(PUSHID);
             ins_add_val(heap_add_identifer(st));
@@ -367,7 +366,7 @@ static void expression(){
 static void statement(Compiler *compiler);
 
 static void blockStatement(Compiler *compiler, BlockType name){
-    debug("Parsing block statement");
+    //debug("Parsing block statement");
     int indent = compiler->indentLevel+1;
     Compiler *blockCompiler = initCompiler(compiler, indent, name);
     while(getNextIndent() == indent){
@@ -375,11 +374,11 @@ static void blockStatement(Compiler *compiler, BlockType name){
         statement(blockCompiler);
     }
     memfree(blockCompiler);
-    debug("Block statement parsed");
+    //debug("Block statement parsed");
 }
 
 static void ifStatement(Compiler *compiler){
-    debug("Parsing if statement");
+    //debug("Parsing if statement");
 
     consume(TOKEN_LEFT_PAREN, "Conditionals must start with an openning brace['('] after If!");
     expression();
@@ -417,11 +416,11 @@ static void ifStatement(Compiler *compiler){
         consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
     }
     ins_set_val(skip, heap_add_int(ip_get()));
-    debug("If statement parsed");
+    //debug("If statement parsed");
 }
 
 static void whileStatement(Compiler* compiler){
-    debug("Parsing while statement");
+    //debug("Parsing while statement");
     consume(TOKEN_LEFT_PAREN, "Expected left paren before conditional!");
     uint64_t start = ip_get();
     expression();
@@ -485,7 +484,7 @@ static void whileStatement(Compiler* compiler){
   }*/
 
 static void breakStatement(){
-    debug("Parsing break statement");
+    //debug("Parsing break statement");
     if(inWhile == 0){
         printf(line_error("Break without While or Do!"), presentLine());
         he++;
@@ -498,11 +497,11 @@ static void breakStatement(){
         ins_add(JUMP);
     }
     consume(TOKEN_NEWLINE, "Expected newline after Break!");
-    debug("Break statement parsed");
+    //debug("Break statement parsed");
 }
 
 static void setStatement(){
-    debug("Parsing set statement");
+    //debug("Parsing set statement");
     do{
         expression();
         uint8_t type = 0;
@@ -533,11 +532,11 @@ static void setStatement(){
 
     } while(match(TOKEN_COMMA));
     consume(TOKEN_NEWLINE, "Expected newline after Set statement!");
-    debug("Set statement parsed");
+    //debug("Set statement parsed");
 }
 
 static void arrayStatement(){
-    debug("Parsing array statement");
+    //debug("Parsing array statement");
 
     do{
         expression();
@@ -548,11 +547,11 @@ static void arrayStatement(){
         ins_set(ip_get()-1, MAKE_ARRAY);
     } while(match(TOKEN_COMMA));
     consume(TOKEN_NEWLINE, "Expected newline after Array statement!");
-    debug("Array statement parsed");
+    //debug("Array statement parsed");
 }
 
 static void inputStatement(){
-    debug("Parsing input statement");
+    //debug("Parsing input statement");
     do{
         if(peek() == TOKEN_IDENTIFIER){
             uint64_t name = str_insert(stringOf(advance()));
@@ -582,24 +581,24 @@ static void inputStatement(){
 }
 
 static void printStatement(){
-    debug("Parsing print statement");
+    //debug("Parsing print statement");
     do{
         expression();
         ins_add(PRINT);
     } while(match(TOKEN_COMMA));
     consume(TOKEN_NEWLINE, "Expected newline after Print!");
-    debug("Print statement parsed");
+    //debug("Print statement parsed");
 }
 
 static void beginStatement(){
-    debug("Parsing begin statement");
+    //debug("Parsing begin statement");
     consume(TOKEN_NEWLINE, "Expected newline after Begin!");
     ins_add(NOOP);
-    debug("Begin statement parsed");
+    //debug("Begin statement parsed");
 }
 
 static void endStatement(){
-    debug("End statement parsed");
+    //debug("End statement parsed");
     ins_add(HALT);
     consume(TOKEN_NEWLINE, "Expected newline after End!");
 }

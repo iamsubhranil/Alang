@@ -8,14 +8,16 @@ typedef struct{
     const char *value;
     uint64_t hash;
     uint64_t refCount;
+    size_t length;
 } String;
 
 static String **strarray = NULL;
 uint64_t stringCount = 0;
+size_t c = 0;
 
 static uint64_t hash(const char *str){
     uint64_t hash = 5381;
-    int c = 0;
+    c = 0;
 //    printf("\nHashing..\n");
     while (str[c] != 0)
         hash = ((hash << 5) + hash) + str[c++]; /* hash * 33 + c */
@@ -39,12 +41,17 @@ uint64_t str_insert(const char *str){
     strarray[stringCount - 1]->hash = has;
     strarray[stringCount - 1]->value = str;
     strarray[stringCount - 1]->refCount = 1;
+    strarray[stringCount - 1]->length = c;
 //    printf(debug("[Strings] Adding [%s]"), str);
     return stringCount - 1;
 }
 
 void str_ref_incr(uint64_t index){
     strarray[index]->refCount++;
+}
+
+size_t str_len(uint64_t index){
+    return strarray[index]->length;
 }
 
 void str_ref_decr(uint64_t index){
