@@ -14,7 +14,7 @@
 #include "routines.h"
 #include "heap.h"
 
-static int inWhile = 0;
+static int inWhile = 0, inRoutine = 0;
 static int he = 0;
 static uint64_t *breakAddresses, breakCount = 0;
 static TokenList *head = NULL;
@@ -246,12 +246,13 @@ static void primary(){
     else if(peek() == TOKEN_STRING){
         uint64_t st = str_insert(stringOf(advance()));
         ins_add(PUSHS);
-    //    printf("\nPushing string %lu", st);
+        //    printf("\nPushing string %lu", st);
         ins_add_val(heap_add_str(st));
     }
     else if(peek() == TOKEN_IDENTIFIER){
         uint64_t st = str_insert(stringOf(advance()));
         if(match(TOKEN_LEFT_SQUARE)){
+            printf(debug("Found array statement at line %d"), presentLine());
             expression(); // index
             ins_add(PUSHID);
             ins_add_val(heap_add_identifer(st));
@@ -283,8 +284,11 @@ static void call(){
     primary();
     while(true){
         if(match(TOKEN_DOT)){
-            call();
-            ins_add(MEMREF);
+            primary();
+            if(ins_last() == ARRAY)
+                ins_set(ip_get() - 1, ARRAYREF);
+            else
+                ins_add(MEMREF);
         }
         else
             break;
@@ -295,7 +299,7 @@ static void tothepower(){
     call();
     while(peek() == TOKEN_CARET){
         uint8_t op = insFromToken(advance());
-        tothepower();
+        call();
         ins_add(op);
     }
 }
@@ -501,11 +505,32 @@ static void setStatement(){
     debug("Parsing set statement");
     do{
         expression();
-        if(ins_get(ip_get() - 1) == ARRAY)
+        uint8_t type = 0;
+        if(ins_last() == MEMREF){
+            type = 1;
             ins_set(ip_get() - 1, NOOP);
+        }
+        else if(ins_last() == ARRAY){
+            type = 2;
+            printf(debug("Replaced array with arraywrite at line %d"), presentLine());
+            ins_set(ip_get() - 1, NOOP);
+        }
+        else if(ins_last() == ARRAYREF){
+            type = 3;
+            ins_set(ip_get() - 1, NOOP);
+        }
         consume(TOKEN_EQUAL, "Expected '=' after identifer!");
         expression();
-        ins_add(SET);
+        
+        if(type == 0)
+            ins_add(SET);
+        else if(type == 1)
+            ins_add(MEMSET);
+        else if(type == 2)
+            ins_add(ARRAYWRITE);
+        else if(type == 3)
+            ins_add(ARRAYSET);
+
     } while(match(TOKEN_COMMA));
     consume(TOKEN_NEWLINE, "Expected newline after Set statement!");
     debug("Set statement parsed");
@@ -516,7 +541,7 @@ static void arrayStatement(){
 
     do{
         expression();
-        if(ins_get(ip_get()-1) != ARRAY){
+        if(ins_last() != ARRAY){
             printf(line_error("Expected array expression!"), presentLine());
             he++;
         }
@@ -605,7 +630,7 @@ static void routineStatement(Compiler *compiler){
     if(routine.isNative == 0){
         routine.startAddress = ip_get();
         blockStatement(compiler, BLOCK_FUNC);
-        if(ins_get(ip_get() - 1) != RETURN){
+        if(ins_last() != RETURN){
             ins_add(PUSHN);
             ins_add(RETURN);
         }
@@ -621,6 +646,10 @@ static void callStatement(){
 }
 
 static void returnStatement(){
+    if(inRoutine > 0){
+        printf(line_error("A routine should not return anything!"), presentLine());
+        he++;
+    }
     if(peek() == TOKEN_NEWLINE){
         ins_add(PUSHN);
     }
@@ -630,28 +659,37 @@ static void returnStatement(){
     consume(TOKEN_NEWLINE, "Expected newline after Return!");
 }
 
-/*
-   static Statement containerStatement(Compiler *c){
-   Statement s;
-   s.type = STATEMENT_CONTAINER;
-   s.container.name = stringOf(head->value);
-   s.container.line = presentLine();
-   s.container.arity = 0;
-   consume(TOKEN_IDENTIFIER, "Expected container identifer!");
-   consume(TOKEN_LEFT_PAREN, "Expected '(' after container name");
-   while(!match(TOKEN_RIGHT_PAREN) && !match(TOKEN_EOF)){
-   s.container.arity++;
-   s.container.arguments = (char **)mallocate(sizeof(char *) * s.container.arity);
-   s.container.arguments[s.container.arity - 1] = stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!"));
-   }
-   consume(TOKEN_NEWLINE, "Expected newline after container declaration!");
-   s.container.constructor = blockStatement(c, BLOCK_FUNC) ;
-   consumeIndent(c->indentLevel);
-   consume(TOKEN_ENDCONTAINER, "Expected EndContainer on the same indent!");
-   consume(TOKEN_NEWLINE, "Expected newline after EndContainer!");
-   return s;
-   }
-   */
+static void containerStatement(Compiler *compiler){
+    Routine2 routine = routine_new();
+
+    if(compiler->indentLevel > 0){
+        printf(line_error("Containers can only be declared in top level indent!"), presentLine());
+        he++;
+    }
+    routine.isNative = 0;
+
+    routine.name = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected container name!")));
+    consume(TOKEN_LEFT_PAREN, "Expected '(' after container declaration!");
+    if(peek() != TOKEN_RIGHT_PAREN){
+        do{
+            routine_add_arg(&routine, stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
+        } while(match(TOKEN_COMMA));
+        consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
+    }
+    else
+        advance();
+    consume(TOKEN_NEWLINE, "Expected newline after container declaration!");
+    routine.startAddress = ip_get();
+    inRoutine++;
+    blockStatement(compiler, BLOCK_FUNC);
+    ins_add(PUSHID);
+    ins_add_val(heap_add_int(routine.name));
+    ins_add(NEW_CONTAINER);
+    inRoutine--;
+    consume(TOKEN_ENDCONTAINER, "Expected EndContainer on the same indent!");
+    consume(TOKEN_NEWLINE, "Expected newline after EndContainer!");
+    routine_add(routine);
+}
 /*
    static Statement noopStatement(){
    Statement s;
@@ -715,9 +753,9 @@ void part(Compiler *c){
         lastjump = ins_add_val(heap_add_int(0));
         ins_add(JUMP);
     }
-    //    else if(match(TOKEN_CONTAINER)){
-    //        return containerStatement(c);
-    //    }
+    else if(match(TOKEN_CONTAINER)){
+        return containerStatement(c);
+    }
     else{
         printf(line_error("Bad top level statement %s!"), presentLine(), tokenNames[peek()]);
         he++;
@@ -731,8 +769,8 @@ void parse(TokenList *list){
     Compiler *comp = initCompiler(NULL, 0, BLOCK_NONE);
     ins_add(PUSHI);
     lastjump = ins_add_val(heap_add_int(0)); // The first location will tell the address of first instruction
-                                    // to be executed, which will be either a global 'Set'/'Array',
-                                    // or the routine 'Main'
+    // to be executed, which will be either a global 'Set'/'Array',
+    // or the routine 'Main'
     ins_add(JUMP); // Jump to the first global instruction
     while(!match(TOKEN_EOF)){
         part(comp);
@@ -744,11 +782,11 @@ void parse(TokenList *list){
     ins_add(PUSHID);
     ins_add_val(heap_add_identifer(str_insert("Main")));
     ins_add(CALL);
-    
+
     ins_set_val(lastjump, heap_add_int(callMain)); // After all globals statements are
-                                    // executed, jump to the routine 'Main'
+    // executed, jump to the routine 'Main'
     ins_add(HALT); // After Main returns, halt the machine
-    
+
     memfree(comp);
 }
 

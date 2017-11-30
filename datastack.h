@@ -41,4 +41,5 @@ int64_t stackLastIncremented = 0;
 #define dpopi(x) {x = tint(dataStack[--sp]); decr();}
 #define dpopf(x) {x = tfloat(dataStack[--sp]); decr();}
 #define dpops(x) {x = tstr(dataStack[--sp]); decr();}
+#define dpopsk(x) {x = tstrk(dataStack[--sp]); decr();}
 #define dpopins(x) {x = tins(dataStack[--sp]); decr();}

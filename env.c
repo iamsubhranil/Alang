@@ -22,8 +22,9 @@ static Environment* env_match(uint64_t key, Environment *env){
     if(env == NULL)
         return NULL;
     Record *top = env->records;
-//    printf(debug("[Env:Match] Searching in %p[parent : %p] for [%s]"), env, env->parent, str_get(key));
+    //    printf(debug("[Env:Match] Searching in %p[parent : %p] for [%s]"), env, env->parent, str_get(key));
     while(top!=NULL){
+        //        printf(debug("[Env:Match] Found [%s]"), str_get(top->key));
         if(top->key == key)
             return env;
         top = top->next;
@@ -39,8 +40,18 @@ void env_put(uint64_t key, Data value, Environment *env){
     if(match == NULL)
         match = env;
     Record *top = match->records, *prev = NULL;
+    if(isins(value)){
+        tins(value)->refCount++;
+//        printf(debug("[Env:Put] Incremented refcount of [%s#%lu] to %lu"),
+//                str_get(tins(value)->container_key), tins(value)->id, tins(value)->refCount);
+    }
     while(top!=NULL){
         if(top->key == key){
+            if(isarray(top->data)){
+                printf(error("Array '%s' must be accessed using indices!"), str_get(key));
+                stop();
+            }
+            data_free(top->data);
             top->data = value;
             return;
         }
@@ -54,7 +65,7 @@ void env_put(uint64_t key, Data value, Environment *env){
 }
 
 Data env_get(uint64_t key, Environment *env, uint8_t beSilent){
-    //printf(debug("[Env:Get] Getting [%s]"), str_get(key));
+//    printf(debug("[Env:Get] Getting [%s]"), str_get(key));
     Environment *match = env_match(key, env);
     if(match == NULL){
         if(!beSilent){

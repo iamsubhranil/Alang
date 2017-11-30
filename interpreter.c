@@ -7,18 +7,24 @@
 #include "strings.h"
 #include "values.h"
 #include "heap.h"
+#include "display.h"
 
 static uint8_t *instructions = NULL;
-static uint64_t ip = 0;
+static uint64_t ip = 0, lastins = 0;
 
 uint64_t ins_add(uint8_t ins){
     instructions = (uint8_t *)reallocate(instructions, 8*++ip);
     instructions[ip - 1] = ins;
+    lastins = ip - 1;
     return ip - 1;
 }
 
 void ins_set(uint64_t mem, uint8_t ins){
     instructions[mem] = ins;
+}
+
+uint8_t ins_last(){
+    return instructions[lastins];
 }
 
 uint64_t ins_add_val(uint64_t store){
@@ -193,8 +199,23 @@ void ins_print(){
             case NOOP:
                 printf("noop");
                 break;
+            case NEW_CONTAINER:
+                printf("new_container");
+                break;
+            case MEMSET:
+                printf("memset");
+                break;
+            case ARRAYREF:
+                printf("arrayref");
+                break;
+            case ARRAYSET:
+                printf("arrayset");
+                break;
+            case ARRAYWRITE:
+                printf("arraywrite");
+                break;
             default:
-                printf("[Error] Unknown opcode 0x%x", instructions[i]);
+                printf(error("Unknown opcode 0x%x"), instructions[i]);
                 break;
         }
         i++;
@@ -204,7 +225,6 @@ void ins_print(){
 
 #include "datastack.h"
 #include <string.h>
-#include "display.h"
 #include <math.h>
 #include "env.h"
 #include "routines.h"
@@ -261,12 +281,13 @@ void interpret(){
     callFrame.arity = 27;
     ip = 0;
     tmStart = clock();
-    static const void *dispatchTable[35] = {&&DO_PUSHF, &&DO_PUSHI, &&DO_PUSHL, &&DO_PUSHS, &&DO_PUSHID, &&DO_PUSHN,
+    static const void *dispatchTable[] = {&&DO_PUSHF, &&DO_PUSHI, &&DO_PUSHL, &&DO_PUSHS, &&DO_PUSHID, &&DO_PUSHN,
         &&DO_ADD, &&DO_SUB, &&DO_MUL, &&DO_DIV, &&DO_POW, &&DO_MOD,
         &&DO_GT, &&DO_GTE, &&DO_LT, &&DO_LTE, &&DO_EQ, &&DO_NEQ, &&DO_AND, &&DO_OR,
         &&DO_SET, &&DO_INPUTI, &&DO_INPUTS, &&DO_INPUTF, &&DO_PRINT,
         &&DO_HALT, &&DO_JUMP, &&DO_JUMP_IF_TRUE, &&DO_JUMP_IF_FALSE, &&DO_CALL, &&DO_RETURN,
-        &&DO_ARRAY, &&DO_MEMREF, &&DO_MAKE_ARRAY, &&DO_NOOP};
+        &&DO_ARRAY, &&DO_MEMREF, &&DO_MAKE_ARRAY, &&DO_NOOP,
+        &&DO_NEW_CONTAINER, &&DO_MEMSET, &&DO_ARRAYREF, &&DO_ARRAYSET, &&DO_ARRAYWRITE};
 
 #define DISPATCH() {goto *dispatchTable[instructions[++ip]];}
 #define DISPATCH_WINC() {goto *dispatchTable[instructions[ip]];}
@@ -463,6 +484,12 @@ DO_LTE:
 DO_EQ:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+
+             if(isnull(d1) || isnull(d2)){
+                 dpushl(isnull(d1) && isnull(d2));
+                 DISPATCH();
+             }
+
              if(isstr(d1) && isstr(d2)){
                  dpushl(tstrk(d2) == tstrk(d1));
                  DISPATCH();
@@ -480,6 +507,12 @@ DO_NEQ:
          {
 
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+
+             if(isnull(d1) || isnull(d2)){
+                 dpushl(!(isnull(d1) && isnull(d2)));
+                 DISPATCH();
+             }
+
              if(isstr(d1) && isstr(d2)){
                  dpushl(tstrk(d1) != tstrk(d2));
                  DISPATCH();
@@ -521,30 +554,8 @@ DO_SET:
              dpopv(value, callFrame);
              dpop(id); 
              if(isidentifer(id)){
-                 Data var = env_get(tstrk(id), &callFrame.env, 1);
-                 if(isnull(var) || !isarray(var)){
-                     env_put(tstrk(id), value, &callFrame.env);
-                     DISPATCH();
-                 }
-
-                 Data index;
-                 dpopv(index, callFrame);
-                 if(isint(index)){
-                     if(tint(index) < 1 || tint(index) > var.numElements){
-                         printf(error("Array index out of range : %" PRId64), tint(index));
-                         stop();
-                     }
-
-                     Data *d = (Data *)var.arr;
-                     d[tint(index) - 1] = (Data)value;
-                     DISPATCH();
-
-                 }
-
-                 printf(error("Array index must be an integer!"));
-                 stop();
-
-
+                 env_put(tstrk(id), value, &callFrame.env);
+                 DISPATCH();
              }
 
              printf(error("Bad assignment target!"));
@@ -688,12 +699,14 @@ DO_CALL:
              CallFrame nf = cf_new();
              nf.env = env_new(cf_root_env());
              nf.returnAddress = ip + 1;
-             i = 0;
-             while(i < routine.arity){
-                 //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
-                 Data d; dpopv(d, callFrame);
-                 env_put(routine.arguments[i], d, &nf.env);
-                 i++;
+             if(routine.arity > 0){
+                 i = 0;
+                 while(i < routine.arity){
+                     //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
+                     Data d; dpopv(d, callFrame);
+                     env_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
+                     i++;
+                 }
              }
              ip = routine.startAddress;
              callFrame = nf;
@@ -701,6 +714,9 @@ DO_CALL:
          }
 DO_RETURN:
          {
+             if(isins(dpeek()))
+                 tins(dpeek())->refCount++;
+
              ip = callFrame.returnAddress;
              if(ip == 0){
                  //    printf(debug("No parent frame to return!"));
@@ -736,8 +752,20 @@ DO_ARRAY:
 
          }
 DO_MEMREF:
-         printf("memref(noop)");
-         DISPATCH();
+         {
+             Data ins, mem;
+             dpop(mem); dpopv(ins, callFrame);
+             if(isins(ins)){
+                 if(isidentifer(mem)){
+                     dpush(env_get(tstrk(mem), tenv(ins), 0));
+                     DISPATCH();
+                 }
+                 printf(error("Bad identifer!"));
+                 stop();
+             }
+             printf(error("Referenced value is not a container instance!"));
+             stop();
+         }
 DO_MAKE_ARRAY:
          {
              Data size, id;
@@ -767,6 +795,112 @@ DO_MAKE_ARRAY:
              stop();
          }
 DO_NOOP:
-         DISPATCH();
+         {
+             DISPATCH();
+         }
+DO_NEW_CONTAINER:
+         {
+             uint64_t name;
+             dpopsk(name);
+             dpush(new_ins(&callFrame.env, name));
+             ip = callFrame.returnAddress;
+             callFrame = cf_pop();
+             DISPATCH_WINC();
+         }
+DO_MEMSET:
+         {
+             Data in, mem, data;
+             dpopv(data, callFrame); dpop(mem); dpopv(in, callFrame);
+             if(isins(in)){
+                 if(isidentifer(mem)){
+                     env_put(tstrk(mem), data, tenv(in));
+                     DISPATCH();
+                 }
+                 printf(error("Bad member reference!"));
+                 stop();
+             }
+             printf(error("Referenced value is not a container instance!"));
+             stop();
+         }
+DO_ARRAYREF:
+         {
+             Data index, iden, cont;
+             dpop(iden); dpopv(index, callFrame); dpopv(cont, callFrame);
+             if(isint(index)){
+                 if(isins(cont)){
+                     if(isidentifer(iden)){
+                         Data arr = env_get(tstrk(iden), tenv(cont), 0);
+                         if(isarray(arr)){
+                             if(tint(index) > 0 && tint(index) <= arr.numElements){
+                                 dpush((Data)arr.arr[tint(index)- 1]);
+                                 DISPATCH();
+                             }
+                             printf(error("Array index out of range : %" PRId64), tint(index));
+                             stop();
+                         }
+                         printf(error("Referenced item is not an array!"));
+                         stop();
+                     }
+                     printf(error("Bad identifer"));
+                     stop();
+                 }
+                 printf(error("Referenced value is not a container instance"));
+                 stop();
+             }
+             printf(error("Array index must be an integer!"));
+             stop();
+         }
+DO_ARRAYSET:
+         {
+             Data index, iden, cont, value;
+             dpopv(value, callFrame); dpop(iden); dpopv(index, callFrame); dpopv(cont, callFrame);
+             if(isint(index)){
+                 if(isins(cont)){
+                     if(isidentifer(iden)){
+                         Data arr = env_get(tstrk(iden), tenv(cont), 0);
+                         if(isarray(arr)){
+                             if(tint(index) > 0 && tint(index) <= arr.numElements){
+                                 arr.arr[tint(index)- 1] = value;
+                                 DISPATCH();
+                             }
+                             printf(error("Array index out of range : %" PRId64), tint(index));
+                             stop();
+                         }
+                         printf(error("Referenced item is not an array!"));
+                         stop();
+                     }
+                     printf(error("Bad identifer"));
+                     stop();
+                 }
+                 printf(error("Referenced value is not a container instance"));
+                 stop();
+             }
+             printf(error("Array index must be an integer!"));
+             stop();
+         }
+DO_ARRAYWRITE:
+         {
+             Data index, iden, value;
+             dpopv(value, callFrame); dpop(iden); dpopv(index, callFrame);
+             if(isint(index)){
+                 if(isidentifer(iden)){
+                     Data arr = env_get(tstrk(iden), &callFrame.env, 0);
+                     if(isarray(arr)){
+                         if(tint(index) > 0 && tint(index) <= arr.numElements){
+                             arr.arr[tint(index)- 1] = value;
+                             DISPATCH();
+                         }
+                         printf(error("Array index out of range : %" PRId64), tint(index));
+                         stop();
+                     }
+                     printf(error("Referenced item is not an array!"));
+                     stop();
+                 }
+                 printf(error("Bad identifer"));
+                 stop();
+             }
+             printf(error("[Array write] Array index must be an integer![%s]"), tstr(iden));
+             stop();
+         }
     }
 }

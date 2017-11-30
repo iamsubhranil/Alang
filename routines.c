@@ -40,7 +40,7 @@ Routine2 routine_get(uint64_t name){
             return routines[i];
         i++;
     }
- //   printf(error("Routine not found : '%s'!\n"), str_get(name));
+    printf(error("Routine not found : '%s'!\n"), str_get(name));
     stop();
-    return (Routine2){0};
+    return (Routine2){0,0, NULL, 0, 0, 0};
 }

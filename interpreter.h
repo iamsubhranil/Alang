@@ -14,6 +14,7 @@ uint8_t ins_get(uint64_t mem);
 
 uint64_t ip_get();
 void ins_print();
+uint8_t ins_last();
 
 void interpret();
 void stop();
@@ -61,4 +62,10 @@ void stop();
 #define MAKE_ARRAY 0x21
 // Noop
 #define NOOP 0x22
+// Container
+#define NEW_CONTAINER 0x23
+#define MEMSET 0x24
+#define ARRAYREF 0x25
+#define ARRAYSET 0x26
+#define ARRAYWRITE 0x27
 #endif
