@@ -1,0 +1,10 @@
+Container Test(x)
+    Set member = x
+EndContainer
+Routine Main()
+    Set i = 0
+    While(i < 10000000)
+        Set t = Test(i)
+        Set i = i + 1
+    EndWhile
+EndRoutine
