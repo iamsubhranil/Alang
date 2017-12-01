@@ -732,8 +732,12 @@ DO_CALL:
          }
 DO_RETURN:
          {
+             if(isidentifer(dpeek())){
+                Data d; dpopv(d, callFrame);
+                dpush(d);
+             }
              if(isins(dpeek()))
-                 tins(dpeek())->refCount++;
+                 tins(dpeek())->refCount++; 
 
              ip = callFrame.returnAddress;
              if(ip == 0){
