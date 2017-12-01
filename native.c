@@ -161,11 +161,12 @@ static Routine2 getSingleArgRoutine(uint64_t argName){
 static void define_cons(Environment *env){
     env_put(str_insert("Math_Pi"), new_float(acos(-1.0)), env);
     env_put(str_insert("Math_E"), new_float(M_E), env);
+    env_put(str_insert("ClocksPerSecond"), new_int(CLOCKS_PER_SEC), env);
 }
 
 void register_native(Environment *env){
     routine_add(getSingleArgRoutine(str_insert("LoadLibrary")));
     routine_add(getSingleArgRoutine(str_insert("UnloadLibrary")));
     define_cons(env);
-    load_library(NULL, str_insert("./libnmath.so"));
+    load_library(NULL, str_insert("./liblalang.so"));
 }
