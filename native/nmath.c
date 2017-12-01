@@ -2,49 +2,49 @@
 
 #include "../foreign_interface.h"
 
-Object Sin(int i, Environment *env){
-    return fromDouble(sin(get_double("x", i, env)));
+Data Sin(Environment *env){
+    return new_float(sin(get_double("x",  env)));
 }
 
-Object Cos(int i, Environment *env){
-    return fromDouble(cos(get_double("x", i, env)));
+Data Cos(Environment *env){
+    return new_float(cos(get_double("x",  env)));
 }
 
-Object Tan(int i, Environment *env){
-    return fromDouble(tan(get_double("x", i, env)));
+Data Tan(Environment *env){
+    return new_float(tan(get_double("x",  env)));
 }
 
-Object ASin(int i, Environment *env){
-    return fromDouble(asin(get_double("x", i, env)));
+Data ASin(Environment *env){
+    return new_float(asin(get_double("x",  env)));
 }
-Object ACos(int i, Environment *env){
-    return fromDouble(acos(get_double("x", i, env)));
-}
-
-Object ATan(int i, Environment *env){
-    return fromDouble(atan(get_double("x", i, env)));
+Data ACos(Environment *env){
+    return new_float(acos(get_double("x",  env)));
 }
 
-Object Sinh(int i, Environment *env){
-    return fromDouble(sinh(get_double("x", i, env)));
+Data ATan(Environment *env){
+    return new_float(atan(get_double("x",  env)));
 }
 
-Object Cosh(int i, Environment *env){
-    return fromDouble(cosh(get_double("x", i, env)));
+Data Sinh(Environment *env){
+    return new_float(sinh(get_double("x",  env)));
 }
 
-Object Tanh(int i, Environment *env){
-    return fromDouble(tanh(get_double("x", i, env)));
+Data Cosh(Environment *env){
+    return new_float(cosh(get_double("x",  env)));
 }
 
-Object Log(int i, Environment *env){
-    return fromDouble(log(get_double("x", i, env)));
+Data Tanh(Environment *env){
+    return new_float(tanh(get_double("x",  env)));
 }
 
-Object Log10(int i, Environment *env){
-    return fromDouble(log10(get_double("x", i, env)));
+Data Log(Environment *env){
+    return new_float(log(get_double("x",  env)));
 }
 
-Object Exp(int i, Environment *env){
-    return fromDouble(exp(get_double("x", i, env)));
+Data Log10(Environment *env){
+    return new_float(log10(get_double("x",  env)));
+}
+
+Data Exp(Environment *env){
+    return new_float(exp(get_double("x",  env)));
 }

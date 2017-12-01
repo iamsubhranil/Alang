@@ -53,6 +53,6 @@ int main(int argc, char **argv){
 
     memfree_all();
     
-    printf(debug("After interpreting, realloc called : %d times\n"), get_realloc_count());
+//    printf(debug("After interpreting, realloc called : %d times\n"), get_realloc_count());
     return 0;
 }

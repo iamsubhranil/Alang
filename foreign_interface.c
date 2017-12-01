@@ -1,64 +1,34 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 
-#include "environment.h"
-#include "display.h"
+#include "foreign_interface.h"
 #include "interpreter.h"
+#include "strings.h"
 
-static int is_num(Object obj){
-    return obj.literal.type == LIT_INT || obj.literal.type == LIT_DOUBLE;
-}
-
-static double get_val(Literal lit){
-    return lit.type == LIT_INT ? lit.lVal : lit.dVal;
-}
-
-double get_double(char *identifer, int line, Environment *env){
-    Object o = env_get(identifer, line, env);
-    if(o.type != OBJECT_LITERAL || !is_num(o)){
-        printf(runtime_error("Expected numeric value!"), line);
+double get_double(const char *identifer, Environment *env){
+    Data o = env_get(str_insert(identifer), env, 0);
+    if(!isnum(o)){
+        printf(error("Expected numeric value!"));
         stop();
     }
-    return get_val(o.literal);
+    return tnum(o);
 }
 
-long get_long(char *identifer, int line, Environment *env){
-    Object o = env_get(identifer, line, env);
-    if(o.type != OBJECT_LITERAL || o.literal.type != LIT_INT){
-        printf(runtime_error("Expected integer value!"), line);
+int64_t get_int(const char *identifer, Environment *env){
+    Data o = env_get(str_insert(identifer), env, 0);
+    if(!isint(o)){
+        printf(error("Expected integer value!"));
         stop();
     }
-    return o.literal.iVal;
+    return tint(o);
 }
 
-char* get_string(char *identifer, int line, Environment *env){
-    Object o = env_get(identifer, line, env);
-    if(o.type != OBJECT_LITERAL || o.literal.type != LIT_STRING){
-        printf(runtime_error("Expected string value!"), line);
+char* get_string(const char *identifer, Environment *env){
+    Data o = env_get(str_insert(identifer), env, 0);
+    if(!isstr(o)){
+        printf(error("Expected integer value!"));
         stop();
     }
-    return o.literal.sVal;
-}
-
-Object fromDouble(double d){
-    Object o;
-    o.type = OBJECT_LITERAL;
-    o.literal.type = LIT_DOUBLE;
-    o.literal.dVal = d;
-    return o;
-}
-
-Object fromLong(long l){
-    Object o;
-    o.type = OBJECT_LITERAL;
-    o.literal.type = LIT_INT;
-    o.literal.dVal = l;
-    return o;
-}
-
-Object fromString(char *string){
-    Object o;
-    o.type = OBJECT_LITERAL;
-    o.literal.type = LIT_STRING;
-    o.literal.sVal = string;
-    return o;
+    return strdup(tstr(o));
 }

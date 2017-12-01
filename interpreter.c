@@ -231,6 +231,7 @@ void ins_print(){
 #include "callframe.h"
 #include "io.h"
 #include <time.h>
+#include "native.h"
 
 static uint8_t run = 1;
 static clock_t tmStart, tmEnd;
@@ -269,16 +270,25 @@ static void printString(const char *s){
     }
 }
 
-void interpret(){
+uint8_t init = 0;
+
+void init_interpreter(){
     dataStack = NULL;
     sp = 0;
     stackSize = 0;
     dStackInit();
+    init = 1;
+}
+
+void interpret(){
+    if(init == 0)
+        init_interpreter();
 
     CallFrame callFrame = cf_new();
     callFrame.env = env_new(NULL);
     callFrame.returnAddress = 0;
     callFrame.arity = 27;
+    register_native(&callFrame.env);
     ip = 0;
     tmStart = clock();
     static const void *dispatchTable[] = {&&DO_PUSHF, &&DO_PUSHI, &&DO_PUSHL, &&DO_PUSHS, &&DO_PUSHID, &&DO_PUSHN,
@@ -709,8 +719,15 @@ DO_CALL:
                      i++;
                  }
              }
-             ip = routine.startAddress;
+
              callFrame = nf;
+
+             if(routine.isNative == 1){
+                dpush(handle_native(routine.name, &nf.env));
+                goto DO_RETURN;
+             }
+
+             ip = routine.startAddress;
              DISPATCH_WINC();
          }
 DO_RETURN:

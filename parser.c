@@ -511,7 +511,6 @@ static void setStatement(){
         }
         else if(ins_last() == ARRAY){
             type = 2;
-            printf(debug("Replaced array with arraywrite at line %d"), presentLine());
             ins_set(ip_get() - 1, NOOP);
         }
         else if(ins_last() == ARRAYREF){

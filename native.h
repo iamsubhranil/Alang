@@ -2,9 +2,9 @@
 #define NATIVE_H
 
 #include "interpreter.h"
-#include "environment.h"
+#include "env.h"
 
-Object handle_native(Call c, Environment *env);
+Data handle_native(uint64_t name, Environment *env);
 void register_native(Environment *env);
 void unload_all();
 #endif

@@ -1,16 +1,14 @@
 #ifndef FOREIGN_INTERFACE_H
 #define FOREIGN_INTERFACE_H
 
-#include "interpreter.h"
-#include "environment.h"
+#include <stdint.h>
+
+#include "env.h"
+#include "values.h"
 #include "display.h"
 
-double get_double(char *identifer, int line, Environment *env);
-long get_long(char *identifer, int line, Environment *env);
-char* get_string(char *identifer, int line, Environment *env);
-
-Object fromDouble(double d);
-Object fromLong(long l);
-Object fromString(char *strng);
+double get_double(const char *identifer, Environment *env);
+int64_t get_int(const char *identifer, Environment *env);
+char* get_string(const char *identifer, Environment *env);
 
 #endif
