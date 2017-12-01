@@ -398,11 +398,17 @@ DO_DIV:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
              if(isnum(d1) && isnum(d2)){
-                 double res = tnum(d2) / tnum(d1);
-                 dpushf(res);
+                 if(isfloat(d1) || isfloat(d2)){
+                    double res = tnum(d2) / tnum(d1);
+                    dpushf(res);
+                    DISPATCH();
+                 }
+
+                 int64_t res = tint(d2) / tint(d1);
+                 dpushi(res);
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '*'!"));
+             printf(error("Bad operands for operator '/'!"));
              stop();
          }
 DO_POW:
