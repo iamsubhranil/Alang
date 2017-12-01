@@ -57,7 +57,7 @@ void data_free(Data d){
         }
     }
     else if(isarray(d)){
-        uint64_t i = 0;
+        int64_t i = 0;
         Data *arr = (Data *)d.arr;
         while(i < d.numElements){
             data_free(arr[i]);

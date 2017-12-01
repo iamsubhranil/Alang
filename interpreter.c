@@ -398,13 +398,8 @@ DO_DIV:
          {
              Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
              if(isnum(d1) && isnum(d2)){
-                 if(isfloat(d1) || isfloat(d2)){
-                     double res = tnum(d2) / tnum(d1);
-                     dpushf(res);
-                     DISPATCH();
-                 }
-                 int64_t res = tint(d2) / tint(d1);
-                 dpushi(res);
+                 double res = tnum(d2) / tnum(d1);
+                 dpushf(res);
                  DISPATCH();
              }
              printf(error("Bad operands for operator '*'!"));
@@ -723,8 +718,8 @@ DO_CALL:
              callFrame = nf;
 
              if(routine.isNative == 1){
-                dpush(handle_native(routine.name, &nf.env));
-                goto DO_RETURN;
+                 dpush(handle_native(routine.name, &nf.env));
+                 goto DO_RETURN;
              }
 
              ip = routine.startAddress;
@@ -733,8 +728,8 @@ DO_CALL:
 DO_RETURN:
          {
              if(isidentifer(dpeek())){
-                Data d; dpopv(d, callFrame);
-                dpush(d);
+                 Data d; dpopv(d, callFrame);
+                 dpush(d);
              }
              if(isins(dpeek()))
                  tins(dpeek())->refCount++; 

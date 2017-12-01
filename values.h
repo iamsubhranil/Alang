@@ -30,7 +30,7 @@ typedef struct Data{
         Instance *pvalue;
         struct{
             struct Data *arr;
-            uint64_t numElements;
+            int64_t numElements;
         };
         double cvalue;
         int64_t ivalue;
