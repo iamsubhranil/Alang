@@ -3,7 +3,7 @@ set(SOURCE_FILES    main.c
                     parser.c
                     interpreter.c
                     environment.c
-                    allocator.c
+                    #                    allocator.c
                     io.c
                     preprocessor.c
                     native.c
