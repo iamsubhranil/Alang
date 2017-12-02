@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #include "allocator.h"
 #include "values.h"
@@ -53,8 +55,8 @@ Data getInt(){
         printf(warning("[Input Error] Not an integer : %s!\n[Re-Input] "), s);
         s = readString();
     }
-    long l = 0;
-    sscanf(s, "%ld", &l);
+    int32_t l = 0;
+    sscanf(s, "%" SCNd32, &l);
     memfree(s);
     return new_int(l);
 }

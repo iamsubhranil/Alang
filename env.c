@@ -10,7 +10,7 @@ Environment env_new(Environment *parent){
     return (Environment){NULL, parent};
 }
 
-static inline Record* new_record(uint64_t key, Data value){
+static inline Record* new_record(uint32_t key, Data value){
     Record *record = (Record *)mallocate(sizeof(Record));
     record->key = key;
     record->data = value;
@@ -18,7 +18,7 @@ static inline Record* new_record(uint64_t key, Data value){
     return record;
 }
 
-static inline Environment* env_match(uint64_t key, Environment *env){
+static inline Environment* env_match(uint32_t key, Environment *env){
     if(env == NULL)
         return NULL;
     Record *top = env->records;
@@ -32,7 +32,7 @@ static inline Environment* env_match(uint64_t key, Environment *env){
     return env_match(key, env->parent);
 }
 
-void env_implicit_put(uint64_t key, Data value, Environment *env){
+void env_implicit_put(uint32_t key, Data value, Environment *env){
     Record *top = env->records;
     if(isins(value)){
         tins(value)->refCount++;
@@ -47,7 +47,7 @@ void env_implicit_put(uint64_t key, Data value, Environment *env){
     }
 }
 
-void env_put(uint64_t key, Data value, Environment *env){
+void env_put(uint32_t key, Data value, Environment *env){
     if(env == NULL)
         return;
 //    printf(debug("[Env:Put] Putting [%s]"), str_get(key));
@@ -79,7 +79,7 @@ void env_put(uint64_t key, Data value, Environment *env){
         prev->next = new_record(key, value);
 }
 
-Data env_get(uint64_t key, Environment *env, uint8_t beSilent){
+Data env_get(uint32_t key, Environment *env, uint8_t beSilent){
 //    printf(debug("[Env:Get] Getting [%s]"), str_get(key));
     Environment *match = env_match(key, env);
     if(match == NULL){

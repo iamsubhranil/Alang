@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "scanner.h"
 #include "parser.h"
@@ -8,12 +9,7 @@
 #include "preprocessor.h"
 #include "interpreter.h"
 
-static void p(const char* name, size_t size){
-    printf("\n%s : %lu bytes", name, size);
-}
-
 int main(int argc, char **argv){
-//    printSize();
     if(argc != 2)
         return 2;
     FILE *f = fopen(argv[1], "rb");
@@ -45,7 +41,7 @@ int main(int argc, char **argv){
         return 1;
     }
     
-//    ins_print();
+    //ins_print();
     freeList(tokens);
 //    printf(debug("Before interpreting, realloc called : %d"), get_realloc_count());
     

@@ -12,14 +12,14 @@
 static uint8_t *instructions = NULL;
 static uint32_t ip = 0, lastins = 0;
 
-uint64_t ins_add(uint8_t ins){
+uint32_t ins_add(uint8_t ins){
     instructions = (uint8_t *)reallocate(instructions, 8*++ip);
     instructions[ip - 1] = ins;
     lastins = ip - 1;
     return ip - 1;
 }
 
-void ins_set(uint64_t mem, uint8_t ins){
+void ins_set(uint32_t mem, uint8_t ins){
     instructions[mem] = ins;
 }
 
@@ -27,7 +27,7 @@ uint8_t ins_last(){
     return instructions[lastins];
 }
 
-uint64_t ins_add_val(uint64_t store){
+uint32_t ins_add_val(uint64_t store){
     //    printf("\nStoring %lu at %lu : 0x", store, ip);
     instructions = (uint8_t *)reallocate(instructions, 8*(ip + 8));
     uint32_t i = 0;
@@ -43,7 +43,7 @@ uint64_t ins_add_val(uint64_t store){
     return ip - 8;
 }
 
-void ins_set_val(uint64_t mem, uint64_t store){
+void ins_set_val(uint32_t mem, uint64_t store){
     //    printf("\nReStoring %lu at %lu : 0x", store, mem);
     uint8_t i = 0;
     while(i < 8){
@@ -54,9 +54,9 @@ void ins_set_val(uint64_t mem, uint64_t store){
     ins_get_val(mem);
 }
 
-uint64_t ins_get_val(uint64_t mem){
-    uint32_t ret = instructions[mem];
-    uint32_t i = 1;
+uint64_t ins_get_val(uint32_t mem){
+    uint64_t ret = instructions[mem];
+    uint8_t i = 1;
     //    printf("[Bytes : 0x%x", instructions[mem]);
     while(i < 8){
         //        printf("%x", instructions[mem + i]);
@@ -66,11 +66,11 @@ uint64_t ins_get_val(uint64_t mem){
     return ret;
 }
 
-uint8_t ins_get(uint64_t mem){
+uint8_t ins_get(uint32_t mem){
     return instructions[mem];
 }
 
-uint64_t ip_get(){
+uint32_t ip_get(){
     return ip;
 }
 
@@ -790,14 +790,14 @@ DO_PRINT:
                      printString(str_get(tstrk(value)));
                      DISPATCH();
                  case INSTANCE:
-                     printf("<instance of %s#%" PRIu64 ">", str_get(value.pvalue->container_key),
+                     printf("<instance of %s#%" PRIu32 ">", str_get(value.pvalue->container_key),
                              value.pvalue->id);
                      DISPATCH();
                  case IDENTIFIER:
                      printf("<identifer %s>", str_get(tstrk(value)));
                      DISPATCH();
                  case ARR:
-                     printf("<array of %" PRIu64 ">", value.numElements);
+                     printf("<array of %" PRIu32 ">", value.numElements);
                      DISPATCH();
                  case NONE:
                      printf("<none>");
@@ -924,12 +924,12 @@ DO_ARRAY:
                      DISPATCH();
                  }
 
-                 if(tint(index) < 1 || tint(index) > (str_len(tstrk(arr)) + 1)){
+                 if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
                      printf(error("String index out of range : %" PRId32), tint(index));
                      stop();
                  }
 
-                 if(tint(index) == str_len(tstrk(arr)) + 1){
+                 if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
                      dpushn();
                      DISPATCH();
                  }
@@ -1034,13 +1034,13 @@ DO_ARRAYREF:
                              stop();
                          }
                          if(isstr(arr)){
-                             if(tint(index) < 1 || tint(index) > (str_len(tstrk(arr)) + 1)){
+                             if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
                                  printf(error("String index out of range : %" PRId32), tint(index));
                                  stop();
                              }
 
 
-                             if(tint(index) == str_len(tstrk(arr)) + 1){
+                             if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
                                  dpushn();
                                  DISPATCH();
                              }
@@ -1081,7 +1081,7 @@ DO_ARRAYSET:
                              stop();
                          }
                          if(isstr(arr)){
-                             if(tint(index) < 1 || tint(index) > str_len(tstrk(arr))){
+                             if(tint(index) < 1 || (size_t)tint(index) > str_len(tstrk(arr))){
                                  printf(error("String index out of range : %" PRId32), tint(index));
                                  stop();
                              }
@@ -1126,7 +1126,7 @@ DO_ARRAYWRITE:
                          stop();
                      }
                      if(isstr(arr)){
-                         if(tint(index) < 1 || tint(index) > str_len(tstrk(arr))){
+                         if(tint(index) < 1 || (size_t)tint(index) > str_len(tstrk(arr))){
                              printf(error("String index out of range : %" PRId32), tint(index));
                              stop();
                          }

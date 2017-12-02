@@ -3,16 +3,16 @@
 
 #include <stdint.h>
 
-uint64_t ins_add(uint8_t ins);
-uint64_t ins_add_val(uint64_t d);
+uint32_t ins_add(uint8_t ins);
+uint32_t ins_add_val(uint64_t d);
 
-void ins_set(uint64_t mem, uint8_t ins);
-void ins_set_val(uint64_t mem, uint64_t d);
+void ins_set(uint32_t mem, uint8_t ins);
+void ins_set_val(uint32_t mem, uint64_t d);
 
-uint64_t ins_get_val(uint64_t mem);
-uint8_t ins_get(uint64_t mem);
+uint64_t ins_get_val(uint32_t mem);
+uint8_t ins_get(uint32_t mem);
 
-uint64_t ip_get();
+uint32_t ip_get();
 void ins_print();
 uint8_t ins_last();
 

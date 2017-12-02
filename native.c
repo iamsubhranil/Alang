@@ -14,15 +14,15 @@
 #include "routines.h"
 
 typedef struct{
-    uint64_t name;
+    uint32_t name;
     void *handle;
 } Library;
 
 static Library *libraries = NULL;
-static uint64_t libCount = 0;
+static uint32_t libCount = 0;
 
-static int hasLib(uint64_t name){
-    uint64_t i = 0;
+static int hasLib(uint32_t name){
+    uint32_t i = 0;
     while(i < libCount){
         if(libraries[i].name == name)
             return 1;
@@ -31,7 +31,7 @@ static int hasLib(uint64_t name){
     return 0;
 }
 
-static Data load_library(Environment *env, uint64_t name){
+static Data load_library(Environment *env, uint32_t name){
     if(env != NULL){
         Data d = env_get(str_insert("x"), env, 0);
         name = tstrk(d);
@@ -58,7 +58,7 @@ static Data load_library(Environment *env, uint64_t name){
 }
 
 void unload_all(){
-    uint64_t i = 0;
+    uint32_t i = 0;
     char *err = NULL;
     while(i < libCount){
         dlclose(libraries[i].handle);
@@ -72,7 +72,7 @@ void unload_all(){
 }
 
 static Data unload_library(Environment *env){
-    uint64_t name = tstrk(env_get(str_insert("x"), env, 0));
+    uint32_t name = tstrk(env_get(str_insert("x"), env, 0));
 
     if(!hasLib(name)){
         printf(warning("Library '%s' is not loaded!"), str_get(name));
@@ -85,7 +85,7 @@ static Data unload_library(Environment *env){
         return new_null();
     }
 
-    uint64_t i = 0;
+    uint32_t i = 0;
     while(i < libCount){
         if(libraries[i].name == name){
             dlclose(libraries[i].handle);
@@ -103,8 +103,8 @@ static Data unload_library(Environment *env){
     return new_null();
 }
 
-static void* get_func(uint64_t name){
-    uint64_t i = 0;
+static void* get_func(uint32_t name){
+    uint32_t i = 0;
     if(libCount == 0){
         printf(error("Unable to call %s : No libraries loaded!"), str_get(name));
         stop();
@@ -122,21 +122,23 @@ static void* get_func(uint64_t name){
 
 typedef Data (*handler)(Environment *env);
 
-static Data run_native(uint64_t name, Environment *env){
+static Data run_native(uint32_t name, Environment *env){
     handler fhandle = (handler)get_func(name);
     return fhandle(env);
 }
 
-Data handle_native(uint64_t name, Environment *env){
+Data handle_native(uint32_t name, Environment *env){
     if(str_insert("LoadLibrary") == name)
         return load_library(env, name);
     else if(str_insert("UnloadLibrary") == name)
         return unload_library(env);
+    else if(str_insert("Clock") == name)
+        return new_int((int32_t)clock());
     else
         return run_native(name, env);
 }
 
-static Routine2 get_routine(uint64_t name, int arity){
+static Routine2 get_routine(uint32_t name, int arity){
     Routine2 r;
     r.isNative = 1;
     r.name = name;
@@ -146,16 +148,20 @@ static Routine2 get_routine(uint64_t name, int arity){
     return r;
 }
 
-static void add_argument(Routine2 *r, uint64_t argName){
+static void add_argument(Routine2 *r, uint32_t argName){
     r->arity++;
-    r->arguments = (uint64_t *)reallocate(r->arguments, 64 * r->arity);
+    r->arguments = (uint32_t *)reallocate(r->arguments, 64 * r->arity);
     r->arguments[r->arity - 1] = argName;
 }
 
-static Routine2 getSingleArgRoutine(uint64_t argName){
-    Routine2 r = get_routine(argName, 0);
+static Routine2 getSingleArgRoutine(uint32_t name){
+    Routine2 r = get_routine(name, 0);
     add_argument(&r, str_insert("x"));
     return r;
+}
+
+static Routine2 getZeroArgRoutine(uint32_t name){
+    return get_routine(name, 0);
 }
 
 static void define_cons(Environment *env){
@@ -165,11 +171,12 @@ static void define_cons(Environment *env){
 }
 
 void register_native(Environment *env){
-    double tm = clock();
+    //double tm = clock();
     routine_add(getSingleArgRoutine(str_insert("LoadLibrary")));
     routine_add(getSingleArgRoutine(str_insert("UnloadLibrary")));
+    routine_add(getZeroArgRoutine(str_insert("Clock")));
     define_cons(env);
     load_library(NULL, str_insert("./liblalang.so"));
-    tm = (clock() - tm)/CLOCKS_PER_SEC;
-    printf(debug("[Native] Registration took %gs"), tm);
+    //tm = (clock() - tm)/CLOCKS_PER_SEC;
+    //printf(debug("[Native] Registration took %gs"), tm);
 }

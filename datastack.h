@@ -5,8 +5,8 @@
 #include "env.h"
 
 static Data *dataStack = NULL;
-static uint64_t sp = 0, stackSize = 0;
-int64_t stackLastIncremented = 0;
+static uint32_t sp = 0, stackSize = 0;
+static int32_t stackLastIncremented = 0;
 
 #define STACK_INC_CACHE -10 // Preven stack decrement if it was incremented recently 
 

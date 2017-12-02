@@ -7,7 +7,7 @@
 
 
 static Routine2 *routines = NULL;
-static uint64_t index = 0;
+static uint32_t index = 0;
 
 Routine2 routine_new(){
     Routine2 r;
@@ -22,7 +22,7 @@ Routine2 routine_new(){
 
 void routine_add_arg(Routine2 *r, const char *arg){
     r->arity++;
-    r->arguments = (uint64_t *)reallocate(r->arguments, 64*r->arity);
+    r->arguments = (uint32_t *)reallocate(r->arguments, 64*r->arity);
     r->arguments[r->arity - 1] = str_insert(arg);
 }
 
@@ -32,8 +32,8 @@ void routine_add(Routine2 r){
     routines[index - 1] = r;
 }
 
-Routine2 routine_get(uint64_t name){
-    uint64_t i = 0;
+Routine2 routine_get(uint32_t name){
+    uint32_t i = 0;
     while(i < index){
 //        printf(debug("Routine : %s"), str_get(routines[i]->name));
         if(routines[i].name == name)

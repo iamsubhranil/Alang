@@ -17,9 +17,9 @@ typedef enum{
 } Datatype;
 
 typedef struct{
-    uint64_t container_key;
-    uint64_t id;
-    uint64_t refCount;
+    uint32_t container_key;
+    uint32_t id;
+    uint32_t refCount;
     void *env;
 } Instance;
 
@@ -30,7 +30,7 @@ typedef struct Data{
         Instance *pvalue;
         struct{
             struct Data *arr;
-            int64_t numElements;
+            int32_t numElements;
         };
         double cvalue;
         int32_t ivalue;
@@ -67,6 +67,6 @@ typedef struct Data{
 #define new_logical(x) ((Data){0, LOGICAL, {.ivalue = x}})
 #define new_null() ((Data){0, NIL, {NULL}})
 #define new_none() ((Data){0, NONE, {NULL}})
-Data new_array(uint64_t size);
-Data new_ins(void *env, uint64_t name);
+Data new_array(uint32_t size);
+Data new_ins(void *env, uint32_t name);
 void data_free(Data d);

@@ -12,7 +12,7 @@ typedef struct{
 } String;
 
 static String **strarray = NULL;
-uint64_t stringCount = 0;
+uint32_t stringCount = 0;
 size_t c = 0;
 
 static uint32_t hash(const char *str){
@@ -25,7 +25,7 @@ static uint32_t hash(const char *str){
     return hash;
 }
 
-uint64_t str_insert(const char *str){
+uint32_t str_insert(const char *str){
     uint64_t has = hash(str);
     uint64_t i = 0;
     while(i < stringCount){
@@ -46,15 +46,15 @@ uint64_t str_insert(const char *str){
     return stringCount - 1;
 }
 
-void str_ref_incr(uint64_t index){
+void str_ref_incr(uint32_t index){
     strarray[index]->refCount++;
 }
 
-size_t str_len(uint64_t index){
+size_t str_len(uint32_t index){
     return strarray[index]->length;
 }
 
-void str_ref_decr(uint64_t index){
+void str_ref_decr(uint32_t index){
     strarray[index]->refCount--;
     if(strarray[index]->refCount == 0){
         String *s = strarray[index];
@@ -66,7 +66,7 @@ void str_ref_decr(uint64_t index){
     }
 }
 
-const char* str_get(uint64_t index){
+const char* str_get(uint32_t index){
     return strarray[index]->value;
 }
 

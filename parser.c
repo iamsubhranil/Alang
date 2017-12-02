@@ -16,7 +16,7 @@
 
 static int inWhile = 0, inRoutine = 0;
 static int he = 0;
-static uint64_t *breakAddresses, breakCount = 0;
+static uint32_t *breakAddresses, breakCount = 0;
 static TokenList *head = NULL;
 static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1};
 
@@ -166,9 +166,9 @@ static double doubleOf(const char *s){
     return d;
 }
 
-static int64_t longOf(const char *s){
-    int64_t l;
-    sscanf(s,"%" SCNu64, &l);
+static int32_t longOf(const char *s){
+    int32_t l;
+    sscanf(s,"%" SCNd32, &l);
     return l;
 }
 
@@ -208,7 +208,7 @@ static uint8_t insFromToken(Token t){
 }
 
 static void getCall(){
-    uint64_t argCount = 0;
+    uint32_t argCount = 0;
     if(!match(TOKEN_RIGHT_PAREN)){
         do{
             expression();
@@ -397,7 +397,7 @@ static void ifStatement(Compiler *compiler){
     blockStatement(compiler, BLOCK_IF);
     consumeIndent(compiler->indentLevel);
     ins_add(PUSHI);
-    uint64_t skip = ins_add_val(heap_add_int(0));
+    uint32_t skip = ins_add_val(heap_add_int(0));
     ins_add(JUMP);
     ins_set_val(jmp, heap_add_int(ip_get()));
     if(match(TOKEN_ELSE)){
@@ -423,12 +423,12 @@ static void ifStatement(Compiler *compiler){
 static void whileStatement(Compiler* compiler){
     //debug("Parsing while statement");
     consume(TOKEN_LEFT_PAREN, "Expected left paren before conditional!");
-    uint64_t start = ip_get();
+    uint32_t start = ip_get();
     expression();
     consume(TOKEN_RIGHT_PAREN, "Expected right paren after conditional!");
     consume(TOKEN_NEWLINE, "Expected newline after While!");
     ins_add(PUSHI);
-    uint64_t jmp = ins_add_val(heap_add_int(0));
+    uint32_t jmp = ins_add_val(heap_add_int(0));
     ins_add(JUMP_IF_FALSE);
     if(getNextIndent() == compiler->indentLevel){
         consumeIndent(compiler->indentLevel);
@@ -445,7 +445,7 @@ static void whileStatement(Compiler* compiler){
     consume(TOKEN_ENDWHILE, "Expected EndWhile after while on same indent!");
     consume(TOKEN_NEWLINE, "Expected newline after EndWhile!");
     debug("While statement parsed");
-    uint64_t i = 0;
+    uint32_t i = 0;
     while(i < breakCount){
         ins_set_val(breakAddresses[i], heap_add_int(ip_get()));
         i++;
@@ -491,9 +491,9 @@ static void breakStatement(){
         he++;
     }
     else{
-        breakAddresses = (uint64_t *)reallocate(breakAddresses, 64*++breakCount);
+        breakAddresses = (uint32_t *)reallocate(breakAddresses, 32*++breakCount);
         ins_add(PUSHI);
-        uint64_t ba = ins_add_val(heap_add_int(0));
+        uint32_t ba = ins_add_val(heap_add_int(0));
         breakAddresses[breakCount - 1] = ba;
         ins_add(JUMP);
     }
@@ -554,7 +554,7 @@ static void inputStatement(){
     //debug("Parsing input statement");
     do{
         if(peek() == TOKEN_IDENTIFIER){
-            uint64_t name = str_insert(stringOf(advance()));
+            uint32_t name = str_insert(stringOf(advance()));
             uint8_t op = INPUTS;
             if(match(TOKEN_COLON)){
                 if(match(TOKEN_INT))
@@ -730,7 +730,7 @@ static void statement(Compiler *compiler){
     }
 }
 
-uint64_t lastjump = 0;
+uint32_t lastjump = 0;
 
 void part(Compiler *c){
     if(peek() == TOKEN_EOF)
