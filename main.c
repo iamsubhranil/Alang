@@ -1,32 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "scanner.h"
 #include "parser.h"
 #include "display.h"
 #include "allocator.h"
-#include "preprocessor.h"
 #include "interpreter.h"
 
 int main(int argc, char **argv){
     if(argc != 2)
         return 2;
-    FILE *f = fopen(argv[1], "rb");
-    if(f == NULL){
-        printf(error("Unable to open file %s!"), argv[1]);
-        return 1;
-    }
-
-    char *string = read_all(f);
-
-    string = preprocess(string);
-    
-//    printf(debug("Final source : \n%s\n"), string);
-
-    initScanner(string);
-
-    TokenList *tokens = scanTokens();
+    TokenList *tokens = scanTokens(argv[1]);
     if(hasScanErrors()){
         printf(error("%d errors occured while scanning. Correct them and try to run again.\n"), hasScanErrors());
         memfree_all();

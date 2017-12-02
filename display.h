@@ -1,6 +1,9 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
+#include "scanner.h"
+#include <stdint.h>
+
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
@@ -16,5 +19,11 @@
 #define warning(x) (ANSI_COLOR_YELLOW "\n[Warning] " x ANSI_COLOR_RESET)
 #define info(x) (ANSI_COLOR_BLUE "\n[Info] " x ANSI_COLOR_RESET)
 #define debug(x) (ANSI_COLOR_GREEN "\n[Debug] " x ANSI_COLOR_RESET)
+
+void lnerr(const char* msg, Token t, ...);
+void lnwarn(const char* msg, Token t, ...);
+void lninfo(const char* msg, Token t, ...);
+void rerr(const char *msg, ...);
+void rwarn(const char *msg, ...);
 
 #endif

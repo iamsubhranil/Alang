@@ -2,10 +2,6 @@
 #ifndef scanner_h
 #define scanner_h
 
-typedef char bool;
-#define true 1
-#define false 0
-
 typedef enum {
   TOKEN_LEFT_PAREN,
   TOKEN_RIGHT_PAREN,
@@ -170,6 +166,7 @@ typedef struct {
   const char* start;
   int length;
   int line;
+  const char* fileName;
 } Token;
 
 typedef struct TokenList{
@@ -177,12 +174,10 @@ typedef struct TokenList{
     struct TokenList *next;
 } TokenList;
 
-void initScanner(const char* source);
-
-TokenList* scanTokens();
+TokenList* scanTokens(char* file);
 void printList(TokenList *list);
 void freeList(TokenList *list);
-
+char* read_all(const char* source);
 int hasScanErrors();
 
 #endif

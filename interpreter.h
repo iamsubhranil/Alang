@@ -18,6 +18,16 @@ uint8_t ins_last();
 
 void interpret();
 void stop();
+
+// Debugging
+
+typedef struct{
+    uint32_t fileName;
+    uint32_t line;
+} FileInfo;
+
+FileInfo info_of(uint32_t line);
+
 // Instructions
 
 // Load

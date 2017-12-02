@@ -8,14 +8,22 @@
 #include "values.h"
 #include "heap.h"
 #include "display.h"
+#include "scanner.h"
+#include "parser.h"
 
 static uint8_t *instructions = NULL;
 static uint32_t ip = 0, lastins = 0;
+
+static FileInfo *info = NULL;
 
 uint32_t ins_add(uint8_t ins){
     instructions = (uint8_t *)reallocate(instructions, 8*++ip);
     instructions[ip - 1] = ins;
     lastins = ip - 1;
+    info = (FileInfo *)reallocate(info, sizeof(FileInfo)*ip);
+    Token t = presentToken();
+    info[ip - 1].fileName = str_insert(t.fileName);
+    info[ip - 1].line = t.line;
     return ip - 1;
 }
 
@@ -83,7 +91,7 @@ void ins_print(){
         if(i > 0 && (i % 8 == 0))
             printf("] [");
     }
-    //    stop();
+    //    
     i = 0;
     printf("\nPrinting instructions..\n");
     while(i < ip){
@@ -215,7 +223,7 @@ void ins_print(){
                 printf("arraywrite");
                 break;
             default:
-                printf(error("Unknown opcode 0x%x"), instructions[i]);
+                rerr("Unknown opcode 0x%x", instructions[i]);
                 break;
         }
         i++;
@@ -346,7 +354,7 @@ static void printOpcode(uint8_t opcode){
                 printf("awrite");
                 break;
             default:
-                printf(error("Unknown opcode 0x%x"), opcode);
+                rerr("Unknown opcode 0x%x", opcode);
                 break;
         }
 }
@@ -427,6 +435,10 @@ void init_interpreter(){
     stackSize = 0;
     dStackInit();
     init = 1;
+}
+
+FileInfo info_of(uint32_t ip){
+    return info[ip];
 }
 
 void interpret(){
@@ -510,8 +522,7 @@ DO_ADD:
                  dpushs(res);
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '+'!"));
-             stop();
+             rerr("Bad operands for operator '+'!");
          }
 DO_SUB:
          {
@@ -527,8 +538,7 @@ DO_SUB:
                  dpushi(res);
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '-'!"));
-             stop();
+             rerr("Bad operands for operator '-'!");
          }
 DO_MUL:
          {
@@ -544,8 +554,7 @@ DO_MUL:
                  dpushi(res);
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '*'!"));
-             stop();
+             rerr("Bad operands for operator '-'!");
          }
 DO_DIV:
          {
@@ -561,8 +570,7 @@ DO_DIV:
                  dpushi(res);
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '/'!"));
-             stop();
+             rerr("Bad operands for operator '-'!");
          }
 DO_POW:
          {
@@ -571,8 +579,8 @@ DO_POW:
                  dpushf(pow(tnum(d2), tint(d1)));
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '^'!"));
-             stop();
+             rerr("Bad operands for operator '^'!");
+             
          }
 DO_MOD:
          {
@@ -581,8 +589,8 @@ DO_MOD:
                  dpushi(tint(d2) % tint(d1));
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '%%'!"));
-             stop();
+             rerr("Bad operands for operator '%%'", ip);
+             
          }
 DO_GT:
          {
@@ -595,8 +603,8 @@ DO_GT:
                  dpushl(str_len(tstrk(d2)) > str_len(tstrk(d1)));
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '>'!"));
-             stop();
+             rerr("Bad operands for operator '>'!");
+             
          }
 DO_GTE:
          {
@@ -610,8 +618,8 @@ DO_GTE:
                  dpushl(str_len(tstrk(d2)) >= str_len(tstrk(d1)));
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '>='!"));
-             stop();
+             rerr("Bad operands for operator '>='!");
+             
          }
 DO_LT:
          {
@@ -626,8 +634,8 @@ DO_LT:
                  dpushl(str_len(tstrk(d2)) < str_len(tstrk(d1)));
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '<'!"));
-             stop();
+             rerr("Bad operands for operator '<'!");
+             
          }
 DO_LTE:
          {
@@ -643,8 +651,8 @@ DO_LTE:
                  DISPATCH();
              }
 
-             printf(error("Bad operands for operator '<='!"));
-             stop();
+             rerr("Bad operands for operator '<='!");
+             
          }
 DO_EQ:
          {
@@ -665,8 +673,8 @@ DO_EQ:
                  dpushl(tstrk(d2) == tstrk(d1));
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '=='!"));
-             stop();
+             rerr("Bad operands for operator '=='!");
+             
          }
 DO_NEQ:
          {
@@ -687,8 +695,8 @@ DO_NEQ:
                  dpushl(tstrk(d1) != tstrk(d2));
                  DISPATCH();
              }
-             printf(error("Bad operands for operator '!='!"));
-             stop();
+             rerr("Bad operands for operator '!='!");
+             
          }
 DO_AND:
          {
@@ -698,8 +706,8 @@ DO_AND:
                  DISPATCH();
              }
 
-             printf(error("Bad operands for operator 'And'!"));
-             stop();
+             rerr("Bad operands for operator 'And'!");
+             
          }
 DO_OR:
          {
@@ -709,8 +717,8 @@ DO_OR:
                  DISPATCH();
              }
 
-             printf(error("Bad operands for operator 'Or'!"));
-             stop();
+             rerr("Bad operands for operator 'Or'!");
+             
 
          }
 DO_SET:
@@ -723,8 +731,8 @@ DO_SET:
                  DISPATCH();
              }
 
-             printf(error("Bad assignment target!"));
-             stop();
+             rerr("Bad assignment target!");
+             
 
          }
 DO_INPUTI:
@@ -736,8 +744,8 @@ DO_INPUTI:
                  DISPATCH();
              }
 
-             printf(error("Bad input target!"));
-             stop();
+             rerr("Bad input target!");
+             
 
          }
 DO_INPUTS:
@@ -749,8 +757,8 @@ DO_INPUTS:
                  DISPATCH();
              }
 
-             printf(error("Bad input target!"));
-             stop();
+             rerr("Bad input target!");
+             
 
          }
 DO_INPUTF:
@@ -762,8 +770,8 @@ DO_INPUTF:
                  DISPATCH();
              }
 
-             printf(error("Bad input target!"));
-             stop();
+             rerr("Bad input target!");
+             
 
 
          }
@@ -805,7 +813,7 @@ DO_PRINT:
              }
          }
 DO_HALT:
-         stop();
+        stop(); 
 DO_JUMP:
          {
              uint32_t ja;
@@ -826,8 +834,8 @@ DO_JUMP_IF_TRUE:
                  DISPATCH();
              }
 
-             printf(error("Illogical jump!"));
-             stop();
+             rerr("Illogical jump!");
+             
 
          }
 DO_JUMP_IF_FALSE:
@@ -846,8 +854,8 @@ DO_JUMP_IF_FALSE:
 
              }
 
-             printf(error("Illogical jump!"));
-             stop();
+             rerr("Illogical jump!");
+             
 
          }
 DO_CALL:
@@ -858,7 +866,7 @@ DO_CALL:
              Routine2 routine = routine_get(tstrk(r));
              if(routine.arity != numArg){
                  error("Argument count mismatch!");
-                 stop();
+                 
              }
              cf_push(callFrame);
              CallFrame nf = cf_new();
@@ -896,7 +904,7 @@ DO_RETURN:
              ip = callFrame.returnAddress;
              if(ip == 0){
                  //    printf(debug("No parent frame to return!"));
-                 stop();
+                 
              }
              //   printf(debug("Returning to %lu"), ip);
              cf_free(callFrame);
@@ -910,14 +918,14 @@ DO_ARRAY:
              dpop(id); dpopv(index, callFrame);
              Data arr = env_get(tstrk(id), &callFrame.env, 0);
              if(!isarray(arr) && !isstr(arr)){
-                 printf(error("'%s' is not an array!"), str_get(tstrk(id)));
-                 stop();
+                 rerr("'%s' is not an array!"), str_get(tstrk(id));
+                 
              }
              if(isint(index)){
                  if(isarray(arr)){
                      if(tint(index) < 1 || tint(index) > arr.numElements){
-                         printf(error("Array index out of range : %" PRId32), tint(index));
-                         stop();
+                         rerr("Array index out of range : %" PRId32, tint(index));
+                         
                      }
 
                      dpush(((Data *)arr.arr)[tint(index) - 1]);
@@ -925,8 +933,8 @@ DO_ARRAY:
                  }
 
                  if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
-                     printf(error("String index out of range : %" PRId32), tint(index));
-                     stop();
+                     rerr("String index out of range : %" PRId32, tint(index));
+                     
                  }
 
                  if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
@@ -942,8 +950,8 @@ DO_ARRAY:
 
              }
 
-             printf(error("Array index must be an integer!"));
-             stop();
+             rerr("Array index must be an integer!");
+             
 
          }
 DO_MEMREF:
@@ -955,11 +963,11 @@ DO_MEMREF:
                      dpush(env_get(tstrk(mem), tenv(ins), 0));
                      DISPATCH();
                  }
-                 printf(error("Bad identifer!"));
-                 stop();
+                 rerr("Bad identifer!");
+                 
              }
-             printf(error("Referenced value is not a container instance!"));
-             stop();
+             rerr("Referenced value is not a container instance!");
+             
          }
 DO_MAKE_ARRAY:
          {
@@ -968,26 +976,26 @@ DO_MAKE_ARRAY:
              if(isint(size)){
                  if(isidentifer(id)){
                      if(env_get(tstrk(id), &callFrame.env, 1).type != NONE){
-                         printf(error("Variable '%s' is already defined!"), str_get(tstrk(id)));
-                         stop();
+                         rerr("Variable '%s' is already defined!", str_get(tstrk(id)));
+                         
                      }
                      if(tint(size) > 0){
                          env_put(tstrk(id), new_array(tint(size)), &callFrame.env);
                          DISPATCH();
                      }
 
-                     printf(error("Array size must be positive!"));
-                     stop();
+                     rerr("Array size must be positive!");
+                     
 
                  }
 
-                 printf(error("Expected array identifer!"));
-                 stop();
+                 rerr("Expected array identifer!");
+                 
 
              }
 
-             printf(error("Array size must be integer!"));
-             stop();
+             rerr("Array size must be integer!");
+             
          }
 DO_NOOP:
          {
@@ -1011,11 +1019,11 @@ DO_MEMSET:
                      env_put(tstrk(mem), data, tenv(in));
                      DISPATCH();
                  }
-                 printf(error("Bad member reference!"));
-                 stop();
+                 rerr("Bad member reference!");
+                 
              }
-             printf(error("Referenced value is not a container instance!"));
-             stop();
+             rerr("Referenced value is not a container instance!");
+             
          }
 DO_ARRAYREF:
          {
@@ -1030,13 +1038,13 @@ DO_ARRAYREF:
                                  dpush((Data)arr.arr[tint(index)- 1]);
                                  DISPATCH();
                              }
-                             printf(error("Array index out of range : %" PRId32), tint(index));
-                             stop();
+                             rerr("Array index out of range : %" PRId32, tint(index));
+                             
                          }
                          if(isstr(arr)){
                              if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
-                                 printf(error("String index out of range : %" PRId32), tint(index));
-                                 stop();
+                                 rerr("String index out of range : %" PRId32, tint(index));
+                                 
                              }
 
 
@@ -1052,17 +1060,17 @@ DO_ARRAYREF:
 
                          }
 
-                         printf(error("Referenced item '%s' is not an array!"), tstr(iden));
-                         stop();
+                         rerr("Referenced item '%s' is not an array!", tstr(iden));
+                         
                      }
-                     printf(error("Bad identifer"));
-                     stop();
+                     rerr("Bad identifer");
+                     
                  }
-                 printf(error("Referenced value is not a container instance"));
-                 stop();
+                 rerr("Referenced value is not a container instance");
+                 
              }
-             printf(error("Array index must be an integer!"));
-             stop();
+             rerr("Array index must be an integer!");
+             
          }
 DO_ARRAYSET:
          {
@@ -1077,20 +1085,20 @@ DO_ARRAYSET:
                                  arr.arr[tint(index)- 1] = value;
                                  DISPATCH();
                              }
-                             printf(error("Array index out of range : %" PRId32), tint(index));
-                             stop();
+                             rerr("Array index out of range : %" PRId32, tint(index));
+                             
                          }
                          if(isstr(arr)){
                              if(tint(index) < 1 || (size_t)tint(index) > str_len(tstrk(arr))){
-                                 printf(error("String index out of range : %" PRId32), tint(index));
-                                 stop();
+                                 rerr("String index out of range : %" PRId32, tint(index));
+                                 
                              }
                              if(!isstr(value)){
-                                 printf(error("Bad assignment to string!"));
-                                 stop();
+                                 rerr("Bad assignment to string!");
+                                 
                              }
                              if(str_len(tstrk(value)) > 1){
-                                 printf(warning("Ignoring extra characters!"));
+                                 rwarn("Ignoring extra characters!");
                              }
                              char *s = strdup(tstr(arr));
                              s[tint(index) - 1] = tstr(value)[0];
@@ -1098,17 +1106,17 @@ DO_ARRAYSET:
                              DISPATCH();
                          }
 
-                         printf(error("Referenced item '%s' is not an array!"), tstr(iden));
-                         stop();
+                         rerr("Referenced item '%s' is not an array!", tstr(iden));
+                         
                      }
-                     printf(error("Bad identifer"));
-                     stop();
+                     rerr("Bad identifer");
+                     
                  }
-                 printf(error("Referenced value is not a container instance"));
-                 stop();
+                 rerr("Referenced value is not a container instance");
+                 
              }
-             printf(error("Array index must be an integer!"));
-             stop();
+             rerr("Array index must be an integer!");
+             
          }
 DO_ARRAYWRITE:
          {
@@ -1122,34 +1130,28 @@ DO_ARRAYWRITE:
                              arr.arr[tint(index)- 1] = value;
                              DISPATCH();
                          }
-                         printf(error("Array index out of range : %" PRId32), tint(index));
-                         stop();
+                         rerr("Array index out of range : %" PRId32, tint(index));
                      }
                      if(isstr(arr)){
                          if(tint(index) < 1 || (size_t)tint(index) > str_len(tstrk(arr))){
-                             printf(error("String index out of range : %" PRId32), tint(index));
-                             stop();
+                             rerr("String index out of range : %" PRId32, tint(index));
                          }
                          if(!isstr(value)){
-                             printf(error("Bad assignment to string!"));
-                             stop();
+                             rerr("Bad assignment to string!");
                          }
                          if(str_len(tstrk(value)) > 1){
-                             printf(warning("Ignoring extra characters!"));
+                             rwarn("Ignoring extra characters!");
                          }
                          char *s = strdup(tstr(arr));
                          s[tint(index) - 1] = tstr(value)[0];
                          env_put(tstrk(iden), new_str(s), &callFrame.env);
                          DISPATCH();
                      }
-                     printf(error("Referenced item '%s' is not an array!"), tstr(iden));
-                     stop();
+                     rerr("Referenced item '%s' is not an array!"), tstr(iden);
                  }
-                 printf(error("Bad identifer"));
-                 stop();
+                 rerr("Bad identifer");
              }
-             printf(error("[Array write] Array index must be an integer![%s]"), tstr(iden));
-             stop();
+             rerr("Array index must be an integer![%s]", tstr(iden));
          }
     }
 }

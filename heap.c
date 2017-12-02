@@ -11,7 +11,7 @@ static Data *heap = NULL;
 static uint32_t hp = 0;
 
 #define heap_check() if(address > hp){ \
-        printf(error("Bad heap access : %" PRIu32), address); \
+        rerr("Bad heap access : %" PRIu32, address); \
         return 0;}
 
 uint32_t heap_add_int(int32_t i){
@@ -76,7 +76,7 @@ uint32_t heap_add_logical(int32_t i){
 
 Data heap_get_data(uint32_t address){
     if(address > hp - 1){
-        printf(error("Invalid heap access : %" PRIu32 ), address);
+        rerr("Invalid heap access : %" PRIu32, address);
         return new_null();
     }
     return heap[address];

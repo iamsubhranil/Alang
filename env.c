@@ -63,8 +63,7 @@ void env_put(uint32_t key, Data value, Environment *env){
     while(top!=NULL){
         if(top->key == key){
             if(isarray(top->data)){
-                printf(error("Array '%s' must be accessed using indices!"), str_get(key));
-                stop();
+                rerr("Array '%s' must be accessed using indices!", str_get(key));
             }
             data_free(top->data);
             top->data = value;
@@ -84,8 +83,7 @@ Data env_get(uint32_t key, Environment *env, uint8_t beSilent){
     Environment *match = env_match(key, env);
     if(match == NULL){
         if(!beSilent){
-            printf(error("Uninitialized variable '%s'!\n"), str_get(key));
-            stop();
+            rerr("Uninitialized variable '%s'!", str_get(key));
         }
         else
             return new_none();

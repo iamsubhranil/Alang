@@ -63,37 +63,75 @@ typedef struct {
     const char* source;
     const char* tokenStart;
     const char* current;
+    const char* fileName;
     int line;
 } Scanner;
 
 static Scanner scanner;
-static int se = 0;
+static int se = 0, fsp = 0;
+static char **fileStack = NULL;
 
-void initScanner(const char* source) {
+static void fstack_push(char *value){
+    int i = 0;
+    while(i < fsp){
+        if(strcmp(fileStack[i], value) == 0)
+            return;
+        i++;
+    }
+    fileStack = (char **)reallocate(fileStack, sizeof(char) * ++fsp);
+    fileStack[fsp - 1] = value;
+}
+
+static char* fstack_pop(){
+    return fileStack[--fsp];
+}
+
+static void initScanner(const char* source, const char* file) {
     scanner.source = source;
     scanner.tokenStart = source;
     scanner.current = source;
+    scanner.fileName = file;
     scanner.line = 1;
 }
 
-// Returns true if `c` is an English letter or underscore.
-static bool isAlpha(char c) {
+char* read_all(const char* s){
+    FILE *source = fopen(s, "rb");
+    if(source == NULL){
+        printf(error("Unable to open file : '%s'"), s);
+        se++;
+        return NULL;
+    }
+    fseek(source, 0, SEEK_END);
+    long fsize = ftell(source);
+    fseek(source, 0, SEEK_SET);
+
+    char *string = (char *)mallocate(fsize + 1);
+    fread(string, fsize, 1, source);
+    fclose(source);
+
+    string[fsize] = 0;
+
+    return string;
+}
+
+// Returns 1 if `c` is an English letter or underscore.
+static int isAlpha(char c) {
     return (c >= 'a' && c <= 'z') ||
         (c >= 'A' && c <= 'Z') ||
         c == '_';
 }
 
-// Returns true if `c` is a digit.
-static bool isDigit(char c) {
+// Returns 1 if `c` is a digit.
+static int isDigit(char c) {
     return c >= '0' && c <= '9';
 }
 
-// Returns true if `c` is an English letter, underscore, or digit.
-static bool isAlphaNumeric(char c) {
+// Returns 1 if `c` is an English letter, underscore, or digit.
+static int isAlphaNumeric(char c) {
     return isAlpha(c) || isDigit(c);
 }
 
-static bool isAtEnd() {
+static int isAtEnd() {
     return *scanner.current == '\0';
 }
 
@@ -111,12 +149,12 @@ static char peekNext() {
     return scanner.current[1];
 }
 
-static bool match(char expected) {
-    if (isAtEnd()) return false;
-    if (*scanner.current != expected) return false;
+static int match(char expected) {
+    if (isAtEnd()) return 0;
+    if (*scanner.current != expected) return 0;
 
     scanner.current++;
-    return true;
+    return 1;
 }
 
 static Token makeToken(TokenType type) {
@@ -124,6 +162,7 @@ static Token makeToken(TokenType type) {
     token.type = type;
     token.start = scanner.tokenStart;
     token.length = (int)(scanner.current - scanner.tokenStart);
+    token.fileName = scanner.fileName;
     token.line = scanner.line;
 
     return token;
@@ -188,6 +227,73 @@ static Token string() {
     return makeToken(TOKEN_STRING);
 }
 
+static int skipEmptyLine(){
+    short hasOtherChars = 0;
+    const char *bak = scanner.current;
+    while(peek() != '\n' && !isAtEnd()){
+        if(peek() != ' ' && peek() != '\t' && peek() != '\r'){
+            hasOtherChars = 1;
+            break;
+        }
+        advance();
+    }
+    if(isAtEnd() && !hasOtherChars)
+        return 0;
+    if(!hasOtherChars){
+        advance();
+        scanner.line++;
+        return 1;
+    }
+    else
+        scanner.current = bak;
+    return 0;
+}
+
+static int startsWith(const char *source, const char *predicate){
+    int slen = strlen(source), plen = strlen(predicate), i = 0;
+    if(slen < plen)
+        return 0;
+
+    while(i < plen){
+        if(source[i] != predicate[i])
+            return 0;
+        i++;
+    }
+
+    return 1;
+}
+
+static char* str_part(const char* source, int start){
+    int i = 0;
+    char *part = NULL;
+    while(source[start + i] != '\n' && source[start + i] != '\r' && source[start + i] != '\0'){
+        //        printf(debug("Current char : [%c] i : %d"), source[start+i], i);
+        part = (char *)reallocate(part, sizeof(char) * (i + 1));
+        part[i] = source[start + i];
+        i++;
+    }
+
+    i++;
+    part = (char *)reallocate(part, sizeof(char) * i);
+    part[i - 1] = '\0';
+
+    //    printf(debug("Parted for inclusion : [%s]"), part);
+
+    return part;
+}
+
+static int checkInclude(){
+    if(!startsWith(scanner.current, "Include "))
+        return 0;
+    //printf(debug("Found include statement!"));
+    fstack_push(str_part(scanner.current, 8));
+    while(peek() != '\n' && !isAtEnd())
+        advance();
+    if(!isAtEnd())
+        advance();
+    return 1;
+}
+
 static Token scanToken() {
 
     // The next token starts with the current character.
@@ -202,17 +308,17 @@ static Token scanToken() {
 
     switch (c) {
         case ' ': {
-                    int count = 1;
-                    while(peek() == ' ' && count < 4){
-                        count++;
-                        advance();
-                    }
-                    if(count == 4){
-                        return makeToken(TOKEN_INDENT);
-                    }
-                    else
-                        return scanToken(); // Ignore all other spaces
-                 }
+                      int count = 1;
+                      while(peek() == ' ' && count < 4){
+                          count++;
+                          advance();
+                      }
+                      if(count == 4){
+                          return makeToken(TOKEN_INDENT);
+                      }
+                      else
+                          return scanToken(); // Ignore all other spaces
+                  }
         case '\r':
                   if(peek() == '\n'){
                       advance();
@@ -236,7 +342,27 @@ static Token scanToken() {
         case '.': return makeToken(TOKEN_DOT);
         case '-': return makeToken(TOKEN_MINUS);
         case '+': return makeToken(TOKEN_PLUS);
-        case '/': return makeToken(TOKEN_SLASH);
+        case '/': 
+                  if(match('/')){
+                      while(peek()!='\n' && peek()!='\0')
+                          advance();
+                      return scanToken();
+                  }
+                  else if(match('*')){
+                      while(!(peek()=='*' && peekNext()=='/') && peek()!='\0'){
+                          if(peek() == '\n')
+                              scanner.line++;
+                          advance();
+                      }
+                      if(!isAtEnd()){
+                        advance();
+                        advance();
+                        if(!isAtEnd() && peek() == '\n')
+                            advance();
+                        }
+                      return scanToken();
+                  }
+                  return makeToken(TOKEN_SLASH);
         case '*': return makeToken(TOKEN_STAR);
         case '%': return makeToken(TOKEN_PERCEN);
         case '^': return makeToken(TOKEN_CARET);
@@ -280,12 +406,24 @@ static void insertList(TokenList **head, TokenList **prev, TokenList *toInsert){
     (*prev) = toInsert;
 }
 
-TokenList* scanTokens(){
+static void scanfile(){
+    char *file = fstack_pop();
+    initScanner(read_all(file), file);
+}
+
+TokenList* scanTokens(char *file){
     TokenList *ret = NULL, *head = NULL;
     Token t;
-    while((t = scanToken()).type != TOKEN_EOF){
-        //info("Looping in makelist");
-        insertList(&head, &ret, newList(t));
+    fstack_push(file);
+    while(fsp != 0){
+        scanfile();
+        while(skipEmptyLine() || checkInclude());
+        while((t = scanToken()).type != TOKEN_EOF){
+            insertList(&head, &ret, newList(t));
+            if(t.type == TOKEN_NEWLINE){
+                    while(skipEmptyLine() || checkInclude());
+            }
+        }
     }
 
     insertList(&head, &ret, newList(makeToken(TOKEN_EOF)));
@@ -305,7 +443,7 @@ void printList(TokenList *list){
         else if(list->value.type == TOKEN_ERROR){
             printf("\n[Error] %s\n", list->value.start);
         }
-       list = list->next; 
+        list = list->next; 
     }
     printf("TOKEN_EOF\n");
 }

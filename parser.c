@@ -18,7 +18,7 @@ static int inWhile = 0, inRoutine = 0;
 static int he = 0;
 static uint32_t *breakAddresses, breakCount = 0;
 static TokenList *head = NULL;
-static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1};
+static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1,NULL};
 
 typedef enum{
     BLOCK_IF,
@@ -46,6 +46,12 @@ static TokenType peek(){
     if(head == NULL)
         return TOKEN_EOF;
     return head->value.type;
+}
+
+Token presentToken(){
+    if(head == NULL)
+        return errorToken;
+    return head->value;
 }
 
 static Token advance(){
@@ -82,7 +88,7 @@ static void synchronize(){
     while(peek() != TOKEN_NEWLINE && peek() != TOKEN_EOF)
         advance();
     if(peek() == TOKEN_EOF)
-        error("Unexpected end of input!");
+        lnerr("Unexpected end of input!", head->value);
     else
         head = head->next;
 }
@@ -94,7 +100,7 @@ static Token consume(TokenType type, const char* err){
         return advance();
     }
     else{
-        printf(line_error("%s"), presentLine(), err);
+        lnerr(err, head->value);
         he++;
         synchronize();
     }
@@ -282,7 +288,7 @@ static void primary(){
 
 static void call(){
     primary();
-    while(true){
+    while(1){
         if(match(TOKEN_DOT)){
             primary();
             if(ins_last() == ARRAY)
@@ -725,7 +731,7 @@ static void statement(Compiler *compiler){
     else if(match(TOKEN_RETURN))
         return returnStatement();
     else{
-        printf(line_error("Bad statement %s!"), presentLine(), tokenNames[peek()]);
+        lnerr("Bad statement %s!", head->value, tokenNames[peek()]);
         advance();
     }
 }
@@ -753,10 +759,12 @@ void part(Compiler *c){
         ins_add(JUMP);
     }
     else if(match(TOKEN_CONTAINER)){
-        return containerStatement(c);
+        containerStatement(c);
     }
+    else if(match(TOKEN_NEWLINE))
+        return;
     else{
-        printf(line_error("Bad top level statement %s!"), presentLine(), tokenNames[peek()]);
+        lnerr("Bad top level statement %s!", head->value, tokenNames[peek()]);
         he++;
         statement(c);
         return part(c);
