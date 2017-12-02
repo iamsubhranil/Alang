@@ -10,7 +10,7 @@
 #include "display.h"
 
 static uint8_t *instructions = NULL;
-static uint64_t ip = 0, lastins = 0;
+static uint32_t ip = 0, lastins = 0;
 
 uint64_t ins_add(uint8_t ins){
     instructions = (uint8_t *)reallocate(instructions, 8*++ip);
@@ -30,7 +30,7 @@ uint8_t ins_last(){
 uint64_t ins_add_val(uint64_t store){
     //    printf("\nStoring %lu at %lu : 0x", store, ip);
     instructions = (uint8_t *)reallocate(instructions, 8*(ip + 8));
-    uint64_t i = 0;
+    uint32_t i = 0;
     while(i < 8){
         instructions[ip + i] = (store >> ((7-i)*8)) & 0xff;
         //        printf("%x", instructions[ip + i]);
@@ -45,7 +45,7 @@ uint64_t ins_add_val(uint64_t store){
 
 void ins_set_val(uint64_t mem, uint64_t store){
     //    printf("\nReStoring %lu at %lu : 0x", store, mem);
-    uint64_t i = 0;
+    uint8_t i = 0;
     while(i < 8){
         instructions[mem + i] = (store >> ((7-i)*8)) & 0xff;
         //        printf("%x", instructions[mem + i]);
@@ -55,8 +55,8 @@ void ins_set_val(uint64_t mem, uint64_t store){
 }
 
 uint64_t ins_get_val(uint64_t mem){
-    uint64_t ret = instructions[mem];
-    uint64_t i = 1;
+    uint32_t ret = instructions[mem];
+    uint32_t i = 1;
     //    printf("[Bytes : 0x%x", instructions[mem]);
     while(i < 8){
         //        printf("%x", instructions[mem + i]);
@@ -75,8 +75,8 @@ uint64_t ip_get(){
 }
 
 void ins_print(){
-    uint64_t i = 0;
-    printf("\n\nPrinting memory[ip : %lu]..\n", ip);
+    uint32_t i = 0;
+    printf("\n\nPrinting memory[ip : %" PRIu32 "]..\n", ip);
     while(i < ip){
         printf("%x ", instructions[i]);
         i++;
@@ -87,14 +87,14 @@ void ins_print(){
     i = 0;
     printf("\nPrinting instructions..\n");
     while(i < ip){
-        printf("ip %lu : ", i);
+        printf("ip %" PRIu32 " : ", i);
         switch(instructions[i]){
             case PUSHF:
                 printf("pushf %g", heap_get_float(ins_get_val(++i)));
                 i += 7;
                 break;
             case PUSHI:
-                printf("pushi %" PRId64, heap_get_int(ins_get_val(++i)));
+                printf("pushi %" PRId32, heap_get_int(ins_get_val(++i)));
                 i += 7;
                 break;
             case PUSHL:
@@ -223,6 +223,134 @@ void ins_print(){
     }
 }
 
+static void printOpcode(uint8_t opcode){
+        switch(opcode){
+            case PUSHF:
+                printf("pushf");
+                break;
+            case PUSHI:
+                printf("pushi");
+                break;
+            case PUSHL:
+                printf("pushl");
+                break;
+            case PUSHS:
+                printf("pushs");
+                break;
+            case PUSHID:
+                printf("pushid");
+                break;
+            case PUSHN:
+                printf("pushn");
+                break;
+            case ADD:
+                printf("add");
+                break;
+            case SUB:
+                printf("sub");
+                break;
+            case MUL:
+                printf("mul");
+                break;
+            case DIV:
+                printf("div");
+                break;
+            case POW:
+                printf("pow");
+                break;
+            case MOD:
+                printf("mod");
+                break;
+            case GT:
+                printf("gt");
+                break;
+            case GTE:
+                printf("gte");
+                break;
+            case LT:
+                printf("lt");
+                break;
+            case LTE:
+                printf("lte");
+                break;
+            case EQ:
+                printf("eq");
+                break;
+            case NEQ:
+                printf("neq");
+                break;
+            case AND:
+                printf("and");
+                break;
+            case OR:
+                printf("or");
+                break;
+            case SET:
+                printf("set");
+                break;
+            case INPUTI:
+                printf("inputi");
+                break;
+            case INPUTS:
+                printf("inputs");
+                break;
+            case INPUTF:
+                printf("inputf");
+                break;
+            case PRINT:
+                printf("print");
+                break;
+            case HALT:
+                printf("halt");
+                break;
+            case JUMP:
+                printf("jump");
+                break;
+            case JUMP_IF_TRUE:
+                printf("jift");
+                break;
+            case JUMP_IF_FALSE:
+                printf("jiff");
+                break;
+            case CALL:
+                printf("call");
+                break;
+            case RETURN:
+                printf("return");
+                break;
+            case ARRAY:
+                printf("array");
+                break;
+            case MEMREF:
+                printf("memref");
+                break;
+            case MAKE_ARRAY:
+                printf("narray");
+                break;
+            case NOOP:
+                printf("noop");
+                break;
+            case NEW_CONTAINER:
+                printf("ncont");
+                break;
+            case MEMSET:
+                printf("memset");
+                break;
+            case ARRAYREF:
+                printf("aref");
+                break;
+            case ARRAYSET:
+                printf("aset");
+                break;
+            case ARRAYWRITE:
+                printf("awrite");
+                break;
+            default:
+                printf(error("Unknown opcode 0x%x"), opcode);
+                break;
+        }
+}
+
 #include "datastack.h"
 #include <string.h>
 #include <math.h>
@@ -235,11 +363,29 @@ void ins_print(){
 
 static uint8_t run = 1;
 static clock_t tmStart, tmEnd;
+static uint64_t insExec = 0, counter[40] = {0};
+
+void print_stat(){
+    uint8_t i = 0;
+    printf("\nInstruction    Execution Count");
+    printf("\n===========    ===============");
+    while(i < 40){
+        if(counter[i] > 0){
+            printf("\n");
+            printOpcode(i);
+            printf("\t%16" PRIu64, counter[i]);
+        }
+        i++;
+    }
+}
 
 void stop(){
     tmEnd = clock();
     //printf("\nRealloc called : %d times\n", get_realloc_count());
-    printf(debug("[Interpreter] Execution time : %gms\n"), (double)(tmEnd - tmStart)/CLOCKS_PER_SEC);
+    printf(debug("[Interpreter] Execution time : %gs"), (double)(tmEnd - tmStart)/CLOCKS_PER_SEC);
+    printf(debug("[Interpreter] Instructions executed : %" PRIu64 "\n"), insExec);
+    print_stat();
+    printf("\n");
     memfree_all();
     exit(0);
 }
@@ -270,7 +416,7 @@ static void printString(const char *s){
     }
 }
 
-uint8_t init = 0;
+static uint8_t init = 0;
 
 void init_interpreter(){
     dataStack = NULL;
@@ -288,9 +434,8 @@ void interpret(){
     callFrame.env = env_new(NULL);
     callFrame.returnAddress = 0;
     callFrame.arity = 27;
-    register_native(&callFrame.env);
+    //register_native(&callFrame.env);
     ip = 0;
-    tmStart = clock();
     static const void *dispatchTable[] = {&&DO_PUSHF, &&DO_PUSHI, &&DO_PUSHL, &&DO_PUSHS, &&DO_PUSHID, &&DO_PUSHN,
         &&DO_ADD, &&DO_SUB, &&DO_MUL, &&DO_DIV, &&DO_POW, &&DO_MOD,
         &&DO_GT, &&DO_GTE, &&DO_LT, &&DO_LTE, &&DO_EQ, &&DO_NEQ, &&DO_AND, &&DO_OR,
@@ -299,9 +444,14 @@ void interpret(){
         &&DO_ARRAY, &&DO_MEMREF, &&DO_MAKE_ARRAY, &&DO_NOOP,
         &&DO_NEW_CONTAINER, &&DO_MEMSET, &&DO_ARRAYREF, &&DO_ARRAYSET, &&DO_ARRAYWRITE};
 
-#define DISPATCH() {goto *dispatchTable[instructions[++ip]];}
-#define DISPATCH_WINC() {goto *dispatchTable[instructions[ip]];}
-
+#define DISPATCH() {insExec++; \
+    ++counter[instructions[ip+1]]; \
+    goto *dispatchTable[instructions[++ip]];}
+#define DISPATCH_WINC() {insExec++; \
+    ++counter[instructions[ip]]; \
+    goto *dispatchTable[instructions[ip]];}
+    
+    tmStart = clock();
     DISPATCH_WINC();
     while(1){
 DO_PUSHF:
@@ -343,7 +493,7 @@ DO_ADD:
                      DISPATCH();
                  }
 
-                 int64_t res = tint(d1) + tint(d2);
+                 int32_t res = tint(d1) + tint(d2);
                  dpushi(res);
                  DISPATCH();
              }
@@ -370,7 +520,7 @@ DO_SUB:
                      DISPATCH();
                  }
 
-                 int64_t res = tint(d2) - tint(d1);
+                 int32_t res = tint(d2) - tint(d1);
                  dpushi(res);
                  DISPATCH();
              }
@@ -387,7 +537,7 @@ DO_MUL:
                      DISPATCH();
                  }
 
-                 int64_t res = tint(d2) * tint(d1);
+                 int32_t res = tint(d2) * tint(d1);
                  dpushi(res);
                  DISPATCH();
              }
@@ -404,7 +554,7 @@ DO_DIV:
                     DISPATCH();
                  }
 
-                 int64_t res = tint(d2) / tint(d1);
+                 int32_t res = tint(d2) / tint(d1);
                  dpushi(res);
                  DISPATCH();
              }
@@ -625,7 +775,7 @@ DO_PRINT:
                      printf("%g", tfloat(value));
                      DISPATCH();
                  case INT:
-                     printf("%" PRId64, tint(value));
+                     printf("%" PRId32, tint(value));
                      DISPATCH();
                  case LOGICAL:
                      printf("%s", tint(value) == 0?"False":"True");
@@ -655,7 +805,7 @@ DO_HALT:
          stop();
 DO_JUMP:
          {
-             uint64_t ja;
+             uint32_t ja;
              dpopi(ja);
              ip = ja;
              DISPATCH_WINC();
@@ -663,7 +813,7 @@ DO_JUMP:
 DO_JUMP_IF_TRUE:
          {
              Data c;
-             int64_t ja;
+             int32_t ja;
              dpopi(ja);  dpopv(c,callFrame); 
              if(islogical(c)){
                  if(tint(c)){
@@ -680,7 +830,7 @@ DO_JUMP_IF_TRUE:
 DO_JUMP_IF_FALSE:
          {
              Data c;
-             int64_t ja;
+             int32_t ja;
              dpopi(ja); dpopv(c,callFrame);
              if(islogical(c)){
                  if(!tint(c)){
@@ -699,7 +849,7 @@ DO_JUMP_IF_FALSE:
          }
 DO_CALL:
          {
-             uint64_t numArg, i = 1;
+             uint32_t numArg, i = 1;
              Data r;
              dpop(r); dpopi(numArg);
              Routine2 routine = routine_get(tstrk(r));
@@ -716,7 +866,7 @@ DO_CALL:
                  while(i < routine.arity){
                      //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
                      Data d; dpopv(d, callFrame);
-                     env_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
+                     env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
                      i++;
                  }
              }
@@ -763,7 +913,7 @@ DO_ARRAY:
              if(isint(index)){
                  if(isarray(arr)){
                      if(tint(index) < 1 || tint(index) > arr.numElements){
-                         printf(error("Array index out of range : %" PRId64), tint(index));
+                         printf(error("Array index out of range : %" PRId32), tint(index));
                          stop();
                      }
 
@@ -772,7 +922,7 @@ DO_ARRAY:
                  }
 
                  if(tint(index) < 1 || tint(index) > (str_len(tstrk(arr)) + 1)){
-                     printf(error("String index out of range : %" PRId64), tint(index));
+                     printf(error("String index out of range : %" PRId32), tint(index));
                      stop();
                  }
 
@@ -842,7 +992,7 @@ DO_NOOP:
          }
 DO_NEW_CONTAINER:
          {
-             uint64_t name;
+             uint32_t name;
              dpopsk(name);
              dpush(new_ins(&callFrame.env, name));
              ip = callFrame.returnAddress;
@@ -877,12 +1027,12 @@ DO_ARRAYREF:
                                  dpush((Data)arr.arr[tint(index)- 1]);
                                  DISPATCH();
                              }
-                             printf(error("Array index out of range : %" PRId64), tint(index));
+                             printf(error("Array index out of range : %" PRId32), tint(index));
                              stop();
                          }
                          if(isstr(arr)){
                              if(tint(index) < 1 || tint(index) > (str_len(tstrk(arr)) + 1)){
-                                 printf(error("String index out of range : %" PRId64), tint(index));
+                                 printf(error("String index out of range : %" PRId32), tint(index));
                                  stop();
                              }
 
@@ -924,12 +1074,12 @@ DO_ARRAYSET:
                                  arr.arr[tint(index)- 1] = value;
                                  DISPATCH();
                              }
-                             printf(error("Array index out of range : %" PRId64), tint(index));
+                             printf(error("Array index out of range : %" PRId32), tint(index));
                              stop();
                          }
                          if(isstr(arr)){
                              if(tint(index) < 1 || tint(index) > str_len(tstrk(arr))){
-                                 printf(error("String index out of range : %" PRId64), tint(index));
+                                 printf(error("String index out of range : %" PRId32), tint(index));
                                  stop();
                              }
                              if(!isstr(value)){
@@ -969,12 +1119,12 @@ DO_ARRAYWRITE:
                              arr.arr[tint(index)- 1] = value;
                              DISPATCH();
                          }
-                         printf(error("Array index out of range : %" PRId64), tint(index));
+                         printf(error("Array index out of range : %" PRId32), tint(index));
                          stop();
                      }
                      if(isstr(arr)){
                          if(tint(index) < 1 || tint(index) > str_len(tstrk(arr))){
-                             printf(error("String index out of range : %" PRId64), tint(index));
+                             printf(error("String index out of range : %" PRId32), tint(index));
                              stop();
                          }
                          if(!isstr(value)){

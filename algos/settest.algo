@@ -1,0 +1,10 @@
+Routine Main()
+    Set i = 0, j = 0, k = 0
+    Set l = 0, m = 2392, n = 32889
+    Set o = 0, p = 2392, q = 32889
+    Set t = 0, s = 2392, r = 32889
+    Set u = 0, v = 2392, w = 32889
+    Set z = 0, y = 2392, x = 32889
+    Set a = 0, b = 2392, c = 32889
+    Set f = 0, e = 2392, d = 32889
+EndRoutine

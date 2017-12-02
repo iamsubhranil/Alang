@@ -35,9 +35,13 @@ void* reallocate(void *p, size_t size){
     if(mem == p)
         return mem;
     i = 0;
-    while(i < pointer)
-        if(allocatedMem[i++] == p)
-            allocatedMem[i - 1] = mem;
+    while(i < pointer){
+        if(allocatedMem[i] == p){
+            allocatedMem[i] = mem;
+            break;
+        }
+        i++;
+    }
     return mem;
 }
 
@@ -51,6 +55,7 @@ void memfree(void *p){
                 allocatedMem = (void **)realloc(allocatedMem, sizeof(void *)*totalSize);
             }
             pointer--;
+            free(p);
             break;
         }
         i++;

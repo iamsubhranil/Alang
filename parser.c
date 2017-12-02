@@ -242,6 +242,7 @@ static void primary(){
             ins_add(PUSHI);
             ins_add_val(heap_add_int(longOf(val)));
         }
+        memfree(val);
     }
     else if(peek() == TOKEN_STRING){
         uint64_t st = str_insert(stringOf(advance()));

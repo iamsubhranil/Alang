@@ -10,7 +10,7 @@ Environment env_new(Environment *parent){
     return (Environment){NULL, parent};
 }
 
-static Record* new_record(uint64_t key, Data value){
+static inline Record* new_record(uint64_t key, Data value){
     Record *record = (Record *)mallocate(sizeof(Record));
     record->key = key;
     record->data = value;
@@ -18,7 +18,7 @@ static Record* new_record(uint64_t key, Data value){
     return record;
 }
 
-static Environment* env_match(uint64_t key, Environment *env){
+static inline Environment* env_match(uint64_t key, Environment *env){
     if(env == NULL)
         return NULL;
     Record *top = env->records;
@@ -30,6 +30,21 @@ static Environment* env_match(uint64_t key, Environment *env){
         top = top->next;
     }
     return env_match(key, env->parent);
+}
+
+void env_implicit_put(uint64_t key, Data value, Environment *env){
+    Record *top = env->records;
+    if(isins(value)){
+        tins(value)->refCount++;
+    }
+    if(top == NULL)
+        env->records = new_record(key, value);
+    else{
+        while(top->next != NULL){
+            top = top->next;
+        }
+        top->next = new_record(key, value);
+    }
 }
 
 void env_put(uint64_t key, Data value, Environment *env){

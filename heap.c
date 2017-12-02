@@ -13,7 +13,7 @@ static uint64_t hp = 0;
         printf(error("Bad heap access : %ld"), address); \
         return 0;}
 
-uint64_t heap_add_int(int64_t i){
+uint64_t heap_add_int(int32_t i){
     uint64_t start = 0;
     while(start < hp){
         if(isint(heap[start]) && tint(heap[start]) == i)
@@ -61,7 +61,7 @@ uint64_t heap_add_identifer(uint64_t key){
     return hp - 1; 
 }
 
-uint64_t heap_add_logical(int64_t i){
+uint64_t heap_add_logical(int32_t i){
     uint64_t start = 0;
     while(start < hp){
         if(islogical(heap[start]) && tint(heap[start]) == i)
@@ -81,7 +81,7 @@ Data heap_get_data(uint64_t address){
     return heap[address];
 }
 
-int64_t heap_get_int(uint64_t address){
+int32_t heap_get_int(uint64_t address){
     heap_check();
     return tint(heap[address]);
 }
@@ -96,7 +96,7 @@ uint64_t heap_get_str(uint64_t address){
     return tstrk(heap[address]);
 }
 
-int64_t heap_get_logical(uint64_t address){
+int32_t heap_get_logical(uint64_t address){
     heap_check();
     return tint(heap[address]);
 }

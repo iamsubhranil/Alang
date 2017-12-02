@@ -63,7 +63,8 @@ void* reallocate(void *mem, size_t size){
         exit(1);
     }
     reallocationCount++;
-    exchange(mem, newmem);
+    if(mem != newmem)
+        exchange(mem, newmem);
 //    printf("\n[Allocator] Reallocated %p to %p", mem, newmem);
 //        fflush(stdout);
     return newmem;

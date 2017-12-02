@@ -33,7 +33,7 @@ typedef struct Data{
             int64_t numElements;
         };
         double cvalue;
-        int64_t ivalue;
+        int32_t ivalue;
         uint64_t svalue;
     };
 } Data;

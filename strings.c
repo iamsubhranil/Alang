@@ -6,8 +6,8 @@
 
 typedef struct{
     const char *value;
-    uint64_t hash;
-    uint64_t refCount;
+    uint32_t hash;
+    uint32_t refCount;
     size_t length;
 } String;
 
@@ -15,8 +15,8 @@ static String **strarray = NULL;
 uint64_t stringCount = 0;
 size_t c = 0;
 
-static uint64_t hash(const char *str){
-    uint64_t hash = 5381;
+static uint32_t hash(const char *str){
+    uint32_t hash = 5381;
     c = 0;
 //    printf("\nHashing..\n");
     while (str[c] != 0)

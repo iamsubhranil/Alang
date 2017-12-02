@@ -165,8 +165,11 @@ static void define_cons(Environment *env){
 }
 
 void register_native(Environment *env){
+    double tm = clock();
     routine_add(getSingleArgRoutine(str_insert("LoadLibrary")));
     routine_add(getSingleArgRoutine(str_insert("UnloadLibrary")));
     define_cons(env);
     load_library(NULL, str_insert("./liblalang.so"));
+    tm = (clock() - tm)/CLOCKS_PER_SEC;
+    printf(debug("[Native] Registration took %gs"), tm);
 }

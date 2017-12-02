@@ -101,7 +101,6 @@ Routine NewNode()
     Input x:Int
     Return Node(x)
 EndRoutine
-
 Routine Main()
     //Set i = NewNode(5)
     //Call NewNode(6)
