@@ -3,9 +3,22 @@
 
 #include <stdlib.h>
 
+#define USE_ALLOCATE_API
+
+#ifdef USE_ALLOCATE_API
+
 void* mallocate(size_t size);
 void* reallocate(void *oldmem, size_t size);
 void memfree(void *mem);
 void memfree_all();
-int get_realloc_count();
+
+#else
+
+#define mallocate(x) malloc(x)
+#define reallocate(x, y) realloc(x, y)
+#define memfree(x) free(x)
+#define memfree_all() {}
+
+#endif
+
 #endif

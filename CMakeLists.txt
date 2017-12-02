@@ -1,7 +1,7 @@
 set(SOURCE_FILES    main.c
                     scanner.c
                     parser.c
-                    allocator.c
+                    allocator2.c
                     preprocessor.c
                     routines.c
                     strings.c
