@@ -11,6 +11,7 @@ int64_t stackLastIncremented = 0;
 #define STACK_INC_CACHE -10 // Preven stack decrement if it was incremented recently 
 
 #define dStackInit() {stackSize = 10; dataStack = (Data *)mallocate(sizeof(Data)*stackSize);}
+#define dStackFree() {memfree(dataStack);}
 
 #define incr() if(sp >= stackSize){\
         stackSize *= 2; \

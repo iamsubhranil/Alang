@@ -69,3 +69,11 @@ void str_ref_decr(uint64_t index){
 const char* str_get(uint64_t index){
     return strarray[index]->value;
 }
+
+void str_free(){
+    uint64_t i = 0;
+    while(i < stringCount){
+        memfree(strarray[i++]);
+    }
+    memfree(strarray);
+}

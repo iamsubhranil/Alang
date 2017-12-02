@@ -386,7 +386,10 @@ void stop(){
     printf(debug("[Interpreter] Instructions executed : %" PRIu64 "\n"), insExec);
     print_stat();
     printf("\n");
-    memfree_all();
+    heap_free();
+    str_free();
+    dStackFree();
+    memfree(instructions);
     exit(0);
 }
 
@@ -434,7 +437,7 @@ void interpret(){
     callFrame.env = env_new(NULL);
     callFrame.returnAddress = 0;
     callFrame.arity = 27;
-    //register_native(&callFrame.env);
+    register_native(&callFrame.env);
     ip = 0;
     static const void *dispatchTable[] = {&&DO_PUSHF, &&DO_PUSHI, &&DO_PUSHL, &&DO_PUSHS, &&DO_PUSHID, &&DO_PUSHN,
         &&DO_ADD, &&DO_SUB, &&DO_MUL, &&DO_DIV, &&DO_POW, &&DO_MOD,

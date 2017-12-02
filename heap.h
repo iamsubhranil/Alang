@@ -14,3 +14,5 @@ int32_t heap_get_int(uint64_t address);
 double heap_get_float(uint64_t address);
 uint64_t heap_get_str(uint64_t address);
 int32_t heap_get_logical(uint64_t address);
+
+void heap_free();

@@ -100,3 +100,7 @@ int32_t heap_get_logical(uint64_t address){
     heap_check();
     return tint(heap[address]);
 }
+
+void heap_free(){
+    memfree(heap);
+}
