@@ -1,8 +1,9 @@
 set(SOURCE_FILES    main.c
                     scanner.c
                     parser.c
+                    display.c
                     #                    allocator2.c
-                    preprocessor.c
+                    #                    preprocessor.c
                     routines.c
                     strings.c
                     interpreter.c
