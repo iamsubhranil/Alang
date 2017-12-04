@@ -388,10 +388,12 @@ void print_stat(){
 }
 
 void stop(){
-    tmEnd = clock();
+    tmEnd = clock()-tmStart;
+    double tm = (double)tmEnd / CLOCKS_PER_SEC;
     //printf("\nRealloc called : %d times\n", get_realloc_count());
-    printf(debug("[Interpreter] Execution time : %gs"), (double)(tmEnd - tmStart)/CLOCKS_PER_SEC);
-    printf(debug("[Interpreter] Instructions executed : %" PRIu64 "\n"), insExec);
+    dbg("[Interpreter] Execution time : %gs", tm);
+    dbg("[Interpreter] Instructions executed : %" PRIu64, insExec);
+    dbg("[Interpreter] Average execution speed : %gs", tm/insExec);
     print_stat();
     printf("\n");
     heap_free();

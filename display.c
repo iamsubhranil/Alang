@@ -33,6 +33,7 @@ static void format(va_list args, const char *msg){
                     printf("%lf", va_arg(args, double));
                 else if(msg[j] == 'u')
                     printf("%lu", va_arg(args, unsigned long));
+                i++;
             }
             else if(msg[j] == 'u'){
                 printf("%u", va_arg(args, unsigned int)); 
@@ -47,12 +48,20 @@ static void format(va_list args, const char *msg){
     }
 }
 
+void dbg(const char* msg, ...){
+    printf(ANSI_COLOR_GREEN "\n[Debug] ");
+    va_list args;
+    va_start(args, msg);
+    format(args, msg);
+    printf(ANSI_COLOR_RESET);
+}
+
 void lnerr(const char* msg, Token t, ...){
     printf(ANSI_COLOR_RED "\n[Error] <%s:%d> ", t.fileName, t.line);
     va_list args;
     va_start(args, t);
     format(args, msg);
-    printf("\n" ANSI_COLOR_RESET);
+    printf(ANSI_COLOR_RESET);
 }
 
 void lnwarn(const char* msg, Token t, ...){

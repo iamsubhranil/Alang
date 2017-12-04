@@ -20,9 +20,10 @@
 #define info(x) (ANSI_COLOR_BLUE "\n[Info] " x ANSI_COLOR_RESET)
 #define debug(x) (ANSI_COLOR_GREEN "\n[Debug] " x ANSI_COLOR_RESET)
 
-void lnerr(const char* msg, Token t, ...);
-void lnwarn(const char* msg, Token t, ...);
-void lninfo(const char* msg, Token t, ...);
+void dbg(const char *msg, ...);
+void lnerr(const char *msg, Token t, ...);
+void lnwarn(const char *msg, Token t, ...);
+void lninfo(const char *msg, Token t, ...);
 void rerr(const char *msg, ...);
 void rwarn(const char *msg, ...);
 
