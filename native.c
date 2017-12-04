@@ -43,10 +43,9 @@ static Data load_library(Environment *env, uint32_t name){
     void *lib = dlopen(str_get(name), RTLD_LAZY);
     if(!lib){
         if(env == NULL)
-            printf(warning("%s"), dlerror());
+            rwarn("%s", dlerror());
         else{
-            printf(error("%s"), dlerror());
-            stop();
+            rerr("%s", dlerror());
         }
     }
     libCount++;
@@ -63,7 +62,7 @@ void unload_all(){
     while(i < libCount){
         dlclose(libraries[i].handle);
         if((err = dlerror()) != NULL)
-            printf(warning("%s"), err);
+            rwarn("%s", err);
         i++;
     }
     memfree(libraries);
@@ -75,7 +74,7 @@ static Data unload_library(Environment *env){
     uint32_t name = tstrk(env_get(str_insert("x"), env, 0));
 
     if(!hasLib(name)){
-        printf(warning("Library '%s' is not loaded!"), str_get(name));
+        rwarn("Library '%s' is not loaded!", str_get(name));
         return new_null();
     }
 
@@ -90,7 +89,7 @@ static Data unload_library(Environment *env){
         if(libraries[i].name == name){
             dlclose(libraries[i].handle);
             if((err = dlerror())!=NULL){
-                printf(warning("%s"), err);
+                rwarn("%s", err);
             }
             libraries[i].name = libraries[libCount - 1].name;
             libraries[i].handle = libraries[libCount - 1].handle;
@@ -106,8 +105,7 @@ static Data unload_library(Environment *env){
 static void* get_func(uint32_t name){
     uint32_t i = 0;
     if(libCount == 0){
-        printf(error("Unable to call %s : No libraries loaded!"), str_get(name));
-        stop();
+        rerr("Unable to call %s : No libraries loaded!", str_get(name));
     }
     while(i < libCount){
         void *f = dlsym(libraries[i].handle, str_get(name));
@@ -115,7 +113,7 @@ static void* get_func(uint32_t name){
             return f;
         i++;
     }
-    printf(error("Foreign routine '%s' not found in loaded libraries!"), str_get(name));
+    rerr("Foreign routine '%s' not found in loaded libraries!", str_get(name));
     stop();
     return NULL;
 }

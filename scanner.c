@@ -100,7 +100,7 @@ static int initScanner(const char* source, const char* file) {
 char* read_all(const char* s){
     FILE *source = fopen(s, "rb");
     if(source == NULL){
-        printf(error("Unable to open file : '%s'"), s);
+        err("Unable to open file : '%s'", s);
         se++;
         return NULL;
     }
@@ -387,7 +387,7 @@ static Token scanToken() {
 
         case '"': return string();
         default:
-                  printf(line_error("Unexpected character %c!"), scanner.line, c);
+                  lnerr("Unexpected character %c!", (Token){TOKEN_EOF, NULL, 0, scanner.line, scanner.fileName}, c);
                   se++;
                   return makeToken(TOKEN_EOF);
     }

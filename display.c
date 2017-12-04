@@ -56,6 +56,22 @@ void dbg(const char* msg, ...){
     printf(ANSI_COLOR_RESET);
 }
 
+void info(const char* msg, ...){
+    printf(ANSI_COLOR_BLUE "\n");
+    va_list args;
+    va_start(args, msg);
+    format(args, msg);
+    printf(ANSI_COLOR_RESET);
+}
+
+void err(const char* msg, ...){
+    printf(ANSI_COLOR_RED "\n[Error] ");
+    va_list args;
+    va_start(args, msg);
+    format(args, msg);
+    printf(ANSI_COLOR_RESET);
+}
+
 void lnerr(const char* msg, Token t, ...){
     printf(ANSI_COLOR_RED "\n[Error] <%s:%d> ", t.fileName, t.line);
     va_list args;
@@ -81,7 +97,7 @@ void lninfo(const char* msg, Token t, ...){
 }
 
 void rerr(const char* msg, ...){
-    FileInfo f = info_of(ip_get());
+    FileInfo f = fileInfo_of(ip_get());
     printf(ANSI_COLOR_RED "\n[Runtime Error] <%s:%" PRIu32 "> ", str_get(f.fileName), f.line);
     va_list args;
     va_start(args, msg);
@@ -91,7 +107,7 @@ void rerr(const char* msg, ...){
 }
 
 void rwarn(const char* msg, ...){
-    FileInfo f = info_of(ip_get());
+    FileInfo f = fileInfo_of(ip_get());
     printf(ANSI_COLOR_YELLOW "\n[Warning] <%s:%" PRIu32 "> ", str_get(f.fileName), f.line);
     va_list args;
     va_start(args, msg);

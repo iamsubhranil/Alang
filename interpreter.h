@@ -26,7 +26,7 @@ typedef struct{
     uint32_t line;
 } FileInfo;
 
-FileInfo info_of(uint32_t line);
+FileInfo fileInfo_of(uint32_t line);
 
 // Instructions
 

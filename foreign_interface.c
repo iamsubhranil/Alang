@@ -9,8 +9,7 @@
 double get_double(const char *identifer, Environment *env){
     Data o = env_get(str_insert(identifer), env, 0);
     if(!isnum(o)){
-        printf(error("Expected numeric value!"));
-        stop();
+        rerr("Expected numeric value!");
     }
     return tnum(o);
 }
@@ -18,8 +17,7 @@ double get_double(const char *identifer, Environment *env){
 int64_t get_int(const char *identifer, Environment *env){
     Data o = env_get(str_insert(identifer), env, 0);
     if(!isint(o)){
-        printf(error("Expected integer value!"));
-        stop();
+        rerr("Expected integer value!");
     }
     return tint(o);
 }
@@ -27,8 +25,7 @@ int64_t get_int(const char *identifer, Environment *env){
 char* get_string(const char *identifer, Environment *env){
     Data o = env_get(str_insert(identifer), env, 0);
     if(!isstr(o)){
-        printf(error("Expected integer value!"));
-        stop();
+        err("Expected integer value!");
     }
     return strdup(tstr(o));
 }

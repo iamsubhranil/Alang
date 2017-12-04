@@ -14,7 +14,7 @@
 #include "routines.h"
 #include "heap.h"
 
-static int inWhile = 0, inRoutine = 0;
+static int inWhile = 0, inContainer = 0;
 static int he = 0;
 static uint32_t *breakAddresses, breakCount = 0;
 static TokenList *head = NULL;
@@ -282,7 +282,7 @@ static void primary(){
     }
     else{
         Token t = advance();
-        printf(line_error("Incorrect expression!"), t.line);
+        lnerr("Incorrect expression!", t);
     }
 }
 
@@ -377,7 +377,7 @@ static void blockStatement(Compiler *compiler, BlockType name){
     int indent = compiler->indentLevel+1;
     Compiler *blockCompiler = initCompiler(compiler, indent, name);
     while(getNextIndent() == indent){
-        debug("Found a block statement");
+        //dbg("Found a block statement");
         statement(blockCompiler);
     }
     memfree(blockCompiler);
@@ -450,7 +450,7 @@ static void whileStatement(Compiler* compiler){
     consumeIndent(compiler->indentLevel);
     consume(TOKEN_ENDWHILE, "Expected EndWhile after while on same indent!");
     consume(TOKEN_NEWLINE, "Expected newline after EndWhile!");
-    debug("While statement parsed");
+    //dbg("While statement parsed");
     uint32_t i = 0;
     while(i < breakCount){
         ins_set_val(breakAddresses[i], heap_add_int(ip_get()));
@@ -493,7 +493,7 @@ static void whileStatement(Compiler* compiler){
 static void breakStatement(){
     //debug("Parsing break statement");
     if(inWhile == 0){
-        printf(line_error("Break without While or Do!"), presentLine());
+        lnerr("Break without While or Do!", presentToken());
         he++;
     }
     else{
@@ -547,7 +547,7 @@ static void arrayStatement(){
     do{
         expression();
         if(ins_last() != ARRAY){
-            printf(line_error("Expected array expression!"), presentLine());
+            lnerr("Expected array expression!", presentToken());
             he++;
         }
         ins_set(ip_get()-1, MAKE_ARRAY);
@@ -568,7 +568,7 @@ static void inputStatement(){
                 else if(match(TOKEN_FLOAT))
                     op = INPUTF;
                 else{
-                    printf(line_error("Bad input format specifier!"), presentLine());
+                    lnerr("Bad input format specifier!", presentToken());
                     he++;
                 }
             }
@@ -577,7 +577,7 @@ static void inputStatement(){
             ins_add(op);
         }
         else{
-            printf(line_error("Bad input statement!"), presentLine());
+            lnerr("Bad input statement!", presentToken());
             he++;
             continue;
         }
@@ -613,7 +613,7 @@ static void routineStatement(Compiler *compiler){
     Routine2 routine = routine_new();
 
     if(compiler->indentLevel > 0){
-        printf(line_error("Routines can only be declared in top level indent!"), presentLine());
+        lnerr("Routines can only be declared in top level indent!", presentToken());
         he++;
     }
 
@@ -651,8 +651,8 @@ static void callStatement(){
 }
 
 static void returnStatement(){
-    if(inRoutine > 0){
-        printf(line_error("A routine should not return anything!"), presentLine());
+    if(inContainer > 0){
+        lnerr("A routine should not return anything!", presentToken());
         he++;
     }
     if(peek() == TOKEN_NEWLINE){
@@ -668,7 +668,7 @@ static void containerStatement(Compiler *compiler){
     Routine2 routine = routine_new();
 
     if(compiler->indentLevel > 0){
-        printf(line_error("Containers can only be declared in top level indent!"), presentLine());
+        lnerr("Containers can only be declared in top level indent!", presentToken());
         he++;
     }
     routine.isNative = 0;
@@ -685,12 +685,12 @@ static void containerStatement(Compiler *compiler){
         advance();
     consume(TOKEN_NEWLINE, "Expected newline after container declaration!");
     routine.startAddress = ip_get();
-    inRoutine++;
+    inContainer++;
     blockStatement(compiler, BLOCK_FUNC);
     ins_add(PUSHID);
     ins_add_val(heap_add_int(routine.name));
     ins_add(NEW_CONTAINER);
-    inRoutine--;
+    inContainer--;
     consume(TOKEN_ENDCONTAINER, "Expected EndContainer on the same indent!");
     consume(TOKEN_NEWLINE, "Expected newline after EndContainer!");
     routine_add(routine);

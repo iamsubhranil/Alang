@@ -52,7 +52,8 @@ static int isInt(char *s){
 Data getInt(){
     char *s = readString();
     while(!isInt(s)){
-        printf(warning("[Input Error] Not an integer : %s!\n[Re-Input] "), s);
+        rwarn("[Input Error] Not an integer : %s!", s);
+        info("[Re-input] ");
         s = readString();
     }
     int32_t l = 0;
@@ -84,7 +85,8 @@ static int isNumber(char *s){
 Data getFloat(){
     char *s = readString();
     while(!isNumber(s)){
-        printf(warning("[Input Error] Not a number : %s!\n[Re-Input] "), s);
+        rwarn("[Input Error] Not a number : %s!", s);
+        info("[Re-input] ");
         s = readString();
     }
     double d = 0;

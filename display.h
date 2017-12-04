@@ -12,15 +12,9 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-#define error(x) (ANSI_COLOR_RED "\n[Error] " x ANSI_COLOR_RESET)
-#define fatal(x) (ANSI_COLOR_RED "\n[Fatal] " x ANSI_COLOR_RESET)
-#define line_error(x) (ANSI_COLOR_RED "\n[Error] [Line:%d] " x ANSI_COLOR_RESET)
-#define runtime_error(x) (ANSI_COLOR_RED "\n[Runtime Error] [Line:%d] " x ANSI_COLOR_RESET)
-#define warning(x) (ANSI_COLOR_YELLOW "\n[Warning] " x ANSI_COLOR_RESET)
-#define info(x) (ANSI_COLOR_BLUE "\n[Info] " x ANSI_COLOR_RESET)
-#define debug(x) (ANSI_COLOR_GREEN "\n[Debug] " x ANSI_COLOR_RESET)
-
 void dbg(const char *msg, ...);
+void err(const char *msg, ...);
+void info(const char *msg, ...);
 void lnerr(const char *msg, Token t, ...);
 void lnwarn(const char *msg, Token t, ...);
 void lninfo(const char *msg, Token t, ...);

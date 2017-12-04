@@ -14,7 +14,7 @@ int main(int argc, char **argv){
         return 2;
     TokenList *tokens = scanTokens(argv[1]);
     if(hasScanErrors()){
-        printf(error("%d errors occured while scanning. Correct them and try to run again.\n"), hasScanErrors());
+        err("%d errors occured while scanning. Correct them and try to run again.", hasScanErrors());
         memfree_all();
         return 1;
     }
@@ -22,7 +22,7 @@ int main(int argc, char **argv){
     
     parse(tokens);
     if(hasParseError()){
-        printf(error("%d errors occured while parsing. Correct them and try to run again.\n"), hasParseError());
+        err("%d errors occured while parsing. Correct them and try to run again.\n", hasParseError());
         memfree_all();
         return 1;
     }

@@ -14,16 +14,16 @@
 static uint8_t *instructions = NULL;
 static uint32_t ip = 0, lastins = 0;
 
-static FileInfo *info = NULL;
+static FileInfo *fileInfos = NULL;
 
 uint32_t ins_add(uint8_t ins){
     instructions = (uint8_t *)reallocate(instructions, 8*++ip);
     instructions[ip - 1] = ins;
     lastins = ip - 1;
-    info = (FileInfo *)reallocate(info, sizeof(FileInfo)*ip);
+    fileInfos = (FileInfo *)reallocate(fileInfos, sizeof(FileInfo)*ip);
     Token t = presentToken();
-    info[ip - 1].fileName = str_insert(t.fileName);
-    info[ip - 1].line = t.line;
+    fileInfos[ip - 1].fileName = str_insert(t.fileName);
+    fileInfos[ip - 1].line = t.line;
     return ip - 1;
 }
 
@@ -439,8 +439,8 @@ void init_interpreter(){
     init = 1;
 }
 
-FileInfo info_of(uint32_t ip){
-    return info[ip];
+FileInfo fileInfo_of(uint32_t ip){
+    return fileInfos[ip];
 }
 
 void interpret(){
@@ -868,8 +868,7 @@ DO_CALL:
              dpop(r); dpopi(numArg);
              Routine2 routine = routine_get(tstrk(r));
              if(routine.arity != numArg){
-                 error("Argument count mismatch!");
-                 
+                 rerr("Argument count mismatch [Expected %" PRIu32 " Recieved %" PRIu32 "!", routine.arity, numArg);
              }
              cf_push(callFrame);
              CallFrame nf = cf_new();
