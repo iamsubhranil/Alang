@@ -247,8 +247,34 @@ static int skipEmptyLine(){
         scanner.line++;
         return 1;
     }
-    else
-        scanner.current = bak;
+    else if(hasOtherChars){
+        if(peek() == '/' && peekNext() == '/'){
+            while(!isAtEnd() && peek() != '\n')
+                advance();
+            if(!isAtEnd()){
+                scanner.line++;
+                advance();
+            }
+            return 1;
+        }
+        else if(peek() == '/' && peekNext() == '*'){ 
+            while(!(peek()=='*' && peekNext()=='/') && peek()!='\0'){
+                if(peek() == '\n')
+                    scanner.line++;
+                advance();
+            }
+            if(!isAtEnd()){
+                advance();
+                advance();
+                if(!isAtEnd() && peek() == '\n'){
+                    advance();
+                    scanner.line++;
+                }
+            }
+        }
+        else
+            scanner.current = bak;
+    }
     return 0;
 }
 
@@ -358,11 +384,9 @@ static Token scanToken() {
                           advance();
                       }
                       if(!isAtEnd()){
-                        advance();
-                        advance();
-                        if(!isAtEnd() && peek() == '\n')
-                            advance();
-                        }
+                          advance();
+                          advance();
+                      }
                       return scanToken();
                   }
                   return makeToken(TOKEN_SLASH);
@@ -425,7 +449,7 @@ TokenList* scanTokens(char *file){
         while((t = scanToken()).type != TOKEN_EOF){
             insertList(&head, &ret, newList(t));
             if(t.type == TOKEN_NEWLINE){
-                    while(skipEmptyLine() || checkInclude());
+                while(skipEmptyLine() || checkInclude());
             }
         }
     }
