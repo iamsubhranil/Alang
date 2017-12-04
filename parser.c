@@ -773,6 +773,7 @@ void part(Compiler *c){
 
 void parse(TokenList *list){
     head = list;
+    //heap_init();
     Compiler *comp = initCompiler(NULL, 0, BLOCK_NONE);
     ins_add(PUSHI);
     lastjump = ins_add_val(heap_add_int(0)); // The first location will tell the address of first instruction

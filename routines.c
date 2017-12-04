@@ -5,9 +5,8 @@
 #include "allocator.h"
 #include "interpreter.h"
 
-
-static Routine2 *routines = NULL;
-static uint32_t index = 0;
+Routine2 *routines = NULL;
+uint32_t rp = 0;
 
 Routine2 routine_new(){
     Routine2 r;
@@ -27,20 +26,7 @@ void routine_add_arg(Routine2 *r, const char *arg){
 }
 
 void routine_add(Routine2 r){
-    routines = (Routine2 *)reallocate(routines, sizeof(Routine2)*++index);
+    routines = (Routine2 *)reallocate(routines, sizeof(Routine2)*++rp);
 //    printf(debug("[Routine] Adding routine : [%s]"), str_get(r.name));
-    routines[index - 1] = r;
-}
-
-Routine2 routine_get(uint32_t name){
-    uint32_t i = 0;
-    while(i < index){
-//        printf(debug("Routine : %s"), str_get(routines[i]->name));
-        if(routines[i].name == name)
-            return routines[i];
-        i++;
-    }
-    printf(error("Routine not found : '%s'!\n"), str_get(name));
-    stop();
-    return (Routine2){0,0, NULL, 0, 0, 0};
+    routines[rp - 1] = r;
 }

@@ -1,0 +1,11 @@
+
+Routine Fibonacci(x)
+    If(x < 2)
+        Return x
+    EndIf
+    Return Fibonacci(x - 1) + Fibonacci(x - 2)
+EndRoutine
+
+Routine Main()
+    Print "Fibonacci(28) : ", Fibonacci(28)
+EndRoutine

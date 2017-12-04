@@ -1,0 +1,10 @@
+Routine Main()
+    Set a = 0, b = 1.0, n = 0
+    While(n < 30)
+        Set c = a + b
+        Set a = b
+        Set b = c
+        Set n = n + 1
+    EndWhile
+    Print "Fibonacci(28) : ", c
+EndRoutine

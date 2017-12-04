@@ -8,10 +8,10 @@ set(SOURCE_FILES    main.c
                     strings.c
                     interpreter.c
                     values.c
-                    env.c
+                    #                    env.c
                     io.c
                     heap.c
-                    callframe.c
+                    #                    callframe.c
                     native.c
                     foreign_interface.c)
 

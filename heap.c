@@ -7,12 +7,8 @@
 #include "heap.h"
 #include "display.h"
 
-static Data *heap = NULL;
-static uint32_t hp = 0;
-
-#define heap_check() if(address > hp){ \
-        rerr("Bad heap access : %" PRIu32, address); \
-        return 0;}
+Data *heap = NULL;
+uint32_t hp = 0;
 
 uint32_t heap_add_int(int32_t i){
     uint32_t start = 0;
@@ -72,34 +68,6 @@ uint32_t heap_add_logical(int32_t i){
     heap = (Data *)reallocate(heap, sizeof(Data)*++hp);
     heap[hp - 1] = new_logical(i);
     return hp - 1;
-}
-
-Data heap_get_data(uint32_t address){
-    if(address > hp - 1){
-        rerr("Invalid heap access : %" PRIu32, address);
-        return new_null();
-    }
-    return heap[address];
-}
-
-int32_t heap_get_int(uint32_t address){
-    heap_check();
-    return tint(heap[address]);
-}
-
-double heap_get_float(uint32_t address){
-    heap_check();
-    return tfloat(heap[address]);
-}
-
-uint32_t heap_get_str(uint32_t address){
-    heap_check();
-    return tstrk(heap[address]);
-}
-
-int32_t heap_get_logical(uint32_t address){
-    heap_check();
-    return tint(heap[address]);
 }
 
 void heap_free(){

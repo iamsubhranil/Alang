@@ -86,12 +86,15 @@ static char* fstack_pop(){
     return fileStack[--fsp];
 }
 
-static void initScanner(const char* source, const char* file) {
+static int initScanner(const char* source, const char* file) {
+    if(source == NULL)
+        return 0;
     scanner.source = source;
     scanner.tokenStart = source;
     scanner.current = source;
     scanner.fileName = file;
     scanner.line = 1;
+    return 1;
 }
 
 char* read_all(const char* s){
@@ -230,7 +233,7 @@ static Token string() {
 static int skipEmptyLine(){
     short hasOtherChars = 0;
     const char *bak = scanner.current;
-    while(peek() != '\n' && !isAtEnd()){
+    while(!isAtEnd() && peek() != '\n'){
         if(peek() != ' ' && peek() != '\t' && peek() != '\r'){
             hasOtherChars = 1;
             break;
@@ -406,9 +409,9 @@ static void insertList(TokenList **head, TokenList **prev, TokenList *toInsert){
     (*prev) = toInsert;
 }
 
-static void scanfile(){
+static int scanfile(){
     char *file = fstack_pop();
-    initScanner(read_all(file), file);
+    return initScanner(read_all(file), file);
 }
 
 TokenList* scanTokens(char *file){
@@ -416,7 +419,8 @@ TokenList* scanTokens(char *file){
     Token t;
     fstack_push(file);
     while(fsp != 0){
-        scanfile();
+        if(!scanfile())
+            return NULL;
         while(skipEmptyLine() || checkInclude());
         while((t = scanToken()).type != TOKEN_EOF){
             insertList(&head, &ret, newList(t));

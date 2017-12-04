@@ -102,12 +102,9 @@ Routine NewNode()
     Return Node(x)
 EndRoutine
 Routine Main()
-    //Set i = NewNode(5)
-    //Call NewNode(6)
     Set i = 0
     While(i < 10000)
         Call insertAtFront(Node(i))
         Set i = i + 1
     EndWhile
-    //Set front = node, node = front
 EndRoutine

@@ -509,6 +509,7 @@ DO_ADD:
                  }
 
                  int32_t res = tint(d1) + tint(d2);
+
                  dpushi(res);
                  DISPATCH();
              }

@@ -19,7 +19,7 @@ int main(int argc, char **argv){
         return 1;
     }
 //    printList(tokens);
-
+    
     parse(tokens);
     if(hasParseError()){
         printf(error("%d errors occured while parsing. Correct them and try to run again.\n"), hasParseError());
