@@ -247,7 +247,7 @@ static int skipEmptyLine(){
         scanner.line++;
         return 1;
     }
-    else
+    else{
         if(peek() == '/' && peekNext() == '/'){
             while(!isAtEnd() && peek() != '\n')
                 advance();
