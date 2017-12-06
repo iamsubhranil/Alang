@@ -43,7 +43,7 @@ static Data load_library(Environment *env, uint32_t name){
     void *lib = dlopen(str_get(name), RTLD_LAZY);
     if(!lib){
         if(env == NULL)
-            rwarn("%s", dlerror());
+            warn("%s", dlerror());
         else{
             rerr("%s", dlerror());
         }

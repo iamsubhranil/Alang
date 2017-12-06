@@ -15,9 +15,12 @@
 void dbg(const char *msg, ...);
 void err(const char *msg, ...);
 void info(const char *msg, ...);
+void warn(const char *msg, ...);
+
 void lnerr(const char *msg, Token t, ...);
 void lnwarn(const char *msg, Token t, ...);
 void lninfo(const char *msg, Token t, ...);
+
 void rerr(const char *msg, ...);
 void rwarn(const char *msg, ...);
 

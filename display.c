@@ -31,6 +31,14 @@ void err(const char* msg, ...){
     printf(ANSI_COLOR_RESET);
 }
 
+void warn(const char* msg, ...){
+    printf(ANSI_COLOR_YELLOW "\n[Warning] ");
+    va_list args;
+    va_start(args, msg);
+    vprintf(msg, args);
+    printf("\n" ANSI_COLOR_RESET);
+}
+
 void lnerr(const char* msg, Token t, ...){
     printf(ANSI_COLOR_RED "\n[Error] <%s:%d> ", t.fileName, t.line);
     va_list args;
