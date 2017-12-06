@@ -462,6 +462,8 @@ static void whileStatement(Compiler* compiler){
         memfree(breakAddresses);
         breakAddresses = NULL;
     }
+    else
+        breakCount--;
 }
 
 // Not used now
