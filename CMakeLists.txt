@@ -7,7 +7,6 @@ set(SOURCE_FILES    main.c
                     interpreter.c
                     values.c
                     io.c
-                    heap.c
                     native.c
                     foreign_interface.c)
 

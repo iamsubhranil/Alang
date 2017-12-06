@@ -78,7 +78,7 @@ static void fstack_push(char *value){
             return;
         i++;
     }
-    fileStack = (char **)reallocate(fileStack, sizeof(char) * ++fsp);
+    fileStack = (char **)reallocate(fileStack, sizeof(char *) * ++fsp);
     fileStack[fsp - 1] = value;
 }
 
