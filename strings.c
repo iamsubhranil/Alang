@@ -26,8 +26,8 @@ static uint32_t hash(const char *str){
 }
 
 uint32_t str_insert(const char *str){
-    uint64_t has = hash(str);
-    uint64_t i = 0;
+    uint32_t has = hash(str);
+    uint32_t i = 0;
     while(i < stringCount){
         if(strarray[i]->hash == has){
             strarray[i]->refCount++;

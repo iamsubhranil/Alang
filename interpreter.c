@@ -930,7 +930,7 @@ DO_ARRAY:
                          
                      }
 
-                     dpush(((Data *)arr.arr)[tint(index) - 1]);
+                     dpush((arr.arr)[tint(index) - 1]);
                      DISPATCH();
                  }
 

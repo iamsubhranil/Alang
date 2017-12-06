@@ -247,7 +247,7 @@ static int skipEmptyLine(){
         scanner.line++;
         return 1;
     }
-    else if(hasOtherChars){
+    else
         if(peek() == '/' && peekNext() == '/'){
             while(!isAtEnd() && peek() != '\n')
                 advance();
@@ -279,7 +279,7 @@ static int skipEmptyLine(){
 }
 
 static int startsWith(const char *source, const char *predicate){
-    int slen = strlen(source), plen = strlen(predicate), i = 0;
+    size_t slen = strlen(source), plen = strlen(predicate), i = 0;
     if(slen < plen)
         return 0;
 
@@ -462,6 +462,7 @@ TokenList* scanTokens(char *file){
 void printList(TokenList *list){
     if(list == NULL){
         printf("\n[Error] Empty list!");
+        return;
     }
     printf("\n");
     while(list->value.type != TOKEN_EOF){

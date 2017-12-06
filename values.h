@@ -34,7 +34,7 @@ typedef struct Data{
         };
         double cvalue;
         int32_t ivalue;
-        uint64_t svalue;
+        uint32_t svalue;
     };
 } Data;
 
