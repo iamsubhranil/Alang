@@ -13,6 +13,7 @@ Routine Main()
             While(temp <= i/2)
                 If(i % temp == 0)
                     Set isPrime = False
+                    Break
                 EndIf
                 Set temp = temp + 1
             EndWhile
