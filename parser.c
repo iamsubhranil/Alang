@@ -12,7 +12,6 @@
 #include "strings.h"
 #include "interpreter.h"
 #include "routines.h"
-#include "heap.h"
 
 static int inWhile = 0, inContainer = 0;
 static int he = 0;
@@ -223,17 +222,17 @@ static void getCall(){
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after expression!");
     }
     ins_add(PUSHI);
-    ins_add_val(heap_add_int(argCount));
+    ins_add_val(argCount);
 }
 
 static void primary(){
     if(match(TOKEN_TRUE)){
         ins_add(PUSHL);
-        ins_add_val(heap_add_logical(1));
+        ins_add_val(1);
     }
     else if(match(TOKEN_FALSE)){
         ins_add(PUSHL);
-        ins_add_val(heap_add_logical(0));
+        ins_add_val(0);
     }
     else if(match(TOKEN_NULL)){
         ins_add(PUSHN);
@@ -242,11 +241,11 @@ static void primary(){
         char *val = stringOf(advance());
         if(isDouble(val)){
             ins_add(PUSHF);
-            ins_add_val(heap_add_float(doubleOf(val)));
+            ins_add_double(doubleOf(val));
         }
         else{
             ins_add(PUSHI);
-            ins_add_val(heap_add_int(longOf(val)));
+            ins_add_val(longOf(val));
         }
         memfree(val);
     }
@@ -254,26 +253,26 @@ static void primary(){
         uint32_t st = str_insert(stringOf(advance()));
         ins_add(PUSHS);
         //    printf("\nPushing string %lu", st);
-        ins_add_val(heap_add_str(st));
+        ins_add_val(st);
     }
     else if(peek() == TOKEN_IDENTIFIER){
         uint32_t st = str_insert(stringOf(advance()));
         if(match(TOKEN_LEFT_SQUARE)){
             expression(); // index
             ins_add(PUSHID);
-            ins_add_val(heap_add_identifer(st));
+            ins_add_val(st);
             ins_add(ARRAY);
             consume(TOKEN_RIGHT_SQUARE, "Expected ']' after array index!");
         }
         else if(match(TOKEN_LEFT_PAREN)){
             getCall();
             ins_add(PUSHID);
-            ins_add_val(heap_add_identifer(st));
+            ins_add_val(st);
             ins_add(CALL);
         }
         else{
             ins_add(PUSHID);
-            ins_add_val(heap_add_identifer(st));
+            ins_add_val(st);
         }
     }
     else if(match(TOKEN_LEFT_PAREN)){
@@ -391,9 +390,8 @@ static void ifStatement(Compiler *compiler){
     expression();
     consume(TOKEN_RIGHT_PAREN, "Conditional must end with a closing brace[')'] after If!");
     consume(TOKEN_NEWLINE, "Expected newline after If!");
-    ins_add(PUSHI);
-    uint32_t jmp = ins_add_val(heap_add_int(0));
     ins_add(JUMP_IF_FALSE);
+    uint32_t jmp = ins_add_val(0);
     if(getNextIndent() == compiler->indentLevel){
         consumeIndent(compiler->indentLevel);
         consume(TOKEN_THEN, "Expected Then on the same indent!");
@@ -402,10 +400,9 @@ static void ifStatement(Compiler *compiler){
 
     blockStatement(compiler, BLOCK_IF);
     consumeIndent(compiler->indentLevel);
-    ins_add(PUSHI);
-    uint32_t skip = ins_add_val(heap_add_int(0));
     ins_add(JUMP);
-    ins_set_val(jmp, heap_add_int(ip_get()));
+    uint32_t skip = ins_add_val(0);
+    ins_set_val(jmp, ip_get());
     if(match(TOKEN_ELSE)){
         if(match(TOKEN_IF)){
             ifStatement(compiler);
@@ -422,7 +419,7 @@ static void ifStatement(Compiler *compiler){
         consume(TOKEN_ENDIF, "Expected EndIf after If!");
         consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
     }
-    ins_set_val(skip, heap_add_int(ip_get()));
+    ins_set_val(skip, ip_get());
     //debug("If statement parsed");
 }
 
@@ -433,9 +430,8 @@ static void whileStatement(Compiler* compiler){
     expression();
     consume(TOKEN_RIGHT_PAREN, "Expected right paren after conditional!");
     consume(TOKEN_NEWLINE, "Expected newline after While!");
-    ins_add(PUSHI);
-    uint32_t jmp = ins_add_val(heap_add_int(0));
     ins_add(JUMP_IF_FALSE);
+    uint32_t jmp = ins_add_val(0);
     if(getNextIndent() == compiler->indentLevel){
         consumeIndent(compiler->indentLevel);
         consume(TOKEN_BEGIN, "Expected Begin on same indent!");
@@ -443,27 +439,20 @@ static void whileStatement(Compiler* compiler){
     }
     inWhile++;
     blockStatement(compiler, BLOCK_WHILE);
-    ins_add(PUSHI);
-    ins_add_val(heap_add_int(start));
     ins_add(JUMP);
-    ins_set_val(jmp, heap_add_int(ip_get()));
+    ins_add_val(start);
+    ins_set_val(jmp, ip_get());
     consumeIndent(compiler->indentLevel);
     consume(TOKEN_ENDWHILE, "Expected EndWhile after while on same indent!");
     consume(TOKEN_NEWLINE, "Expected newline after EndWhile!");
     //dbg("While statement parsed");
-    uint32_t i = 0;
-    while(i < breakCount){
-        ins_set_val(breakAddresses[i], heap_add_int(ip_get()));
-        i++;
-    }
-    inWhile--;
-    if(inWhile == 0){
-        breakCount = 0;
+    if(breakCount > 0)
+        ins_set_val(breakAddresses[--breakCount], ip_get());
+    if(breakCount == 0){
         memfree(breakAddresses);
         breakAddresses = NULL;
     }
-    else
-        breakCount--;
+    inWhile--;
 }
 
 // Not used now
@@ -499,11 +488,10 @@ static void breakStatement(){
         he++;
     }
     else{
-        breakAddresses = (uint32_t *)reallocate(breakAddresses, 32*++breakCount);
-        ins_add(PUSHI);
-        uint32_t ba = ins_add_val(heap_add_int(0));
-        breakAddresses[breakCount - 1] = ba;
         ins_add(JUMP);
+        breakAddresses = (uint32_t *)reallocate(breakAddresses, 32*++breakCount);
+        uint32_t ba = ins_add_val(0);
+        breakAddresses[breakCount - 1] = ba;
     }
     consume(TOKEN_NEWLINE, "Expected newline after Break!");
     //debug("Break statement parsed");
@@ -575,7 +563,7 @@ static void inputStatement(){
                 }
             }
             ins_add(PUSHID);
-            ins_add_val(heap_add_identifer(name));
+            ins_add_val(name);
             ins_add(op);
         }
         else{
@@ -690,7 +678,7 @@ static void containerStatement(Compiler *compiler){
     inContainer++;
     blockStatement(compiler, BLOCK_FUNC);
     ins_add(PUSHID);
-    ins_add_val(heap_add_int(routine.name));
+    ins_add_val(routine.name);
     ins_add(NEW_CONTAINER);
     inContainer--;
     consume(TOKEN_ENDCONTAINER, "Expected EndContainer on the same indent!");
@@ -747,18 +735,16 @@ void part(Compiler *c){
         routineStatement(c);
     }
     else if(match(TOKEN_SET)){
-        ins_set_val(lastjump, heap_add_int(ip_get())); // Patch the last jump
+        ins_set_val(lastjump, ip_get()); // Patch the last jump
         setStatement();
-        ins_add(PUSHI); // Make a jump to next global statement
-        lastjump = ins_add_val(heap_add_int(0));
         ins_add(JUMP);
+        lastjump = ins_add_val(0);
     }
     else if(match(TOKEN_ARRAY)){
-        ins_set_val(lastjump, heap_add_int(ip_get())); // Patch the last jump
+        ins_set_val(lastjump, ip_get()); // Patch the last jump
         arrayStatement();
-        ins_add(PUSHI); // Make a jump to next global statement
-        lastjump = ins_add_val(heap_add_int(0));
         ins_add(JUMP);
+        lastjump = ins_add_val(0);
     }
     else if(match(TOKEN_CONTAINER)){
         containerStatement(c);
@@ -777,23 +763,22 @@ void parse(TokenList *list){
     head = list;
     //heap_init();
     Compiler *comp = initCompiler(NULL, 0, BLOCK_NONE);
-    ins_add(PUSHI);
-    lastjump = ins_add_val(heap_add_int(0)); // The first location will tell the address of first instruction
+    ins_add(JUMP); // Jump to the first global instruction
+    lastjump = ins_add_val(0); // The first location will tell the address of first instruction
     // to be executed, which will be either a global 'Set'/'Array',
     // or the routine 'Main'
-    ins_add(JUMP); // Jump to the first global instruction
     while(!match(TOKEN_EOF)){
         part(comp);
     }
     routine_get(str_insert("Main")); // Check if Main is defined
 
     uint32_t callMain = ins_add(PUSHI); // Add an implicit call to Main()
-    ins_add_val(heap_add_int(0));
+    ins_add_val(0);
     ins_add(PUSHID);
-    ins_add_val(heap_add_identifer(str_insert("Main")));
+    ins_add_val(str_insert("Main"));
     ins_add(CALL);
 
-    ins_set_val(lastjump, heap_add_int(callMain)); // After all globals statements are
+    ins_set_val(lastjump, callMain); // After all globals statements are
     // executed, jump to the routine 'Main'
     ins_add(HALT); // After Main returns, halt the machine
 

@@ -27,7 +27,7 @@ void err(const char* msg, ...){
     printf(ANSI_COLOR_RED "\n[Error] ");
     va_list args;
     va_start(args, msg);
-    
+    vprintf(msg,args);    
     printf(ANSI_COLOR_RESET);
 }
 

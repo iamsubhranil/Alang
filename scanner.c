@@ -78,7 +78,7 @@ static void fstack_push(char *value){
             return;
         i++;
     }
-    fileStack = (char **)reallocate(fileStack, sizeof(char) * ++fsp);
+    fileStack = (char **)reallocate(fileStack, sizeof(char *) * ++fsp);
     fileStack[fsp - 1] = value;
 }
 
@@ -247,7 +247,7 @@ static int skipEmptyLine(){
         scanner.line++;
         return 1;
     }
-    else
+    else{
         if(peek() == '/' && peekNext() == '/'){
             while(!isAtEnd() && peek() != '\n')
                 advance();

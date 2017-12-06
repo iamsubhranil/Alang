@@ -4,12 +4,14 @@
 #include <stdint.h>
 
 uint32_t ins_add(uint8_t ins);
-uint32_t ins_add_val(uint64_t d);
+uint32_t ins_add_val(uint32_t d); // It will be either of a 32 bit heap address of a 32 bit integer
+uint32_t ins_add_double(double d);
 
 void ins_set(uint32_t mem, uint8_t ins);
-void ins_set_val(uint32_t mem, uint64_t d);
+void ins_set_val(uint32_t mem, uint32_t d); // Same reason
 
-uint64_t ins_get_val(uint32_t mem);
+uint32_t ins_get_val(uint32_t mem);
+double ins_get_double(uint32_t mem);
 uint8_t ins_get(uint32_t mem);
 
 uint32_t ip_get();
@@ -37,6 +39,7 @@ FileInfo fileInfo_of(uint32_t line);
 #define PUSHS 0x03 // Float => push constant
 #define PUSHID 0x04 // Logical => push 0/1
 #define PUSHN 0x05 // Null => pushN
+//#define PUSHU 0x28 // Unsigned => push unsigned int
 // Arithmetic
 #define ADD 0x06
 #define SUB 0x07
