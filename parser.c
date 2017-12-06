@@ -251,13 +251,13 @@ static void primary(){
         memfree(val);
     }
     else if(peek() == TOKEN_STRING){
-        uint64_t st = str_insert(stringOf(advance()));
+        uint32_t st = str_insert(stringOf(advance()));
         ins_add(PUSHS);
         //    printf("\nPushing string %lu", st);
         ins_add_val(heap_add_str(st));
     }
     else if(peek() == TOKEN_IDENTIFIER){
-        uint64_t st = str_insert(stringOf(advance()));
+        uint32_t st = str_insert(stringOf(advance()));
         if(match(TOKEN_LEFT_SQUARE)){
             expression(); // index
             ins_add(PUSHID);
@@ -392,7 +392,7 @@ static void ifStatement(Compiler *compiler){
     consume(TOKEN_RIGHT_PAREN, "Conditional must end with a closing brace[')'] after If!");
     consume(TOKEN_NEWLINE, "Expected newline after If!");
     ins_add(PUSHI);
-    uint64_t jmp = ins_add_val(heap_add_int(0));
+    uint32_t jmp = ins_add_val(heap_add_int(0));
     ins_add(JUMP_IF_FALSE);
     if(getNextIndent() == compiler->indentLevel){
         consumeIndent(compiler->indentLevel);
@@ -533,7 +533,7 @@ static void setStatement(){
             ins_add(MEMSET);
         else if(type == 2)
             ins_add(ARRAYWRITE);
-        else if(type == 3)
+        else
             ins_add(ARRAYSET);
 
     } while(match(TOKEN_COMMA));
@@ -785,7 +785,7 @@ void parse(TokenList *list){
     }
     routine_get(str_insert("Main")); // Check if Main is defined
 
-    uint64_t callMain = ins_add(PUSHI); // Add an implicit call to Main()
+    uint32_t callMain = ins_add(PUSHI); // Add an implicit call to Main()
     ins_add_val(heap_add_int(0));
     ins_add(PUSHID);
     ins_add_val(heap_add_identifer(str_insert("Main")));

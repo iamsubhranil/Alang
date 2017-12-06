@@ -58,7 +58,7 @@ void data_free(Data d){
     }
     else if(isarray(d)){
         uint32_t i = 0;
-        Data *arr = (Data *)d.arr;
+        Data *arr = d.arr;
         while(i < d.numElements){
             data_free(arr[i]);
             i++;
