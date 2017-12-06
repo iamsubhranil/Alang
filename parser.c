@@ -212,7 +212,7 @@ static uint8_t insFromToken(Token t){
     }
 }
 
-static void getCall(){
+static uint32_t getCall(){
     uint32_t argCount = 0;
     if(!match(TOKEN_RIGHT_PAREN)){
         do{
@@ -221,8 +221,7 @@ static void getCall(){
         } while(match(TOKEN_COMMA));
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after expression!");
     }
-    ins_add(PUSHI);
-    ins_add_val(argCount);
+    return argCount;
 }
 
 static void primary(){
@@ -265,10 +264,11 @@ static void primary(){
             consume(TOKEN_RIGHT_SQUARE, "Expected ']' after array index!");
         }
         else if(match(TOKEN_LEFT_PAREN)){
-            getCall();
-            ins_add(PUSHID);
-            ins_add_val(st);
+            uint32_t arity = getCall();
+            //ins_add(PUSHID);
             ins_add(CALL);
+            ins_add_val(st);
+            ins_add_val(arity);
         }
         else{
             ins_add(PUSHID);
@@ -772,11 +772,9 @@ void parse(TokenList *list){
     }
     routine_get(str_insert("Main")); // Check if Main is defined
 
-    uint32_t callMain = ins_add(PUSHI); // Add an implicit call to Main()
-    ins_add_val(0);
-    ins_add(PUSHID);
+    uint32_t callMain = ins_add(CALL);
     ins_add_val(str_insert("Main"));
-    ins_add(CALL);
+    ins_add_val(0);
 
     ins_set_val(lastjump, callMain); // After all globals statements are
     // executed, jump to the routine 'Main'

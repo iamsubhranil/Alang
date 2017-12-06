@@ -212,7 +212,10 @@ void ins_print(){
                 i+=3;
                 break;
             case CALL:
-                printf("call");
+                printf("call %s", str_get(ins_get_val(++i)));
+                i += 3;
+                printf(" arity=%" PRIu32, ins_get_val(++i));
+                i += 3;
                 break;
             case RETURN:
                 printf("return");
@@ -885,9 +888,12 @@ DO_JUMP_IF_FALSE:
 DO_CALL:
          {
              uint32_t numArg, i = 1;
-             Data r;
-             dpop(r); dpopi(numArg);
-             Routine2 routine = routine_get(tstrk(r));
+             //Data r;
+             //dpop(r); dpopi(numArg);
+             Routine2 routine = routine_get(ins_get_val(++ip));
+             ip += 3;
+             numArg = ins_get_val(++ip);
+             ip += 3;
              if(routine.arity != numArg){
                  rerr("Argument count mismatch [Expected %" PRIu32 " Recieved %" PRIu32 "!", routine.arity, numArg);
              }
