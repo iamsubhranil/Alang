@@ -77,19 +77,23 @@ void ins_set_val(uint32_t mem, uint32_t store){
 
 inline uint32_t ins_get_val(uint32_t mem){
     uint32_t ret = instructions[mem];
-    uint8_t i = 1;
-    //    printf("[Bytes : 0x%x", instructions[mem]);
-    while(i < 4){
-        //        printf("%x", instructions[mem + i]);
-        ret = (ret << 8) | instructions[mem + i++];
-    }
-    //    printf(" , Returing %g from %lu] ", (double)ret, mem);
+    ret = (ret << 8) | instructions[mem + 1];
+    ret = (ret << 8) | instructions[mem + 2];
+    ret = (ret << 8) | instructions[mem + 3];
     return ret;
 }
 
 inline double ins_get_double(uint32_t mem){
     double ret;
-    memcpy(&ret, &instructions[mem], sizeof(double));
+    uint8_t *bytes = (uint8_t *)&ret;
+    bytes[0] = instructions[mem];
+    bytes[1] = instructions[mem + 1];
+    bytes[2] = instructions[mem + 2];
+    bytes[3] = instructions[mem + 3];
+    bytes[4] = instructions[mem + 4];
+    bytes[5] = instructions[mem + 5];
+    bytes[6] = instructions[mem + 6];
+    bytes[7] = instructions[mem + 7];
     return ret;
 }
 
