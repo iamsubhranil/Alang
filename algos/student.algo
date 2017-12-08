@@ -1,0 +1,107 @@
+Container Student(n, r, m1, m2)
+    Set name = n
+    Set roll = r
+    Set mar1 = m1
+    Set mar2 = m2
+EndContainer
+
+Array students[20]
+Set n = 0, i = 1
+
+Routine Entry(x)
+    Print "\nEnter details of student ", i, " : "
+    Print "\nRoll : "
+    Input roll:Int
+    Print "\nName : "
+    Input name
+    Print "\nMarks in subject 1 : "
+    Input m1:Float
+    Print "\nMarks in subject 2 : "
+    Input m2:Float
+    Set students[x] = Student(name, roll, m1, m2)
+EndRoutine
+
+Routine Display(roll)
+    Set i = 1
+    While(i <= n)
+        If(students[i].roll == roll)
+            Print "\nDetails of student"
+            Print "\n=================="
+            Print "\nRoll : ", students[i].roll
+            Print "\nName : ", students[i].name
+            Print "\nMarks in =>"
+            Print "\nSubject 1 : ", students[i].mar1
+            Print "\nSubject 2 : ", students[i].mar2
+            Return
+        EndIf
+        Set i = i + 1
+    EndWhile
+    Print "\nRecord does not exist for roll ", roll
+EndRoutine
+
+Routine Average()
+    Set i = 1, t1 = 0.0, t2 = 0.0, avg1 = 0.0, avg2 = 0.0
+    While(i <= n)
+        Set t1 = t1 + students[i].mar1
+        Set t2 = t2 + students[i].mar2
+        Set i = i + 1
+    EndWhile
+    Set avg1 = t1/n, avg2 = t2/n
+    Print "\nAverage marks in subject 1 : ", avg1
+    Print "\nAverage marks in subject 2 : ", avg2
+EndRoutine
+
+Routine Highest()
+    Set max1 = 0, max2 = 0, c1 = 0, c2 = 0
+    Set i = 1
+    While(i <= n)
+        If(students[i].mar1 > max1)
+            Set max1 = students[i].mar1
+            Set c1 = i
+        EndIf
+        If(students[i].mar2 > max2)
+            Set max2 = students[i].mar2
+            Set c2 = i
+        EndIf
+        Set i = i + 1
+    EndWhile
+    If(c1 == c2)
+        Print "\nName : ", students[c1].name
+        Print "\nRoll : ", students[c1].roll
+        Print "\nHas scored highest marks in both subjects!"
+    Else
+        Print "\nDetails of students who scored the highest marks"
+        Print "\nName : ", students[c1].name
+        Print "\nRoll : ", students[c1].roll
+        Print "\nScored highest marks in subject 1"
+        Print "\nName : ", students[c2].name
+        Print "\nRoll : ", students[c2].roll
+        Print "\nScored highest marks in subject 2"
+    EndIf
+EndRoutine
+
+Routine Main()
+    Print "\nEnter number of students : "
+    Input n:Int
+    While(i <= n)
+        Call Entry(i)
+        Set i = i + 1
+    EndWhile
+    Set ch = 1
+    While(ch != 4)
+        Print "\n1. Details of student\n2. Average marks\n3. Highest marks\n4. Exit"
+        Print "\nEnter your choice : "
+        Input ch:Int
+        If(ch == 1)
+            Print "\nEnter the roll no : "
+            Input roll:Int
+            Call Display(roll)
+        Else If(ch == 2)
+            Call Average()
+        Else If(ch == 3)
+            Call Highest()
+        Else
+            Print "\nWrong choice!"
+        EndIf
+    EndWhile
+EndRoutine
