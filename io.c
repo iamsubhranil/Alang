@@ -22,8 +22,23 @@ static char* readString(){
     return ret;
 }
 
+static char* readStringAll(){
+    char *ret = NULL;
+    char c = getchar();
+    int i = 0;
+    while(c != '\n'){
+        i++;
+        ret = (char *)reallocate(ret, sizeof(char)*i);
+        ret[i - 1] = c;
+        c = getchar();
+    }
+    ret = (char *)reallocate(ret, sizeof(char) * (i + 1));
+    ret[i] = '\0';
+    return ret;
+}
+
 Data getString(){
-    char *s = readString();
+    char *s = readStringAll();
     return new_str(s);
 }
 

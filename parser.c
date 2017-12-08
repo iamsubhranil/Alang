@@ -446,12 +446,11 @@ static void whileStatement(Compiler* compiler){
     consume(TOKEN_ENDWHILE, "Expected EndWhile after while on same indent!");
     consume(TOKEN_NEWLINE, "Expected newline after EndWhile!");
     //dbg("While statement parsed");
-    if(breakCount > 0)
+    while(breakCount > 0)
         ins_set_val(breakAddresses[--breakCount], ip_get());
-    if(breakCount == 0){
-        memfree(breakAddresses);
-        breakAddresses = NULL;
-    }
+    memfree(breakAddresses);
+    breakAddresses = NULL;
+    breakCount = 0;
     inWhile--;
 }
 
@@ -490,8 +489,7 @@ static void breakStatement(){
     else{
         ins_add(JUMP);
         breakAddresses = (uint32_t *)reallocate(breakAddresses, 32*++breakCount);
-        uint32_t ba = ins_add_val(0);
-        breakAddresses[breakCount - 1] = ba;
+        breakAddresses[breakCount - 1] = ins_add_val(0);
     }
     consume(TOKEN_NEWLINE, "Expected newline after Break!");
     //debug("Break statement parsed");

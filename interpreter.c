@@ -962,8 +962,8 @@ DO_ARRAY:
                  }
 
                  if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
-                     rerr("String index out of range : %" PRId32, tint(index));
-
+                      rerr("String index out of range for '%s' : %" PRId32 " [Expected <= %" PRIu32 "]", str_get(tstrk(arr)),
+                              tint(index), str_len(tstrk(arr)));
                  }
 
                  if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
@@ -1072,7 +1072,7 @@ DO_ARRAYREF:
                          }
                          if(isstr(arr)){
                              if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
-                                 rerr("String index out of range : %" PRId32, tint(index));
+                                 rerr("String index out of range : %" PRId32 " [Expected <= %" PRIu32 "]", tint(index), str_len(tstrk(arr)));
 
                              }
 
