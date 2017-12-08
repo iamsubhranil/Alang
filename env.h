@@ -56,6 +56,9 @@ static inline void env_implicit_put(uint32_t key, Data value, Environment *env){
     if(isins(value)){
         tins(value)->refCount++;
     }
+    else if(isstr(value))
+        str_ref_incr(tstrk(value));
+
     if(top == NULL)
         env->records = new_record(key, value);
     else{
@@ -79,6 +82,9 @@ static void env_put(uint32_t key, Data value, Environment *env){
         //        printf(debug("[Env:Put] Incremented refcount of [%s#%lu] to %lu"),
         //                str_get(tins(value)->container_key), tins(value)->id, tins(value)->refCount);
     }
+    else if(isstr(value))
+        str_ref_incr(tstrk(value));
+
     while(top!=NULL){
         if(top->key == key){
             if(isarray(top->data)){
