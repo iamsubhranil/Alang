@@ -1,0 +1,50 @@
+Routine Opening(x)
+    If(x == "]")
+        Return "["
+    Else If(x == "}")
+        Return "{"
+    Else If(x == ")")
+        Return "("
+    EndIf
+EndRoutine
+
+Routine Closing(x)
+    If(x == "[")
+        Return "]"
+    Else If(x == "{")
+        Return "}"
+    Else If(x == "(")
+        Return ")"
+    EndIf
+EndRoutine
+
+Routine Main()
+    Print "Enter the expresion : "
+    Input expr
+    Set i = 1, sp = 1
+    Array stack[30]
+    While(expr[i] != Null)
+        If(expr[i] == "(" Or expr[i] == "{" Or expr[i] == "[")
+            Set stack[sp] = expr[i]
+            Set sp = sp + 1
+        Else If(expr[i] == ")" Or expr[i] == "}" Or expr[i] == "]")
+            If(sp == 1)
+                Print "\nUnexpected closing brace : '", expr[i], "'"
+                Set sp = 2
+                Break
+            Else If(stack[sp - 1] != Opening(expr[i]))
+                Print "\nExpected closing : '", Closing(stack[sp - 1]), "'"
+                Print "\nReceived : '", expr[i], "'"
+                Break
+            Else
+                Set sp = sp - 1
+            EndIf
+        EndIf
+        Set  i = i + 1
+    EndWhile
+    If(sp == 1)
+        Print "\nGiven expression is balanced in terms of paranthesis!"
+    Else
+        Print "\nGiven expression is not balanced in terms of paranthesis!"
+    EndIf
+EndRoutine
