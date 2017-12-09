@@ -75,7 +75,7 @@ void ins_set_val(uint32_t mem, uint32_t store){
     }
 }
 
-inline uint32_t ins_get_val(uint32_t mem){
+static inline uint32_t ins_get_val(uint32_t mem){
     uint32_t ret = instructions[mem];
     ret = (ret << 8) | instructions[mem + 1];
     ret = (ret << 8) | instructions[mem + 2];
@@ -83,7 +83,7 @@ inline uint32_t ins_get_val(uint32_t mem){
     return ret;
 }
 
-inline double ins_get_double(uint32_t mem){
+static inline double ins_get_double(uint32_t mem){
     double ret;
     uint8_t *bytes = (uint8_t *)&ret;
     bytes[0] = instructions[mem];

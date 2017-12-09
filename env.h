@@ -20,6 +20,8 @@ static inline void env_implicit_put(uint32_t key, Data value, Environment *env);
 static inline Data env_get(uint32_t key, Environment *env, uint8_t beSilent);
 static inline void env_free(Environment env);
 
+static inline void data_free(Data d);
+
 #include "allocator.h"
 #include "display.h"
 #include "strings.h"
@@ -123,5 +125,37 @@ static inline void env_free(Environment env){
         data_free(top->data);
         memfree(top);
         top = bak;
+    }
+}
+
+static inline void data_free(Data d){
+    //if(d.refCount > 0){
+    //    d.refCount--;
+    //    return;
+    //}
+    if(isstr(d)){
+        str_ref_decr(d.svalue);
+    }
+    else if(isins(d)){
+        tins(d)->refCount--;
+        if(tins(d)->refCount > 0){
+          //  printf(debug("[DataFree] Refcount of [%s#%lu] is %lu"), str_get(tins(d)->container_key),
+          //          tins(d)->id, tins(d)->refCount);
+        }
+        else{
+          //  printf(debug("[DataFree] Refcount of [%s#%lu] is %lu"), str_get(tins(d)->container_key),
+          //          tins(d)->id, tins(d)->refCount);
+            env_free(*tenv(d));
+            memfree(tenv(d));
+            memfree(tins(d));
+        }
+    }
+    else if(isarray(d)){
+        uint32_t i = 0;
+        Data *arr = d.arr;
+        while(i < d.numElements){
+            data_free(arr[i]);
+            i++;
+        }
     }
 }
