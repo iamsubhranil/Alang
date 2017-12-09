@@ -100,7 +100,7 @@ Routine Main()
             Call Average()
         Else If(ch == 3)
             Call Highest()
-        Else
+        Else If(ch!=4)
             Print "\nWrong choice!"
         EndIf
     EndWhile
