@@ -138,13 +138,7 @@ static inline void data_free(Data d){
     }
     else if(isins(d)){
         tins(d)->refCount--;
-        if(tins(d)->refCount > 0){
-          //  printf(debug("[DataFree] Refcount of [%s#%lu] is %lu"), str_get(tins(d)->container_key),
-          //          tins(d)->id, tins(d)->refCount);
-        }
-        else{
-          //  printf(debug("[DataFree] Refcount of [%s#%lu] is %lu"), str_get(tins(d)->container_key),
-          //          tins(d)->id, tins(d)->refCount);
+        if(tins(d)->refCount < 1){
             env_free(*tenv(d));
             memfree(tenv(d));
             memfree(tins(d));
