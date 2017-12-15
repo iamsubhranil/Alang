@@ -8,5 +8,9 @@ Routine Fibonacci(x)
 EndRoutine
 
 Routine Main()
-    Print "Fibonacci(28) : ", Fibonacci(28)
+    Print "Fibonacci(28) : "
+    Set t = Clock()
+    Print Fibonacci(28.0)
+    Set t = Clock() - t
+    Print "\nTook ", (t*1.0)/ClocksPerSecond, "s"
 EndRoutine

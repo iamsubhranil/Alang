@@ -10,8 +10,8 @@ uint32_t ins_add_double(double d);
 void ins_set(uint32_t mem, uint8_t ins);
 void ins_set_val(uint32_t mem, uint32_t d); // Same reason
 
-uint32_t ins_get_val(uint32_t mem);
-double ins_get_double(uint32_t mem);
+//uint32_t ins_get_val(uint32_t mem);
+//double ins_get_double(uint32_t mem);
 uint8_t ins_get(uint32_t mem);
 
 uint32_t ip_get();
@@ -81,4 +81,9 @@ FileInfo fileInfo_of(uint32_t line);
 #define ARRAYREF 0x25
 #define ARRAYSET 0x26
 #define ARRAYWRITE 0x27
+// Native Calls
+#define CALLNATIVE 0x28
+// Implicit Set
+#define SETI 0x29
+
 #endif

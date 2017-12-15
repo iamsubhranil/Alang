@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "strings.h"
+#include "allocator.h"
 
 typedef enum{
     INT,
@@ -30,7 +31,7 @@ typedef struct Data{
         Instance *pvalue;
         struct{
             struct Data *arr;
-            int32_t numElements;
+            uint32_t numElements;
         };
         double cvalue;
         int32_t ivalue;
@@ -69,4 +70,5 @@ typedef struct Data{
 #define new_none() ((Data){0, NONE, {NULL}})
 Data new_array(uint32_t size);
 Data new_ins(void *env, uint32_t name);
-void data_free(Data d);
+
+//static inline void data_free(Data d);

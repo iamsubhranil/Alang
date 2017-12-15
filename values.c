@@ -33,35 +33,3 @@ Data new_ins(void *env, uint32_t name){
 //    printf(debug("[NewIns] Created [%s#%lu]"), str_get(name), (id - 1));
     return d;
 }
-
-void data_free(Data d){
-    //if(d.refCount > 0){
-    //    d.refCount--;
-    //    return;
-    //}
-    if(isstr(d)){
-        str_ref_decr(d.svalue);
-    }
-    else if(isins(d)){
-        tins(d)->refCount--;
-        if(tins(d)->refCount > 0){
-          //  printf(debug("[DataFree] Refcount of [%s#%lu] is %lu"), str_get(tins(d)->container_key),
-          //          tins(d)->id, tins(d)->refCount);
-        }
-        else{
-          //  printf(debug("[DataFree] Refcount of [%s#%lu] is %lu"), str_get(tins(d)->container_key),
-          //          tins(d)->id, tins(d)->refCount);
-            env_free(*tenv(d));
-            memfree(tenv(d));
-            memfree(tins(d));
-        }
-    }
-    else if(isarray(d)){
-        uint32_t i = 0;
-        Data *arr = d.arr;
-        while(i < d.numElements){
-            data_free(arr[i]);
-            i++;
-        }
-    }
-}

@@ -168,11 +168,14 @@ static void define_cons(Environment *env){
     env_put(str_insert("ClocksPerSecond"), new_int(CLOCKS_PER_SEC), env);
 }
 
-void register_native(Environment *env){
-    //double tm = clock();
+void register_native_routines(){
     routine_add(getSingleArgRoutine(str_insert("LoadLibrary")));
     routine_add(getSingleArgRoutine(str_insert("UnloadLibrary")));
     routine_add(getZeroArgRoutine(str_insert("Clock")));
+}
+
+void register_native(Environment *env){
+    //double tm = clock();
     define_cons(env);
     load_library(NULL, str_insert("./liblalang.so"));
     //tm = (clock() - tm)/CLOCKS_PER_SEC;

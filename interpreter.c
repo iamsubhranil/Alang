@@ -75,21 +75,25 @@ void ins_set_val(uint32_t mem, uint32_t store){
     }
 }
 
-inline uint32_t ins_get_val(uint32_t mem){
+static inline uint32_t ins_get_val(uint32_t mem){
     uint32_t ret = instructions[mem];
-    uint8_t i = 1;
-    //    printf("[Bytes : 0x%x", instructions[mem]);
-    while(i < 4){
-        //        printf("%x", instructions[mem + i]);
-        ret = (ret << 8) | instructions[mem + i++];
-    }
-    //    printf(" , Returing %g from %lu] ", (double)ret, mem);
+    ret = (ret << 8) | instructions[mem + 1];
+    ret = (ret << 8) | instructions[mem + 2];
+    ret = (ret << 8) | instructions[mem + 3];
     return ret;
 }
 
-inline double ins_get_double(uint32_t mem){
+static inline double ins_get_double(uint32_t mem){
     double ret;
-    memcpy(&ret, &instructions[mem], sizeof(double));
+    uint8_t *bytes = (uint8_t *)&ret;
+    bytes[0] = instructions[mem];
+    bytes[1] = instructions[mem + 1];
+    bytes[2] = instructions[mem + 2];
+    bytes[3] = instructions[mem + 3];
+    bytes[4] = instructions[mem + 4];
+    bytes[5] = instructions[mem + 5];
+    bytes[6] = instructions[mem + 6];
+    bytes[7] = instructions[mem + 7];
     return ret;
 }
 
@@ -184,6 +188,10 @@ void ins_print(){
             case SET:
                 printf("set");
                 break;
+            case SETI:
+                printf("seti %s", str_get(ins_get_val(++i)));
+                i += 3;
+                break;
             case INPUTI:
                 printf("inputi");
                 break;
@@ -212,7 +220,13 @@ void ins_print(){
                 i+=3;
                 break;
             case CALL:
-                printf("call %s", str_get(ins_get_val(++i)));
+                printf("call %" PRIu32, ins_get_val(++i));
+                i += 3;
+                printf(" arity=%" PRIu32, ins_get_val(++i));
+                i += 3;
+                break;
+            case CALLNATIVE:
+                printf("calln %s", str_get(ins_get_val(++i)));
                 i += 3;
                 printf(" arity=%" PRIu32, ins_get_val(++i));
                 i += 3;
@@ -378,6 +392,12 @@ static void printOpcode(uint8_t opcode){
         case ARRAYWRITE:
             printf("awrite");
             break;
+        case SETI:
+            printf("seti");
+            break;
+        case CALLNATIVE:
+            printf("calln");
+            break;
         default:
             rerr("Unknown opcode 0x%x", opcode);
             break;
@@ -396,13 +416,13 @@ static void printOpcode(uint8_t opcode){
 
 static uint8_t run = 1;
 static clock_t tmStart, tmEnd;
-static uint64_t insExec = 0, counter[40] = {0};
+static uint64_t insExec = 0, counter[42] = {0};
 
 void print_stat(){
     uint8_t i = 0;
     printf("\nInstruction    Execution Count");
     printf("\n===========    ===============");
-    while(i < 40){
+    while(i < 42){
         if(counter[i] > 0){
             printf("\n");
             printOpcode(i);
@@ -425,6 +445,7 @@ void stop(){
     str_free();
     dStackFree();
     memfree(instructions);
+    cs_free();
     exit(0);
 }
 
@@ -472,6 +493,8 @@ void interpret(){
     if(init == 0)
         init_interpreter();
 
+    cs_init();
+
     CallFrame callFrame = cf_new();
     callFrame.env = env_new(NULL);
     callFrame.returnAddress = 0;
@@ -484,7 +507,8 @@ void interpret(){
         &&DO_SET, &&DO_INPUTI, &&DO_INPUTS, &&DO_INPUTF, &&DO_PRINT,
         &&DO_HALT, &&DO_JUMP, &&DO_JUMP_IF_TRUE, &&DO_JUMP_IF_FALSE, &&DO_CALL, &&DO_RETURN,
         &&DO_ARRAY, &&DO_MEMREF, &&DO_MAKE_ARRAY, &&DO_NOOP,
-        &&DO_NEW_CONTAINER, &&DO_MEMSET, &&DO_ARRAYREF, &&DO_ARRAYSET, &&DO_ARRAYWRITE};
+        &&DO_NEW_CONTAINER, &&DO_MEMSET, &&DO_ARRAYREF, &&DO_ARRAYSET, &&DO_ARRAYWRITE,
+        &&DO_CALLNATIVE, &&DO_SETI};
 
 #define DISPATCH() {insExec++; \
     ++counter[instructions[ip+1]]; \
@@ -505,7 +529,7 @@ DO_PUSHI:
         ip += 3;
         DISPATCH();
 DO_PUSHL:
-        dpushl(ins_get_val(++ip));
+        dpushl((int32_t)ins_get_val(++ip));
         ip += 3;
         DISPATCH();
 DO_PUSHS:{
@@ -760,7 +784,14 @@ DO_SET:
 
              rerr("Bad assignment target!");
 
-
+         }
+DO_SETI:
+         {
+             Data value;
+             dpop(value);
+             env_implicit_put(ins_get_val(++ip), value, &callFrame.env);
+             ip += 3;
+             DISPATCH();
          }
 DO_INPUTI:
          {
@@ -875,7 +906,7 @@ DO_JUMP_IF_FALSE:
                      ip = ja;
                      DISPATCH_WINC();
                  }
-                    ip += 3;
+                 ip += 3;
                  //        printf("\nCond is true!");
                  DISPATCH();
 
@@ -887,25 +918,53 @@ DO_JUMP_IF_FALSE:
          }
 DO_CALL:
          {
-             uint32_t numArg, i = 1;
-             //Data r;
-             //dpop(r); dpopi(numArg);
-             Routine2 routine = routine_get(ins_get_val(++ip));
+             uint32_t numArg, i = 1, ja;
+             ja = ins_get_val(++ip);
              ip += 3;
              numArg = ins_get_val(++ip);
              ip += 3;
-             if(routine.arity != numArg){
-                 rerr("Argument count mismatch [Expected %" PRIu32 " Recieved %" PRIu32 "!", routine.arity, numArg);
-             }
+
              cf_push(callFrame);
              CallFrame nf = cf_new();
              nf.env = env_new(cf_root_env());
              nf.returnAddress = ip + 1;
-             if(routine.arity > 0){
+
+             if(numArg > 0){
                  i = 0;
-                 while(i < routine.arity){
-                     //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
-                     Data d; dpopv(d, callFrame);
+                 Data data[numArg];
+                 while(i < numArg){
+                     //        //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
+                     dpopv(data[i], callFrame);
+                     //        env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
+                     i++;
+                 }
+
+                 while(i > 0)
+                     dpush(data[--i]);
+             }
+
+             callFrame = nf;
+
+             ip = ja;
+             DISPATCH_WINC();
+         }
+DO_CALLNATIVE:
+         {
+             uint32_t name = ins_get_val(++ip), i;
+             ip += 3;
+             uint32_t numArg = ins_get_val(++ip);
+             ip += 3;
+             cf_push(callFrame);
+             CallFrame nf = cf_new();
+             nf.env = env_new(cf_root_env());
+             nf.returnAddress = ip + 1;
+
+             Routine2 routine = routine_get(name);
+
+             if(numArg > 0){
+                 i = 0;
+                 while(i < numArg){
+                     Data d; dpopv(d, callFrame); dpush(d);
                      env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
                      i++;
                  }
@@ -913,13 +972,8 @@ DO_CALL:
 
              callFrame = nf;
 
-             if(routine.isNative == 1){
-                 dpush(handle_native(routine.name, &nf.env));
-                 goto DO_RETURN;
-             }
-
-             ip = routine.startAddress;
-             DISPATCH_WINC();
+             dpush(handle_native(routine.name, &nf.env));
+             goto DO_RETURN;
          }
 DO_RETURN:
          {
@@ -931,14 +985,10 @@ DO_RETURN:
                  tins(dpeek())->refCount++; 
 
              ip = callFrame.returnAddress;
-             if(ip == 0){
-                 //    printf(debug("No parent frame to return!"));
-
-             }
-             //   printf(debug("Returning to %lu"), ip);
+             //dbg("Returning to %lu", ip);
              cf_free(callFrame);
              callFrame = cf_pop();
-             //    printf("\nReStoring address : %lu", callFrame.returnAddress);
+             //dbg("ReStoring address : %lu", callFrame.returnAddress);
              DISPATCH_WINC();
          }
 DO_ARRAY:

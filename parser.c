@@ -7,17 +7,27 @@
 #include "display.h"
 #include "parser.h"
 #include "allocator.h"
-
 #include "values.h"
 #include "strings.h"
 #include "interpreter.h"
 #include "routines.h"
+#include "native.h"
 
 static int inWhile = 0, inContainer = 0;
 static int he = 0;
 static uint32_t *breakAddresses, breakCount = 0;
 static TokenList *head = NULL;
 static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1,NULL};
+
+typedef struct{
+    uint32_t routineName;
+    uint32_t arity;
+    uint32_t callAddress;
+    Token t;
+} Call;
+
+static Call *calls = NULL;
+static uint32_t callPointer = 0;
 
 typedef enum{
     BLOCK_IF,
@@ -264,11 +274,18 @@ static void primary(){
             consume(TOKEN_RIGHT_SQUARE, "Expected ']' after array index!");
         }
         else if(match(TOKEN_LEFT_PAREN)){
+            calls = (Call *)reallocate(calls, sizeof(Call) * ++callPointer);
+            calls[callPointer - 1].t = presentToken();
+            uint32_t tmp = callPointer;
             uint32_t arity = getCall();
-            //ins_add(PUSHID);
             ins_add(CALL);
-            ins_add_val(st);
+            
+            calls[tmp - 1].callAddress = ins_add_val(0);
+            
             ins_add_val(arity);
+            
+            calls[tmp - 1].arity = arity;
+            calls[tmp - 1].routineName = st;
         }
         else{
             ins_add(PUSHID);
@@ -514,7 +531,7 @@ static void setStatement(){
         }
         consume(TOKEN_EQUAL, "Expected '=' after identifer!");
         expression();
-        
+
         if(type == 0)
             ins_add(SET);
         else if(type == 1)
@@ -609,19 +626,40 @@ static void routineStatement(Compiler *compiler){
         routine.isNative = 1;
 
     routine.name = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!")));
+
+    uint32_t *args = NULL, argp = 0;
+
     consume(TOKEN_LEFT_PAREN, "Expected '(' after routine declaration!");
     if(peek() != TOKEN_RIGHT_PAREN){
         do{
-            routine_add_arg(&routine, stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
+            args = (uint32_t *)reallocate(args, sizeof(uint32_t) * ++argp);
+            args[argp - 1] = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
+            if(routine.isNative) 
+                routine_add_arg(&routine, args[argp - 1]);
+            else
+                routine.arity++;
         } while(match(TOKEN_COMMA));
+
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
+
+        if(!routine.isNative){
+            while(argp > 0){
+                if(routine.startAddress == 0)
+                    routine.startAddress = ins_add(SETI);
+                else
+                    ins_add(SETI);
+                ins_add_val(args[--argp]);
+            }
+        }
+        memfree(args);
     }
     else
         advance();
     consume(TOKEN_NEWLINE, "Expected newline after routine declaration!");
 
     if(routine.isNative == 0){
-        routine.startAddress = ip_get();
+        if(routine.startAddress == 0)
+            routine.startAddress = ip_get();
         blockStatement(compiler, BLOCK_FUNC);
         if(ins_last() != RETURN){
             ins_add(PUSHN);
@@ -662,17 +700,36 @@ static void containerStatement(Compiler *compiler){
     routine.isNative = 0;
 
     routine.name = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected container name!")));
+
+    uint32_t *args = NULL, argp = 0;
+
     consume(TOKEN_LEFT_PAREN, "Expected '(' after container declaration!");
     if(peek() != TOKEN_RIGHT_PAREN){
         do{
-            routine_add_arg(&routine, stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
+            args = (uint32_t *)reallocate(args, sizeof(uint32_t) * ++argp);
+            args[argp - 1] = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
+            
+            routine_add_arg(&routine, args[argp - 1]);
         } while(match(TOKEN_COMMA));
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
+        
+        while(argp > 0){
+            if(routine.startAddress == 0)
+                routine.startAddress = ins_add(SETI);
+            else
+                ins_add(SETI);
+            ins_add_val(args[--argp]);
+        }
+
+        memfree(args);
     }
     else
         advance();
     consume(TOKEN_NEWLINE, "Expected newline after container declaration!");
-    routine.startAddress = ip_get();
+
+    if(routine.startAddress == 0)
+        routine.startAddress = ip_get();
+
     inContainer++;
     blockStatement(compiler, BLOCK_FUNC);
     ins_add(PUSHID);
@@ -757,6 +814,31 @@ void part(Compiler *c){
     }
 }
 
+static void patchRoutines(){
+    uint32_t i = 0;
+    while(i < callPointer){
+        Call c = calls[i];
+        //dbg("i : %" PRIu32 " calladdr : %" PRIu32 " name : %s arity : %" PRIu32,
+        //        i, c.callAddress, str_get(c.routineName), c.arity);
+        Routine2 r = routine_get(c.routineName);
+        if(r.arity != c.arity){
+            lnerr("Arity mismatch for routine '%s' : Expected %" PRIu32 " Received %" PRIu32,
+                    c.t, str_get(r.name), r.arity, c.arity);
+            he++;
+            i++;
+            continue;
+        }
+        if(r.isNative){
+            ins_set(c.callAddress - 1, CALLNATIVE);
+            ins_set_val(c.callAddress, r.name);
+        }
+        else
+            ins_set_val(c.callAddress, r.startAddress);
+        i++;
+    }
+    memfree(calls);
+}
+
 void parse(TokenList *list){
     head = list;
     //heap_init();
@@ -768,16 +850,19 @@ void parse(TokenList *list){
     while(!match(TOKEN_EOF)){
         part(comp);
     }
-    routine_get(str_insert("Main")); // Check if Main is defined
+    Routine2 r = routine_get(str_insert("Main")); // Check if Main is defined
 
     uint32_t callMain = ins_add(CALL);
-    ins_add_val(str_insert("Main"));
+    ins_add_val(r.startAddress);
     ins_add_val(0);
 
     ins_set_val(lastjump, callMain); // After all globals statements are
     // executed, jump to the routine 'Main'
     ins_add(HALT); // After Main returns, halt the machine
-
+    
+    register_native_routines(); 
+    
+    patchRoutines();
     memfree(comp);
 }
 
