@@ -188,6 +188,10 @@ void ins_print(){
             case SET:
                 printf("set");
                 break;
+            case SETI:
+                printf("seti %s", str_get(ins_get_val(++i)));
+                i += 3;
+                break;
             case INPUTI:
                 printf("inputi");
                 break;
@@ -216,7 +220,13 @@ void ins_print(){
                 i+=3;
                 break;
             case CALL:
-                printf("call %s", str_get(ins_get_val(++i)));
+                printf("call %" PRIu32, ins_get_val(++i));
+                i += 3;
+                printf(" arity=%" PRIu32, ins_get_val(++i));
+                i += 3;
+                break;
+            case CALLNATIVE:
+                printf("calln %s", str_get(ins_get_val(++i)));
                 i += 3;
                 printf(" arity=%" PRIu32, ins_get_val(++i));
                 i += 3;
@@ -382,6 +392,12 @@ static void printOpcode(uint8_t opcode){
         case ARRAYWRITE:
             printf("awrite");
             break;
+        case SETI:
+            printf("seti");
+            break;
+        case CALLNATIVE:
+            printf("calln");
+            break;
         default:
             rerr("Unknown opcode 0x%x", opcode);
             break;
@@ -400,13 +416,13 @@ static void printOpcode(uint8_t opcode){
 
 static uint8_t run = 1;
 static clock_t tmStart, tmEnd;
-static uint64_t insExec = 0, counter[40] = {0};
+static uint64_t insExec = 0, counter[42] = {0};
 
 void print_stat(){
     uint8_t i = 0;
     printf("\nInstruction    Execution Count");
     printf("\n===========    ===============");
-    while(i < 40){
+    while(i < 42){
         if(counter[i] > 0){
             printf("\n");
             printOpcode(i);
@@ -476,7 +492,7 @@ FileInfo fileInfo_of(uint32_t ip){
 void interpret(){
     if(init == 0)
         init_interpreter();
-    
+
     cs_init();
 
     CallFrame callFrame = cf_new();
@@ -491,7 +507,8 @@ void interpret(){
         &&DO_SET, &&DO_INPUTI, &&DO_INPUTS, &&DO_INPUTF, &&DO_PRINT,
         &&DO_HALT, &&DO_JUMP, &&DO_JUMP_IF_TRUE, &&DO_JUMP_IF_FALSE, &&DO_CALL, &&DO_RETURN,
         &&DO_ARRAY, &&DO_MEMREF, &&DO_MAKE_ARRAY, &&DO_NOOP,
-        &&DO_NEW_CONTAINER, &&DO_MEMSET, &&DO_ARRAYREF, &&DO_ARRAYSET, &&DO_ARRAYWRITE};
+        &&DO_NEW_CONTAINER, &&DO_MEMSET, &&DO_ARRAYREF, &&DO_ARRAYSET, &&DO_ARRAYWRITE,
+        &&DO_CALLNATIVE, &&DO_SETI};
 
 #define DISPATCH() {insExec++; \
     ++counter[instructions[ip+1]]; \
@@ -767,7 +784,14 @@ DO_SET:
 
              rerr("Bad assignment target!");
 
-
+         }
+DO_SETI:
+         {
+             Data value;
+             dpop(value);
+             env_implicit_put(ins_get_val(++ip), value, &callFrame.env);
+             ip += 3;
+             DISPATCH();
          }
 DO_INPUTI:
          {
@@ -882,7 +906,7 @@ DO_JUMP_IF_FALSE:
                      ip = ja;
                      DISPATCH_WINC();
                  }
-                    ip += 3;
+                 ip += 3;
                  //        printf("\nCond is true!");
                  DISPATCH();
 
@@ -894,25 +918,53 @@ DO_JUMP_IF_FALSE:
          }
 DO_CALL:
          {
-             uint32_t numArg, i = 1;
-             //Data r;
-             //dpop(r); dpopi(numArg);
-             Routine2 routine = routine_get(ins_get_val(++ip));
+             uint32_t numArg, i = 1, ja;
+             ja = ins_get_val(++ip);
              ip += 3;
              numArg = ins_get_val(++ip);
              ip += 3;
-             if(routine.arity != numArg){
-                 rerr("Argument count mismatch [Expected %" PRIu32 " Recieved %" PRIu32 "!", routine.arity, numArg);
-             }
+
              cf_push(callFrame);
              CallFrame nf = cf_new();
              nf.env = env_new(cf_root_env());
              nf.returnAddress = ip + 1;
-             if(routine.arity > 0){
+
+             if(numArg > 0){
                  i = 0;
-                 while(i < routine.arity){
-                     //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
-                     Data d; dpopv(d, callFrame);
+                 Data data[numArg];
+                 while(i < numArg){
+                     //        //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
+                     dpopv(data[i], callFrame);
+                     //        env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
+                     i++;
+                 }
+
+                 while(i > 0)
+                     dpush(data[--i]);
+             }
+
+             callFrame = nf;
+
+             ip = ja;
+             DISPATCH_WINC();
+         }
+DO_CALLNATIVE:
+         {
+             uint32_t name = ins_get_val(++ip), i;
+             ip += 3;
+             uint32_t numArg = ins_get_val(++ip);
+             ip += 3;
+             cf_push(callFrame);
+             CallFrame nf = cf_new();
+             nf.env = env_new(cf_root_env());
+             nf.returnAddress = ip + 1;
+
+             Routine2 routine = routine_get(name);
+
+             if(numArg > 0){
+                 i = 0;
+                 while(i < numArg){
+                     Data d; dpopv(d, callFrame); dpush(d);
                      env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
                      i++;
                  }
@@ -920,13 +972,8 @@ DO_CALL:
 
              callFrame = nf;
 
-             if(routine.isNative == 1){
-                 dpush(handle_native(routine.name, &nf.env));
-                 goto DO_RETURN;
-             }
-
-             ip = routine.startAddress;
-             DISPATCH_WINC();
+             dpush(handle_native(routine.name, &nf.env));
+             goto DO_RETURN;
          }
 DO_RETURN:
          {
@@ -938,10 +985,6 @@ DO_RETURN:
                  tins(dpeek())->refCount++; 
 
              ip = callFrame.returnAddress;
-             if(ip == 0){
-                 //    printf(debug("No parent frame to return!"));
-
-             }
              //dbg("Returning to %lu", ip);
              cf_free(callFrame);
              callFrame = cf_pop();

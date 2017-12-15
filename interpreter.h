@@ -81,4 +81,9 @@ FileInfo fileInfo_of(uint32_t line);
 #define ARRAYREF 0x25
 #define ARRAYSET 0x26
 #define ARRAYWRITE 0x27
+// Native Calls
+#define CALLNATIVE 0x28
+// Implicit Set
+#define SETI 0x29
+
 #endif

@@ -11,7 +11,6 @@ uint32_t rp = 0;
 Routine2 routine_new(){
     Routine2 r;
     r.arity = 0;
-    r.endAddress = 0;
     r.name = 0;
     r.startAddress = 0;
     r.isNative = 0;
@@ -19,10 +18,10 @@ Routine2 routine_new(){
     return r;
 }
 
-void routine_add_arg(Routine2 *r, const char *arg){
+void routine_add_arg(Routine2 *r, uint32_t arg){
     r->arity++;
     r->arguments = (uint32_t *)reallocate(r->arguments, 64*r->arity);
-    r->arguments[r->arity - 1] = str_insert(arg);
+    r->arguments[r->arity - 1] = arg;
 }
 
 void routine_add(Routine2 r){
