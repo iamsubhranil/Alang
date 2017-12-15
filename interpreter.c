@@ -429,6 +429,7 @@ void stop(){
     str_free();
     dStackFree();
     memfree(instructions);
+    cs_free();
     exit(0);
 }
 
@@ -475,6 +476,8 @@ FileInfo fileInfo_of(uint32_t ip){
 void interpret(){
     if(init == 0)
         init_interpreter();
+    
+    cs_init();
 
     CallFrame callFrame = cf_new();
     callFrame.env = env_new(NULL);
@@ -509,7 +512,7 @@ DO_PUSHI:
         ip += 3;
         DISPATCH();
 DO_PUSHL:
-        dpushl(ins_get_val(++ip));
+        dpushl((int32_t)ins_get_val(++ip));
         ip += 3;
         DISPATCH();
 DO_PUSHS:{
@@ -939,10 +942,10 @@ DO_RETURN:
                  //    printf(debug("No parent frame to return!"));
 
              }
-             //   printf(debug("Returning to %lu"), ip);
+             //dbg("Returning to %lu", ip);
              cf_free(callFrame);
              callFrame = cf_pop();
-             //    printf("\nReStoring address : %lu", callFrame.returnAddress);
+             //dbg("ReStoring address : %lu", callFrame.returnAddress);
              DISPATCH_WINC();
          }
 DO_ARRAY:

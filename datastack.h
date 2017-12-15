@@ -38,7 +38,7 @@ static int32_t stackLastIncremented = 0;
 
 #define dpeek() dataStack[sp - 1]
 #define dpop(x) {x = dataStack[--sp]; }
-#define dpopv(x, frame) {x = dataStack[--sp]; x = isidentifer(x)?env_get(tstrk(x), &frame.env, 0):x; }
+#define dpopv(x, frame) {x = dataStack[--sp]; x = isidentifer(x)?env_get(tstrk(x), &(frame.env), 0):x; }
 #define dpopi(x) {x = tint(dataStack[--sp]); }
 #define dpopf(x) {x = tfloat(dataStack[--sp]); }
 #define dpops(x) {x = tstr(dataStack[--sp]); }
