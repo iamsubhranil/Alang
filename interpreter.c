@@ -277,7 +277,7 @@ static const char* opString[] = {"pushf", "pushi", "pushl", "pushs", "pushid", "
     "halt", "jump", "jift", "jiff", "call", "return",
     "array", "memref", "narray", "noop", "ncont",
     "memset", "aref", "aset", "awrite", 
-    "seti", "calln", "pushidv"};
+    "calln", "seti", "pushidv"};
 
 #include "datastack.h"
 #include <string.h>
