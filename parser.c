@@ -13,7 +13,7 @@
 #include "routines.h"
 #include "native.h"
 
-static int inWhile = 0, inContainer = 0;
+static int inWhile = 0, inContainer = 0, inCall = 0, inReturn = 0, inRef = 0, keepID = 0;
 static int he = 0;
 static uint32_t *breakAddresses, breakCount = 0;
 static TokenList *head = NULL;
@@ -277,7 +277,9 @@ static void primary(){
             calls = (Call *)reallocate(calls, sizeof(Call) * ++callPointer);
             calls[callPointer - 1].t = presentToken();
             uint32_t tmp = callPointer;
+            inCall++;
             uint32_t arity = getCall();
+            inCall--;
             ins_add(CALL);
             
             calls[tmp - 1].callAddress = ins_add_val(0);
@@ -288,7 +290,11 @@ static void primary(){
             calls[tmp - 1].routineName = st;
         }
         else{
-            ins_add(PUSHID);
+            if(keepID == 0){
+                ins_add(PUSHIDV);
+            }
+            else
+                ins_add(PUSHID);
             ins_add_val(st);
         }
     }
@@ -306,7 +312,9 @@ static void call(){
     primary();
     while(1){
         if(match(TOKEN_DOT)){
+            keepID++;
             primary();
+            keepID--;
             if(ins_last() == ARRAY)
                 ins_set(ip_get() - 1, ARRAYREF);
             else
@@ -515,7 +523,9 @@ static void breakStatement(){
 static void setStatement(){
     //debug("Parsing set statement");
     do{
+        keepID++;
         expression();
+        keepID--;
         uint8_t type = 0;
         if(ins_last() == MEMREF){
             type = 1;
@@ -550,7 +560,9 @@ static void arrayStatement(){
     //debug("Parsing array statement");
 
     do{
+        keepID++;
         expression();
+        keepID--;
         if(ins_last() != ARRAY){
             lnerr("Expected array expression!", presentToken());
             he++;
@@ -684,8 +696,11 @@ static void returnStatement(){
     if(peek() == TOKEN_NEWLINE){
         ins_add(PUSHN);
     }
-    else
+    else{
+        inReturn++;
         expression();
+        inReturn--;
+    }
     ins_add(RETURN);
     consume(TOKEN_NEWLINE, "Expected newline after Return!");
 }

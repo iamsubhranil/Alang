@@ -85,5 +85,6 @@ FileInfo fileInfo_of(uint32_t line);
 #define CALLNATIVE 0x28
 // Implicit Set
 #define SETI 0x29
-
+// Implicit push value of identifer
+#define PUSHIDV 0x2a
 #endif

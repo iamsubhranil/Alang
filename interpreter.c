@@ -270,139 +270,14 @@ void ins_print(){
     }
 }
 
-static void printOpcode(uint8_t opcode){
-    switch(opcode){
-        case PUSHF:
-            printf("pushf");
-            break;
-        case PUSHI:
-            printf("pushi");
-            break;
-        case PUSHL:
-            printf("pushl");
-            break;
-        case PUSHS:
-            printf("pushs");
-            break;
-        case PUSHID:
-            printf("pushid");
-            break;
-        case PUSHN:
-            printf("pushn");
-            break;
-        case ADD:
-            printf("add");
-            break;
-        case SUB:
-            printf("sub");
-            break;
-        case MUL:
-            printf("mul");
-            break;
-        case DIV:
-            printf("div");
-            break;
-        case POW:
-            printf("pow");
-            break;
-        case MOD:
-            printf("mod");
-            break;
-        case GT:
-            printf("gt");
-            break;
-        case GTE:
-            printf("gte");
-            break;
-        case LT:
-            printf("lt");
-            break;
-        case LTE:
-            printf("lte");
-            break;
-        case EQ:
-            printf("eq");
-            break;
-        case NEQ:
-            printf("neq");
-            break;
-        case AND:
-            printf("and");
-            break;
-        case OR:
-            printf("or");
-            break;
-        case SET:
-            printf("set");
-            break;
-        case INPUTI:
-            printf("inputi");
-            break;
-        case INPUTS:
-            printf("inputs");
-            break;
-        case INPUTF:
-            printf("inputf");
-            break;
-        case PRINT:
-            printf("print");
-            break;
-        case HALT:
-            printf("halt");
-            break;
-        case JUMP:
-            printf("jump");
-            break;
-        case JUMP_IF_TRUE:
-            printf("jift");
-            break;
-        case JUMP_IF_FALSE:
-            printf("jiff");
-            break;
-        case CALL:
-            printf("call");
-            break;
-        case RETURN:
-            printf("return");
-            break;
-        case ARRAY:
-            printf("array");
-            break;
-        case MEMREF:
-            printf("memref");
-            break;
-        case MAKE_ARRAY:
-            printf("narray");
-            break;
-        case NOOP:
-            printf("noop");
-            break;
-        case NEW_CONTAINER:
-            printf("ncont");
-            break;
-        case MEMSET:
-            printf("memset");
-            break;
-        case ARRAYREF:
-            printf("aref");
-            break;
-        case ARRAYSET:
-            printf("aset");
-            break;
-        case ARRAYWRITE:
-            printf("awrite");
-            break;
-        case SETI:
-            printf("seti");
-            break;
-        case CALLNATIVE:
-            printf("calln");
-            break;
-        default:
-            rerr("Unknown opcode 0x%x", opcode);
-            break;
-    }
-}
+static const char* opString[] = {"pushf", "pushi", "pushl", "pushs", "pushid", "pushn",
+    "add", "sub", "mul", "div", "pow", "mod",
+    "gt", "gte", "lt", "lte", "eq", "neq", "and", "or",
+    "set", "inputi", "inputs", "inputf", "print",
+    "halt", "jump", "jift", "jiff", "call", "return",
+    "array", "memref", "narray", "noop", "ncont",
+    "memset", "aref", "aset", "awrite", 
+    "seti", "calln", "pushidv"};
 
 #include "datastack.h"
 #include <string.h>
@@ -416,16 +291,15 @@ static void printOpcode(uint8_t opcode){
 
 static uint8_t run = 1;
 static clock_t tmStart, tmEnd;
-static uint64_t insExec = 0, counter[42] = {0};
+static uint64_t insExec = 0, counter[43] = {0};
 
 void print_stat(){
     uint8_t i = 0;
     printf("\nInstruction    Execution Count");
     printf("\n===========    ===============");
-    while(i < 42){
+    while(i < 43){
         if(counter[i] > 0){
-            printf("\n");
-            printOpcode(i);
+            printf("\n%s", opString[i]);
             printf("\t%16" PRIu64, counter[i]);
         }
         i++;
@@ -508,7 +382,7 @@ void interpret(){
         &&DO_HALT, &&DO_JUMP, &&DO_JUMP_IF_TRUE, &&DO_JUMP_IF_FALSE, &&DO_CALL, &&DO_RETURN,
         &&DO_ARRAY, &&DO_MEMREF, &&DO_MAKE_ARRAY, &&DO_NOOP,
         &&DO_NEW_CONTAINER, &&DO_MEMSET, &&DO_ARRAYREF, &&DO_ARRAYSET, &&DO_ARRAYWRITE,
-        &&DO_CALLNATIVE, &&DO_SETI};
+        &&DO_CALLNATIVE, &&DO_SETI, &&DO_PUSHIDV};
 
 #define DISPATCH() {insExec++; \
     ++counter[instructions[ip+1]]; \
@@ -532,25 +406,31 @@ DO_PUSHL:
         dpushl((int32_t)ins_get_val(++ip));
         ip += 3;
         DISPATCH();
-DO_PUSHS:{
+DO_PUSHS:
              dpushsk(ins_get_val(++ip));
              //   printf("\n[Info] Pushing string [sp : %lu] %s", sp, str);
              ip += 3;
              //      Data *d;
              //      dpopv(d,callFrame);
              //     printf("\n[Info] Stored : %s", str_get(d->svalue));
-         }
+         
          DISPATCH();
 DO_PUSHID:
          dpushidk(ins_get_val(++ip));
          ip += 3;
          DISPATCH();
+DO_PUSHIDV:
+         
+            dpush(env_get(ins_get_val(++ip), &callFrame.env, 0));
+            ip += 3;
+            DISPATCH();
+         
 DO_PUSHN:
          dpushn();
          DISPATCH();
 DO_ADD:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d1) + tnum(d2);
@@ -577,7 +457,7 @@ DO_ADD:
          }
 DO_SUB:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d2) - tnum(d1);
@@ -593,7 +473,7 @@ DO_SUB:
          }
 DO_MUL:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d2) * tnum(d1);
@@ -609,7 +489,7 @@ DO_MUL:
          }
 DO_DIV:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d2) / tnum(d1);
@@ -625,7 +505,7 @@ DO_DIV:
          }
 DO_POW:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(isint(d1) && isnum(d2)){
                  dpushf(pow(tnum(d2), tint(d1)));
                  DISPATCH();
@@ -635,7 +515,7 @@ DO_POW:
          }
 DO_MOD:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(isint(d1) && isint(d2)){
                  dpushi(tint(d2) % tint(d1));
                  DISPATCH();
@@ -645,7 +525,7 @@ DO_MOD:
          }
 DO_GT:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) > tnum(d1));
                  DISPATCH();
@@ -659,7 +539,7 @@ DO_GT:
          }
 DO_GTE:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) >= tnum(d1));
                  DISPATCH();
@@ -674,7 +554,7 @@ DO_GTE:
          }
 DO_LT:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
 
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) < tnum(d1));
@@ -690,7 +570,7 @@ DO_LT:
          }
 DO_LTE:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
 
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) <= tnum(d1));
@@ -707,7 +587,7 @@ DO_LTE:
          }
 DO_EQ:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
 
              if(isnum(d1) && isnum(d2)){
                  //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
@@ -730,7 +610,7 @@ DO_EQ:
 DO_NEQ:
          {
 
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
 
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) != tnum(d1));
@@ -751,7 +631,7 @@ DO_NEQ:
          }
 DO_AND:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(islogical(d1) && islogical(d2)){
                  dpushl(tint(d1) && tint(d2));
                  DISPATCH();
@@ -762,7 +642,7 @@ DO_AND:
          }
 DO_OR:
          {
-             Data d1, d2; dpopv(d1, callFrame); dpopv(d2, callFrame);
+             Data d1, d2; dpop(d1); dpop(d2);
              if(islogical(d1) && islogical(d2)){
                  dpushl(tint(d1) || tint(d2));
                  DISPATCH();
@@ -797,10 +677,9 @@ DO_INPUTI:
          {
              Data id;
              dpop(id);
-             if(isidentifer(id)){
-                 env_put(tstrk(id), getInt(), &callFrame.env);
-                 DISPATCH();
-             }
+             env_put(tstrk(id), getInt(), &callFrame.env);
+             DISPATCH();
+
 
              rerr("Bad input target!");
 
@@ -810,10 +689,9 @@ DO_INPUTS:
          {
              Data id;
              dpop(id);
-             if(isidentifer(id)){
-                 env_put(tstrk(id), getString(), &callFrame.env);
-                 DISPATCH();
-             }
+             env_put(tstrk(id), getString(), &callFrame.env);
+             DISPATCH();
+
 
              rerr("Bad input target!");
 
@@ -823,10 +701,8 @@ DO_INPUTF:
          {
              Data id;
              dpop(id);
-             if(isidentifer(id)){
-                 env_put(tstrk(id), getFloat(), &callFrame.env);
-                 DISPATCH();
-             }
+             env_put(tstrk(id), getFloat(), &callFrame.env);
+             DISPATCH();
 
              rerr("Bad input target!");
 
@@ -918,30 +794,17 @@ DO_JUMP_IF_FALSE:
          }
 DO_CALL:
          {
-             uint32_t numArg, i = 1, ja;
+             //uint32_t numArg;
+             uint32_t ja;
              ja = ins_get_val(++ip);
              ip += 3;
-             numArg = ins_get_val(++ip);
-             ip += 3;
+             //numArg = ins_get_val(++ip);
+             ip += 4;
 
              cf_push(callFrame);
              CallFrame nf = cf_new();
              nf.env = env_new(cf_root_env());
              nf.returnAddress = ip + 1;
-
-             if(numArg > 0){
-                 i = 0;
-                 Data data[numArg];
-                 while(i < numArg){
-                     //        //               printf(debug("Defining %s!\n"), str_get(routine.arguments[i]));
-                     dpopv(data[i], callFrame);
-                     //        env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
-                     i++;
-                 }
-
-                 while(i > 0)
-                     dpush(data[--i]);
-             }
 
              callFrame = nf;
 
@@ -964,7 +827,7 @@ DO_CALLNATIVE:
              if(numArg > 0){
                  i = 0;
                  while(i < numArg){
-                     Data d; dpopv(d, callFrame); dpush(d);
+                     Data d; dpop(d);
                      env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
                      i++;
                  }
@@ -977,10 +840,6 @@ DO_CALLNATIVE:
          }
 DO_RETURN:
          {
-             if(isidentifer(dpeek())){
-                 Data d; dpopv(d, callFrame);
-                 dpush(d);
-             }
              if(isins(dpeek()))
                  tins(dpeek())->refCount++; 
 
@@ -1012,8 +871,8 @@ DO_ARRAY:
                  }
 
                  if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
-                      rerr("String index out of range for '%s' : %" PRId32 " [Expected <= %" PRIu32 "]", str_get(tstrk(arr)),
-                              tint(index), str_len(tstrk(arr)));
+                     rerr("String index out of range for '%s' : %" PRId32 " [Expected <= %" PRIu32 "]", str_get(tstrk(arr)),
+                             tint(index), str_len(tstrk(arr)));
                  }
 
                  if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
@@ -1122,7 +981,8 @@ DO_ARRAYREF:
                          }
                          if(isstr(arr)){
                              if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
-                                 rerr("String index out of range : %" PRId32 " [Expected <= %" PRIu32 "]", tint(index), str_len(tstrk(arr)));
+                                 rerr("String index out of range : %" PRId32 " [Expected <= %" PRIu32 "]", 
+                                         tint(index), str_len(tstrk(arr)));
 
                              }
 
