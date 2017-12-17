@@ -24,6 +24,29 @@ static inline void env_free(Environment env);
 #include "strings.h"
 #include "interpreter.h"
 
+#define MAX_FREE_RECORDS 512
+#define MAX_FREE_ENVIRONMENTS 512
+
+extern Record *freeRecords[MAX_FREE_RECORDS];
+extern uint16_t freeRecordPointer;
+
+extern Environment *freeEnvironments[MAX_FREE_ENVIRONMENTS];
+extern uint16_t freeEnvironmentPointer;
+
+#define rec_new() freeRecordPointer==0?(Record *)mallocate(sizeof(Record)):freeRecords[--freeRecordPointer]
+#define rec_free(r) {if(freeRecordPointer < MAX_FREE_RECORDS){ \
+                        freeRecords[freeRecordPointer++] = r; \
+                } else { \
+                    memfree(r); \
+                } \
+}
+
+#define ienv_new() freeEnvironmentPointer==0?(Environment *)mallocate(sizeof(Environment)):freeEnvironments[--freeEnvironmentPointer]
+#define ienv_free(e) {if(freeEnvironmentPointer < MAX_FREE_ENVIRONMENTS) \
+                            freeEnvironments[freeEnvironmentPointer++] = e; \
+                        else \
+                            memfree(e);}
+
 #define env_new(parent) (Environment){NULL, parent}
 
 static inline void data_free(Data d) {
@@ -34,8 +57,8 @@ static inline void data_free(Data d) {
         tins(d)->refCount--;
         if(tins(d)->refCount < 1){
             env_free(*tenv(d));
-            memfree(tenv(d));
-            memfree(tins(d));
+            ienv_free(tenv(d));
+            ins_free(tins(d));
         }
     }
     else if(isarray(d)){
@@ -49,7 +72,7 @@ static inline void data_free(Data d) {
 }
 
 static inline Record* new_record(uint32_t key, Data value){
-    Record *record = (Record *)mallocate(sizeof(Record));
+    Record *record = rec_new();
     record->key = key;
     record->data = value;
     record->next = NULL;
@@ -145,7 +168,7 @@ static inline void env_free(Environment env){
     while(top!=NULL){
         Record *bak = top->next;
         data_free(top->data);
-        memfree(top);
+        rec_free(top);
         top = bak;
     }
 }

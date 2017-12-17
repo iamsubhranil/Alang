@@ -39,6 +39,18 @@ typedef struct Data{
     };
 } Data;
 
+#define MAX_FREE_INSTANCES 512
+
+extern Instance *freeInstances[MAX_FREE_INSTANCES];
+extern uint16_t freeInstancePointer;
+
+#define ins_new() freeInstancePointer==0?(Instance *)mallocate(sizeof(Instance)):freeInstances[--freeInstancePointer]
+#define ins_free(x) {if(freeInstancePointer >= MAX_FREE_INSTANCES) \
+                        memfree(x); \
+                    else \
+                        freeInstances[freeInstancePointer++] = x; \
+                    }
+
 #define isint(x) (x.type == INT)
 #define isfloat(x) (x.type == FLOAT)
 #define isnum(x) (isint(x) || isfloat(x))

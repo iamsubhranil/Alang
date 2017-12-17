@@ -199,6 +199,7 @@ void ins_print(){
 #include "io.h"
 #include <time.h>
 #include "native.h"
+#include "fman.h"
 
 static uint8_t run = 1;
 static clock_t tmStart, tmEnd;
@@ -231,6 +232,7 @@ void stop(){
     dStackFree();
     memfree(instructions);
     cs_free();
+    free_all();
     exit(0);
 }
 

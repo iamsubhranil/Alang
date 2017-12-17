@@ -23,9 +23,9 @@ Data new_array(uint32_t size){
 Data new_ins(void *env, uint32_t name){
     Data d;
     d.type = INSTANCE;
-    d.pvalue = (Instance *)mallocate(sizeof(Instance));
+    d.pvalue = ins_new();
     d.pvalue->container_key = name;
-    d.pvalue->env = (Environment *)mallocate(sizeof(Environment));
+    d.pvalue->env = ienv_new();
     ((Environment *)d.pvalue->env)->parent = ((Environment *)env)->parent;
     ((Environment *)d.pvalue->env)->records = ((Environment *)env)->records;
     d.pvalue->id = id++;
