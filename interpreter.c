@@ -105,6 +105,15 @@ uint32_t ip_get(){
     return ip;
 }
 
+static const char* opString[] = {"pushf", "pushi", "pushl", "pushs", "pushid", "pushn",
+    "add", "sub", "mul", "div", "pow", "mod",
+    "gt", "gte", "lt", "lte", "eq", "neq", "and", "or",
+    "set", "inputi", "inputs", "inputf", "print",
+    "halt", "jump", "jift", "jiff", "call", "return",
+    "array", "memref", "narray", "noop", "ncont",
+    "memset", "aref", "aset", "awrite", 
+    "calln", "seti", "pushidv"};
+
 void ins_print(){
     uint32_t i = 0;
     printf("\n\nPrinting memory[ip : %" PRIu32 "]..\n", ip);
@@ -128,6 +137,10 @@ void ins_print(){
                 printf("pushi %" PRId32, ins_get_val(++i));
                 i += 3;
                 break;
+            case PUSHIDV:
+                printf("pushidv %s", str_get(ins_get_val(++i)));
+                i += 3;
+                break;
             case PUSHL:
                 printf("pushl %s", ins_get_val(++i)==0?"false":"true");
                 i += 3;
@@ -140,72 +153,9 @@ void ins_print(){
                 printf("pushid %s", str_get(ins_get_val(++i)));
                 i += 3;
                 break;
-            case PUSHN:
-                printf("pushn");
-                break;
-            case ADD:
-                printf("add");
-                break;
-            case SUB:
-                printf("sub");
-                break;
-            case MUL:
-                printf("mul");
-                break;
-            case DIV:
-                printf("div");
-                break;
-            case POW:
-                printf("pow");
-                break;
-            case MOD:
-                printf("mod");
-                break;
-            case GT:
-                printf("gt");
-                break;
-            case GTE:
-                printf("gte");
-                break;
-            case LT:
-                printf("lt");
-                break;
-            case LTE:
-                printf("lte");
-                break;
-            case EQ:
-                printf("eq");
-                break;
-            case NEQ:
-                printf("neq");
-                break;
-            case AND:
-                printf("and");
-                break;
-            case OR:
-                printf("or");
-                break;
-            case SET:
-                printf("set");
-                break;
             case SETI:
                 printf("seti %s", str_get(ins_get_val(++i)));
                 i += 3;
-                break;
-            case INPUTI:
-                printf("inputi");
-                break;
-            case INPUTS:
-                printf("inputs");
-                break;
-            case INPUTF:
-                printf("inputf");
-                break;
-            case PRINT:
-                printf("print");
-                break;
-            case HALT:
-                printf("halt");
                 break;
             case JUMP:
                 printf("jump %" PRIu32, ins_get_val(++i));
@@ -231,53 +181,14 @@ void ins_print(){
                 printf(" arity=%" PRIu32, ins_get_val(++i));
                 i += 3;
                 break;
-            case RETURN:
-                printf("return");
-                break;
-            case ARRAY:
-                printf("array");
-                break;
-            case MEMREF:
-                printf("memref");
-                break;
-            case MAKE_ARRAY:
-                printf("make_array");
-                break;
-            case NOOP:
-                printf("noop");
-                break;
-            case NEW_CONTAINER:
-                printf("new_container");
-                break;
-            case MEMSET:
-                printf("memset");
-                break;
-            case ARRAYREF:
-                printf("arrayref");
-                break;
-            case ARRAYSET:
-                printf("arrayset");
-                break;
-            case ARRAYWRITE:
-                printf("arraywrite");
-                break;
             default:
-                rerr("Unknown opcode 0x%x", instructions[i]);
+                printf("%s", opString[instructions[i]]);
                 break;
         }
         i++;
         printf("\n");
     }
 }
-
-static const char* opString[] = {"pushf", "pushi", "pushl", "pushs", "pushid", "pushn",
-    "add", "sub", "mul", "div", "pow", "mod",
-    "gt", "gte", "lt", "lte", "eq", "neq", "and", "or",
-    "set", "inputi", "inputs", "inputf", "print",
-    "halt", "jump", "jift", "jiff", "call", "return",
-    "array", "memref", "narray", "noop", "ncont",
-    "memset", "aref", "aset", "awrite", 
-    "calln", "seti", "pushidv"};
 
 #include "datastack.h"
 #include <string.h>
