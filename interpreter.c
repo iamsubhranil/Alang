@@ -341,7 +341,7 @@ DO_PUSHN:
          DISPATCH();
 DO_ADD:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d1) + tnum(d2);
@@ -368,7 +368,7 @@ DO_ADD:
          }
 DO_SUB:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d2) - tnum(d1);
@@ -384,7 +384,7 @@ DO_SUB:
          }
 DO_MUL:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d2) * tnum(d1);
@@ -400,7 +400,7 @@ DO_MUL:
          }
 DO_DIV:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(isnum(d1) && isnum(d2)){
                  if(isfloat(d1) || isfloat(d2)){
                      double res = tnum(d2) / tnum(d1);
@@ -416,7 +416,7 @@ DO_DIV:
          }
 DO_POW:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(isint(d1) && isnum(d2)){
                  dpushf(pow(tnum(d2), tint(d1)));
                  DISPATCH();
@@ -426,7 +426,7 @@ DO_POW:
          }
 DO_MOD:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(isint(d1) && isint(d2)){
                  dpushi(tint(d2) % tint(d1));
                  DISPATCH();
@@ -436,7 +436,7 @@ DO_MOD:
          }
 DO_GT:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) > tnum(d1));
                  DISPATCH();
@@ -450,7 +450,7 @@ DO_GT:
          }
 DO_GTE:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) >= tnum(d1));
                  DISPATCH();
@@ -465,7 +465,7 @@ DO_GTE:
          }
 DO_LT:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
 
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) < tnum(d1));
@@ -481,7 +481,7 @@ DO_LT:
          }
 DO_LTE:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
 
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) <= tnum(d1));
@@ -498,7 +498,7 @@ DO_LTE:
          }
 DO_EQ:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
 
              if(isnum(d1) && isnum(d2)){
                  //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
@@ -521,7 +521,7 @@ DO_EQ:
 DO_NEQ:
          {
 
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
 
              if(isnum(d1) && isnum(d2)){
                  dpushl(tnum(d2) != tnum(d1));
@@ -542,7 +542,7 @@ DO_NEQ:
          }
 DO_AND:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(islogical(d1) && islogical(d2)){
                  dpushl(tint(d1) && tint(d2));
                  DISPATCH();
@@ -553,7 +553,7 @@ DO_AND:
          }
 DO_OR:
          {
-             Data d1, d2; dpop(d1); dpop(d2);
+             Data d1 = dpop();  Data d2 = dpop();
              if(islogical(d1) && islogical(d2)){
                  dpushl(tint(d1) || tint(d2));
                  DISPATCH();
@@ -565,9 +565,8 @@ DO_OR:
          }
 DO_SET:
          {
-             Data id, value;
-             dpopv(value, callFrame);
-             dpop(id); 
+             Data id, value = dpop();
+             id = dpop(); 
              if(isidentifer(id)){
                  env_put(tstrk(id), value, &callFrame.env);
                  DISPATCH();
@@ -578,47 +577,29 @@ DO_SET:
          }
 DO_SETI:
          {
-             Data value;
-             dpop(value);
+             Data value = dpop();
              env_implicit_put(ins_get_val(++ip), value, &callFrame.env);
              ip += 3;
              DISPATCH();
          }
 DO_INPUTI:
          {
-             Data id;
-             dpop(id);
+             Data id = dpop();
              env_put(tstrk(id), getInt(), &callFrame.env);
              DISPATCH();
-
-
-             rerr("Bad input target!");
-
 
          }
 DO_INPUTS:
          {
-             Data id;
-             dpop(id);
+             Data id = dpop();
              env_put(tstrk(id), getString(), &callFrame.env);
              DISPATCH();
-
-
-             rerr("Bad input target!");
-
-
          }
 DO_INPUTF:
          {
-             Data id;
-             dpop(id);
+             Data id = dpop();
              env_put(tstrk(id), getFloat(), &callFrame.env);
              DISPATCH();
-
-             rerr("Bad input target!");
-
-
-
          }
 DO_PRINT:
          {
@@ -738,8 +719,7 @@ DO_CALLNATIVE:
              if(numArg > 0){
                  i = 0;
                  while(i < numArg){
-                     Data d; dpop(d);
-                     env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
+                     env_implicit_put(routine.arguments[routine.arity - i - 1], dpop(), &nf.env);
                      i++;
                  }
              }
@@ -764,7 +744,7 @@ DO_RETURN:
 DO_ARRAY:
          {
              Data id, index;
-             dpop(id); dpopv(index, callFrame);
+             id = dpop(); dpopv(index, callFrame);
              Data arr = env_get(tstrk(id), &callFrame.env, 0);
              if(!isarray(arr) && !isstr(arr)){
                  rerr("'%s' is not an array!"), str_get(tstrk(id));
@@ -805,8 +785,8 @@ DO_ARRAY:
          }
 DO_MEMREF:
          {
-             Data ins, mem;
-             dpop(mem); dpopv(ins, callFrame);
+             Data ins, mem = dpop();
+             dpopv(ins, callFrame);
              if(isins(ins)){
                  if(isidentifer(mem)){
                      dpush(env_get(tstrk(mem), tenv(ins), 0));
@@ -820,8 +800,8 @@ DO_MEMREF:
          }
 DO_MAKE_ARRAY:
          {
-             Data size, id;
-             dpop(id); dpopv(size, callFrame); 
+             Data size, id = dpop();
+             dpopv(size, callFrame); 
              if(isint(size)){
                  if(isidentifer(id)){
                      if(env_get(tstrk(id), &callFrame.env, 1).type != NONE){
@@ -852,8 +832,7 @@ DO_NOOP:
          }
 DO_NEW_CONTAINER:
          {
-             uint32_t name;
-             dpopsk(name);
+             uint32_t name = dpopsk();
              dpush(new_ins(&callFrame.env, name));
              ip = callFrame.returnAddress;
              callFrame = cf_pop();
@@ -862,7 +841,7 @@ DO_NEW_CONTAINER:
 DO_MEMSET:
          {
              Data in, mem, data;
-             dpopv(data, callFrame); dpop(mem); dpopv(in, callFrame);
+             dpopv(data, callFrame); mem = dpop(); dpopv(in, callFrame);
              if(isins(in)){
                  if(isidentifer(mem)){
                      env_put(tstrk(mem), data, tenv(in));
@@ -877,7 +856,7 @@ DO_MEMSET:
 DO_ARRAYREF:
          {
              Data index, iden, cont;
-             dpop(iden); dpopv(index, callFrame); dpopv(cont, callFrame);
+             iden = dpop(); dpopv(index, callFrame); dpopv(cont, callFrame);
              if(isint(index)){
                  if(isins(cont)){
                      if(isidentifer(iden)){
@@ -925,7 +904,7 @@ DO_ARRAYREF:
 DO_ARRAYSET:
          {
              Data index, iden, cont, value;
-             dpopv(value, callFrame); dpop(iden); dpopv(index, callFrame); dpopv(cont, callFrame);
+             dpopv(value, callFrame); iden = dpop(); dpopv(index, callFrame); dpopv(cont, callFrame);
              if(isint(index)){
                  if(isins(cont)){
                      if(isidentifer(iden)){
@@ -971,7 +950,7 @@ DO_ARRAYSET:
 DO_ARRAYWRITE:
          {
              Data index, iden, value;
-             dpopv(value, callFrame); dpop(iden); dpopv(index, callFrame);
+             dpopv(value, callFrame); iden = dpop(); dpopv(index, callFrame);
              if(isint(index)){
                  if(isidentifer(iden)){
                      Data arr = env_get(tstrk(iden), &callFrame.env, 0);

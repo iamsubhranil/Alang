@@ -14,7 +14,6 @@ typedef struct Environment{
     struct Environment *parent;
 } Environment;
 
-static inline Environment env_new(Environment *parent);
 static inline void env_put(uint32_t key, Data value, Environment *env);
 static inline void env_implicit_put(uint32_t key, Data value, Environment *env);
 static inline Data env_get(uint32_t key, Environment *env, uint8_t beSilent);
@@ -27,9 +26,7 @@ static inline void data_free(Data d);
 #include "strings.h"
 #include "interpreter.h"
 
-static inline Environment env_new(Environment *parent){
-    return (Environment){NULL, parent};
-}
+#define env_new(parent) (Environment){NULL, parent}
 
 static inline Record* new_record(uint32_t key, Data value){
     Record *record = (Record *)mallocate(sizeof(Record));

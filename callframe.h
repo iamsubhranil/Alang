@@ -45,7 +45,7 @@ static inline CallFrame cf_pop(){
 #define cf_root_env() &(rootEnvironment)
 #define cf_free(frame) env_free(frame.env)
 
-#define cs_init() { callStack = (CallFrame *)mallocate(sizeof(CallFrame) * 10); \
-    callFrameSize = 10; }
+#define cs_init() { callFrameSize = 10; \
+    callStack = (CallFrame *)mallocate(sizeof(CallFrame) * callFrameSize); }
 
 #define cs_free() memfree(callStack)
