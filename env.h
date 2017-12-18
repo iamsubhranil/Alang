@@ -4,9 +4,9 @@
 #include "strings.h"
 
 typedef struct Record{
-    uint32_t key;
     Data data;
     struct Record *next;
+    uint32_t key;
 } Record;
 
 typedef struct Environment{
@@ -35,21 +35,23 @@ extern uint16_t freeEnvironmentPointer;
 
 #define rec_new() freeRecordPointer==0?(Record *)mallocate(sizeof(Record)):freeRecords[--freeRecordPointer]
 #define rec_free(r) {if(freeRecordPointer < MAX_FREE_RECORDS){ \
-                        freeRecords[freeRecordPointer++] = r; \
-                } else { \
-                    memfree(r); \
-                } \
+    freeRecords[freeRecordPointer++] = r; \
+} else { \
+    memfree(r); \
+} \
 }
 
 #define ienv_new() freeEnvironmentPointer==0?(Environment *)mallocate(sizeof(Environment)):freeEnvironments[--freeEnvironmentPointer]
 #define ienv_free(e) {if(freeEnvironmentPointer < MAX_FREE_ENVIRONMENTS) \
-                            freeEnvironments[freeEnvironmentPointer++] = e; \
-                        else \
-                            memfree(e);}
+    freeEnvironments[freeEnvironmentPointer++] = e; \
+    else \
+    memfree(e);}
 
 #define env_new(parent) (Environment){NULL, parent}
 
 static inline void data_free(Data d) {
+    //if(isnum(d))
+    //    return;
     if(isstr(d)){
         str_ref_decr(d.svalue);
     }
@@ -95,13 +97,15 @@ static inline Environment* env_match(uint32_t key, Environment *env){
 
 #define env_implicit_put(key, value, env) { \
     Record *top = (env)->records; \
-    if(isins(value)){ \
-        tins(value)->refCount++; \
-    } \
-    else if(isstr(value)) \
+    if(!isnum(value)){ \
+        if(isins(value)){ \
+            tins(value)->refCount++; \
+        } \
+        else if(isstr(value)) \
         str_ref_incr(tstrk(value)); \
+    } \
     if(top == NULL) \
-        (env)->records = new_record(key, value); \
+    (env)->records = new_record(key, value); \
     else{ \
         while(top->next != NULL){ \
             top = top->next; \
@@ -118,20 +122,23 @@ static void env_put(uint32_t key, Data value, Environment *env){
     if(match == NULL)
         match = env;
     Record *top = match->records, *prev = NULL;
-    if(isins(value)){
-        tins(value)->refCount++;
-        //        printf(debug("[Env:Put] Incremented refcount of [%s#%lu] to %lu"),
-        //                str_get(tins(value)->container_key), tins(value)->id, tins(value)->refCount);
+    if(!isnum(value)){
+        if(isins(value)){
+            tins(value)->refCount++;
+            //        printf(debug("[Env:Put] Incremented refcount of [%s#%lu] to %lu"),
+            //                str_get(tins(value)->container_key), tins(value)->id, tins(value)->refCount);
+        }
+        else if(isstr(value))
+            str_ref_incr(tstrk(value));
     }
-    else if(isstr(value))
-        str_ref_incr(tstrk(value));
 
     while(top!=NULL){
         if(top->key == key){
             if(isarray(top->data)){
                 rerr("Array '%s' must be accessed using indices!", str_get(key));
             }
-            data_free(top->data);
+            if(!isnum(top->data))
+                data_free(top->data);
             top->data = value;
             return;
         }
@@ -167,7 +174,8 @@ static inline void env_free(Environment env){
     Record *top = env.records;
     while(top!=NULL){
         Record *bak = top->next;
-        data_free(top->data);
+        if(!isnum(top->data))
+            data_free(top->data);
         rec_free(top);
         top = bak;
     }

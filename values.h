@@ -25,14 +25,13 @@ typedef struct{
 } Instance;
 
 typedef struct Data{
-    int refCount;
     Datatype type;
     union{
-        Instance *pvalue;
         struct{
             struct Data *arr;
             uint32_t numElements;
         };
+        Instance *pvalue;
         double cvalue;
         int32_t ivalue;
         uint32_t svalue;
@@ -45,10 +44,10 @@ extern Instance *freeInstances[MAX_FREE_INSTANCES];
 extern uint16_t freeInstancePointer;
 
 #define ins_new() freeInstancePointer==0?(Instance *)mallocate(sizeof(Instance)):freeInstances[--freeInstancePointer]
-#define ins_free(x) {if(freeInstancePointer >= MAX_FREE_INSTANCES) \
-                        memfree(x); \
-                    else \
+#define ins_free(x) {if(freeInstancePointer < MAX_FREE_INSTANCES) \
                         freeInstances[freeInstancePointer++] = x; \
+                    else \
+                         memfree(x);\
                     }
 
 #define isint(x) (x.type == INT)
@@ -71,15 +70,15 @@ extern uint16_t freeInstancePointer;
 #define tenv(x) ((Environment *)x.pvalue->env)
 
 #define new_data() ((Data *)mallocate(sizeof(Data)))
-#define new_int(x) ((Data){0, INT, {.ivalue = x}})
-#define new_float(x) ((Data){0, FLOAT, {.cvalue = x}})
-#define new_str(x) ((Data){0, STRING, {.svalue = str_insert(x)}})
-#define new_strk(x) ((Data){0, STRING, {.svalue = x}})
-#define new_identifer(x) ((Data){0, IDENTIFIER, {.svalue = str_insert(x)}})
-#define new_identiferk(x) ((Data){0, IDENTIFIER, {.svalue = x}})
-#define new_logical(x) ((Data){0, LOGICAL, {.ivalue = x}})
-#define new_null() ((Data){0, NIL, {NULL}})
-#define new_none() ((Data){0, NONE, {NULL}})
+#define new_int(x) ((Data){INT, {.ivalue = x}})
+#define new_float(x) ((Data){FLOAT, {.cvalue = x}})
+#define new_str(x) ((Data){STRING, {.svalue = str_insert(x)}})
+#define new_strk(x) ((Data){STRING, {.svalue = x}})
+#define new_identifer(x) ((Data){IDENTIFIER, {.svalue = str_insert(x)}})
+#define new_identiferk(x) ((Data){IDENTIFIER, {.svalue = x}})
+#define new_logical(x) ((Data){LOGICAL, {.ivalue = x}})
+#define new_null() ((Data){.type = NIL})
+#define new_none() ((Data){.type = NONE})
 Data new_array(uint32_t size);
 Data new_ins(void *env, uint32_t name);
 

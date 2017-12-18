@@ -200,6 +200,7 @@ void ins_print(){
 #include <time.h>
 #include "native.h"
 #include "fman.h"
+#include <float.h>
 
 static uint8_t run = 1;
 static clock_t tmStart, tmEnd;
@@ -281,6 +282,7 @@ void interpret(){
         init_interpreter();
 
     cs_init();
+    init_cache();
 
     CallFrame callFrame = cf_new();
     callFrame.env = env_new(NULL);
@@ -504,7 +506,7 @@ DO_EQ:
 
              if(isnum(d1) && isnum(d2)){
                  //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
-                 dpushl(tnum(d2) == tnum(d1));
+                 dpushl(fabs(tnum(d2) - tnum(d1)) <= FLT_EPSILON);
                  DISPATCH();
              }
 
@@ -526,7 +528,7 @@ DO_NEQ:
              Data d1, d2; dpop(d1); dpop(d2);
 
              if(isnum(d1) && isnum(d2)){
-                 dpushl(tnum(d2) != tnum(d1));
+                 dpushl(fabs(tnum(d2) - tnum(d1)) > FLT_EPSILON);
                  DISPATCH();
              }
 

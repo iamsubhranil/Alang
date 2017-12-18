@@ -8,10 +8,24 @@
 #include "display.h"
 #include "allocator.h"
 #include "interpreter.h"
+#include "values.h"
+#include "env.h"
+#include "callframe.h"
+
+#define prsz(x) dbg("Size of " #x " : %zu bytes", sizeof(x))
+
+void printSizes(){
+    prsz(Data);
+    prsz(Environment);
+    prsz(Record);
+    prsz(Instance);
+    prsz(CallFrame);
+}
 
 int main(int argc, char **argv){
     if(argc != 2)
         return 2;
+    printSizes();
     TokenList *tokens = scanTokens(argv[1]);
     if(hasScanErrors()){
         err("%d errors occured while scanning. Correct them and try to run again.", hasScanErrors());

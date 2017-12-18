@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string.h>
 #include <stdint.h>
 #include "env.h"
 #include "allocator.h"
@@ -13,10 +14,6 @@ typedef struct{
 extern CallFrame *callStack;
 extern uint32_t callFrameSize, callFramePointer;
 extern Environment rootEnvironment;
-
-CallFrame *callStack = NULL;
-uint32_t callFrameSize = 0, callFramePointer = 0;
-Environment rootEnvironment;
 
 static inline void cf_push(CallFrame frame);
 static inline CallFrame cf_peek();
@@ -45,7 +42,8 @@ static inline CallFrame cf_pop(){
 #define cf_root_env() &(rootEnvironment)
 #define cf_free(frame) env_free(frame.env)
 
-#define cs_init() { callStack = (CallFrame *)mallocate(sizeof(CallFrame) * 10); \
-    callFrameSize = 10; }
+#define cs_init() { callFrameSize = 10; \
+    callStack = (CallFrame *)mallocate(sizeof(CallFrame) * 10); \
+    memset(callStack, 0, sizeof(CallFrame) * callFrameSize);}
 
 #define cs_free() memfree(callStack)

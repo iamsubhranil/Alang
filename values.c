@@ -11,7 +11,6 @@ static uint32_t id = 0;
 Data new_array(uint32_t size){
     Data d;
     d.type = ARR;
-    d.refCount = 0;
     d.numElements = size;
     d.arr = (Data *)mallocate(sizeof(Data)*size);
     uint32_t i = 0;
