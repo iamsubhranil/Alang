@@ -115,49 +115,44 @@ static inline Record* env_match(uint32_t key, Environment *env){
 }
 
 static void env_put(uint32_t key, Data value, Environment *env){
-    if(env == NULL)
-        return;
+    //if(env == NULL)
+    //    return;
     //    printf(debug("[Env:Put] Putting [%s]"), str_get(key));
     if(!isnum(value)){
-        if(isins(value)){
+        if(isins(value))
             tins(value)->refCount++;
-        }
         else if(isstr(value))
             str_ref_incr(tstrk(value));
     }
     Record *match = env_match(key, env);
-    if(match == NULL){
-        if(env->records == NULL)
-            env->records = new_record(key,value);
-        else{
-            Record *top = env->records;
-            while(top->next != NULL)
-                top = top->next;
-            top->next = new_record(key, value);
-        }
-    }
-    else{
+    if(match != NULL){
         if(isarray(match->data))
             rerr("Array '%s' must be accessed using indices!", str_get(key));
         else if(!isnum(match->data))
             data_free(match->data);
         match->data = value;
+        return;
+    }
+    // else
+    if(env->records == NULL){
+        env->records = new_record(key,value);
+    } else {
+        Record *top = env->records;
+        while(top->next != NULL)
+            top = top->next;
+        top->next = new_record(key, value);
     }
 }
 
 static inline Data env_get(uint32_t key, Environment *env, uint8_t beSilent){
     //    printf(debug("[Env:Get] Getting [%s]"), str_get(key));
     Record *match = env_match(key, env);
-    if(match == NULL){
-        if(!beSilent){
-            rerr("Uninitialized variable '%s'!", str_get(key));
-            return new_none();
-        }
-        else
-            return new_none();
-    }
-    else
+    if(match != NULL)
         return match->data;
+
+    if(!beSilent)
+        rerr("Uninitialized variable '%s'!", str_get(key));
+    return new_none();
 }
 
 static inline void env_free(Environment env){

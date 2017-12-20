@@ -6,7 +6,6 @@
 #include "allocator.h"
 
 typedef struct{
-    uint16_t arity;
     uint64_t returnAddress;
     Environment env;
 } CallFrame;
@@ -38,7 +37,7 @@ static inline CallFrame cf_pop(){
     return callStack[--callFramePointer];
 }
 
-#define cf_new() (CallFrame){0, 0, {NULL, NULL}}
+#define cf_new() (CallFrame){0, {NULL, NULL}}
 #define cf_root_env() &(rootEnvironment)
 #define cf_free(frame) env_free(frame.env)
 

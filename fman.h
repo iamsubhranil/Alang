@@ -14,8 +14,11 @@ uint16_t freeEnvironmentPointer = 0;
 static void init_cache(){
     freeRecordPointer = 10;
     uint16_t i = 0;
-    while(i < freeRecordPointer)
-        freeRecords[i++] = (Record *)mallocate(sizeof(Record));
+    while(i < freeRecordPointer){
+        Record* r = (Record *)mallocate(sizeof(Record));
+        memset(r, 0, sizeof(Record));
+        freeRecords[i++] = r;
+    }
 }
 
 static inline void free_all(){

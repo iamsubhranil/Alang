@@ -287,7 +287,6 @@ void interpret(){
     CallFrame callFrame = cf_new();
     callFrame.env = env_new(NULL);
     callFrame.returnAddress = 0;
-    callFrame.arity = 27;
     register_native(&callFrame.env);
     ip = 0;
     static const void *dispatchTable[] = {&&DO_PUSHF, &&DO_PUSHI, &&DO_PUSHL, &&DO_PUSHS, &&DO_PUSHID, &&DO_PUSHN,

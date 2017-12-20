@@ -30,7 +30,7 @@ typedef struct Data{
     union{
         struct{
             struct Data *arr;
-            uint32_t numElements;
+            int32_t numElements;
         };
         Instance *pvalue;
         double cvalue;
