@@ -26,6 +26,7 @@ typedef struct{
 
 typedef struct Data{
     Datatype type;
+    //void *env;
     union{
         struct{
             struct Data *arr;
@@ -70,13 +71,13 @@ extern uint16_t freeInstancePointer;
 #define tenv(x) ((Environment *)x.pvalue->env)
 
 #define new_data() ((Data *)mallocate(sizeof(Data)))
-#define new_int(x) ((Data){INT, {.ivalue = x}})
-#define new_float(x) ((Data){FLOAT, {.cvalue = x}})
-#define new_str(x) ((Data){STRING, {.svalue = str_insert(x)}})
-#define new_strk(x) ((Data){STRING, {.svalue = x}})
-#define new_identifer(x) ((Data){IDENTIFIER, {.svalue = str_insert(x)}})
-#define new_identiferk(x) ((Data){IDENTIFIER, {.svalue = x}})
-#define new_logical(x) ((Data){LOGICAL, {.ivalue = x}})
+#define new_int(x) ((Data){.type = INT, {.ivalue = x}})
+#define new_float(x) ((Data){.type = FLOAT, {.cvalue = x}})
+#define new_str(x) ((Data){.type = STRING, {.svalue = str_insert(x)}})
+#define new_strk(x) ((Data){.type = STRING, {.svalue = x}})
+#define new_identifer(x) ((Data){.type = IDENTIFIER, {.svalue = str_insert(x)}})
+#define new_identiferk(x) ((Data){.type = IDENTIFIER, {.svalue = x}})
+#define new_logical(x) ((Data){.type = LOGICAL, {.ivalue = x}})
 #define new_null() ((Data){.type = NIL})
 #define new_none() ((Data){.type = NONE})
 Data new_array(uint32_t size);
