@@ -593,12 +593,7 @@ DO_INPUTI:
              Data id;
              dpop(id);
              env_put(tstrk(id), getInt(), &callFrame.env);
-             DISPATCH();
-
-
-             rerr("Bad input target!");
-
-
+             DISPATCH();         
          }
 DO_INPUTS:
          {
@@ -606,11 +601,6 @@ DO_INPUTS:
              dpop(id);
              env_put(tstrk(id), getString(), &callFrame.env);
              DISPATCH();
-
-
-             rerr("Bad input target!");
-
-
          }
 DO_INPUTF:
          {
@@ -618,11 +608,6 @@ DO_INPUTF:
              dpop(id);
              env_put(tstrk(id), getFloat(), &callFrame.env);
              DISPATCH();
-
-             rerr("Bad input target!");
-
-
-
          }
 DO_PRINT:
          {
