@@ -14,7 +14,7 @@ double get_double(const char *identifer, Environment *env){
     return tnum(o);
 }
 
-int64_t get_int(const char *identifer, Environment *env){
+int32_t get_int(const char *identifer, Environment *env){
     Data o = env_get(str_insert(identifer), env, 0);
     if(!isint(o)){
         rerr("Expected integer value!");

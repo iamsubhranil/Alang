@@ -53,7 +53,7 @@ static inline void data_free(Data d) {
     //if(isnum(d))
     //    return;
     if(isstr(d)){
-        str_ref_decr(d.svalue);
+        str_ref_decr(tstrk(d));
     }
     else if(isins(d)){
         tins(d)->refCount--;

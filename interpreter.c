@@ -614,10 +614,11 @@ DO_PRINT:
              Data value;
              dpopv(value, callFrame);
              //printf("\nType : %d", (int)value->type);
-             switch(value.type){
-                 case FLOAT:
-                     printf("%g", tfloat(value));
-                     DISPATCH();
+             if(isfloat(value)){
+                printf("%F", tfloat(value));
+                DISPATCH();
+             }
+             switch(ttype(value)){
                  case INT:
                      printf("%" PRId32, tint(value));
                      DISPATCH();
@@ -631,8 +632,8 @@ DO_PRINT:
                      printString(str_get(tstrk(value)));
                      DISPATCH();
                  case INSTANCE:
-                     printf("<instance of %s#%" PRIu32 ">", str_get(value.pvalue->container_key),
-                             value.pvalue->id);
+                     printf("<instance of %s#%" PRIu32 ">", str_get(tins(value)->container_key),
+                             tins(value)->id);
                      DISPATCH();
                  case IDENTIFIER:
                      printf("<identifer %s>", str_get(tstrk(value)));
@@ -812,7 +813,7 @@ DO_MAKE_ARRAY:
              dpop(id); dpopv(size, callFrame); 
              if(isint(size)){
                  if(isidentifer(id)){
-                     if(env_get(tstrk(id), &callFrame.env, 1).type != NONE){
+                     if(!isnone(env_get(tstrk(id), &callFrame.env, 1))){
                          rerr("Variable '%s' is already defined!", str_get(tstrk(id)));
 
                      }
