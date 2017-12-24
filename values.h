@@ -24,20 +24,24 @@ typedef struct{
     void *env;
 } Instance;
 
-typedef struct Data{
+typedef struct Dat Data;
+
+typedef struct{
+    int32_t numElements;
+    Data *data;
+} Array;
+
+struct Dat{
     Datatype type;
     //void *env;
     union{
-        struct{
-            struct Data *arr;
-            int32_t numElements;
-        };
+        Array *arr;
         Instance *pvalue;
         double cvalue;
         int32_t ivalue;
         uint32_t svalue;
     };
-} Data;
+};
 
 #define MAX_FREE_INSTANCES 512
 
@@ -62,6 +66,7 @@ extern uint16_t freeInstancePointer;
 #define isarray(x) (x.type == ARR)
 #define isnone(x) (x.type == NONE)
 
+#define ttype(x) (x.type)
 #define tint(x) (x.ivalue)
 #define tfloat(x) (x.cvalue)
 #define tnum(x) (isint(x)?tint(x):tfloat(x))
@@ -69,6 +74,9 @@ extern uint16_t freeInstancePointer;
 #define tstrk(x) (x.svalue)
 #define tins(x) (x.pvalue)
 #define tenv(x) ((Environment *)x.pvalue->env)
+#define tarr(x) (x.arr)
+#define arr_size(x) (x->numElements)
+#define arr_elements(x) (x->data)
 
 #define new_data() ((Data *)mallocate(sizeof(Data)))
 #define new_int(x) ((Data){.type = INT, {.ivalue = x}})
@@ -80,6 +88,7 @@ extern uint16_t freeInstancePointer;
 #define new_logical(x) ((Data){.type = LOGICAL, {.ivalue = x}})
 #define new_null() ((Data){.type = NIL})
 #define new_none() ((Data){.type = NONE})
+
 Data new_array(uint32_t size);
 Data new_ins(void *env, uint32_t name);
 

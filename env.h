@@ -64,12 +64,13 @@ static inline void data_free(Data d) {
         }
     }
     else if(isarray(d)){
-        uint32_t i = 0;
-        Data *arr = d.arr;
-        while(i < d.numElements){
-            data_free(arr[i]);
+        int32_t i = 0;
+        Array *arr = tarr(d);
+        while(i < arr_size(arr)){
+            data_free(arr_elements(arr)[i]);
             i++;
         }
+        memfree(tarr(d));
     }
 }
 

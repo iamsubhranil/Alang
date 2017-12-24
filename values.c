@@ -10,12 +10,12 @@ static uint32_t id = 0;
 
 Data new_array(uint32_t size){
     Data d;
-    d.type = ARR;
-    d.numElements = size;
-    d.arr = (Data *)mallocate(sizeof(Data)*size);
+    ttype(d) = ARR;
+    tarr(d) = (Array *)mallocate(sizeof(Array));
+    arr_elements(tarr(d)) = (Data *)mallocate(sizeof(Data)*size);
     uint32_t i = 0;
     while(i < size)
-        d.arr[i++] = new_null();
+        arr_elements(tarr(d))[i++] = new_null();
     return d;
 }
 

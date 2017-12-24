@@ -638,7 +638,7 @@ DO_PRINT:
                      printf("<identifer %s>", str_get(tstrk(value)));
                      DISPATCH();
                  case ARR:
-                     printf("<array of %" PRIu32 ">", value.numElements);
+                     printf("<array of %" PRIu32 ">", arr_size(tarr(value)));
                      DISPATCH();
                  case NONE:
                      printf("<none>");
@@ -760,12 +760,12 @@ DO_ARRAY:
              }
              if(isint(index)){
                  if(isarray(arr)){
-                     if(tint(index) < 1 || tint(index) > arr.numElements){
+                     if(tint(index) < 1 || tint(index) > arr_size(tarr(arr))){
                          rerr("Array index out of range : %" PRId32, tint(index));
 
                      }
 
-                     dpush((arr.arr)[tint(index) - 1]);
+                     dpush(arr_elements(tarr(arr))[tint(index) - 1]);
                      DISPATCH();
                  }
 
@@ -871,8 +871,8 @@ DO_ARRAYREF:
                      if(isidentifer(iden)){
                          Data arr = env_get(tstrk(iden), tenv(cont), 0);
                          if(isarray(arr)){
-                             if(tint(index) > 0 && tint(index) <= arr.numElements){
-                                 dpush((Data)arr.arr[tint(index)- 1]);
+                             if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
+                                 dpush(arr_elements(tarr(arr))[tint(index)- 1]);
                                  DISPATCH();
                              }
                              rerr("Array index out of range : %" PRId32, tint(index));
@@ -919,8 +919,8 @@ DO_ARRAYSET:
                      if(isidentifer(iden)){
                          Data arr = env_get(tstrk(iden), tenv(cont), 0);
                          if(isarray(arr)){
-                             if(tint(index) > 0 && tint(index) <= arr.numElements){
-                                 arr.arr[tint(index)- 1] = value;
+                             if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
+                                 arr_elements(tarr(arr))[tint(index)- 1] = value;
                                  DISPATCH();
                              }
                              rerr("Array index out of range : %" PRId32, tint(index));
@@ -964,8 +964,8 @@ DO_ARRAYWRITE:
                  if(isidentifer(iden)){
                      Data arr = env_get(tstrk(iden), &callFrame.env, 0);
                      if(isarray(arr)){
-                         if(tint(index) > 0 && tint(index) <= arr.numElements){
-                             arr.arr[tint(index)- 1] = value;
+                         if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
+                             arr_elements(tarr(arr))[tint(index)- 1] = value;
                              DISPATCH();
                          }
                          rerr("Array index out of range : %" PRId32, tint(index));
