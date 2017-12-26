@@ -8,9 +8,13 @@ Routine Fibonacci(x)
 EndRoutine
 
 Routine Main()
-    Print "Fibonacci(28) : "
+    Set i = 0
+    Print "Calling Fibonacci(28) 5 times..\n"
     Set t = Clock()
-    Print Fibonacci(28.0)
+    While(i < 5)
+        Call Fibonacci(28.0)
+        Set i = i + 1
+    EndWhile
     Set t = Clock() - t
     Print "\nTook ", (t*1.0)/ClocksPerSecond, "s"
 EndRoutine

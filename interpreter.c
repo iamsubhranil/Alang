@@ -615,7 +615,7 @@ DO_PRINT:
              dpopv(value, callFrame);
              //printf("\nType : %d", (int)value->type);
              if(isfloat(value)){
-                printf("%F", tfloat(value));
+                printf("%g", tfloat(value));
                 DISPATCH();
              }
              switch(ttype(value)){

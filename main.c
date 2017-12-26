@@ -20,6 +20,7 @@ void printSizes(){
     prsz(Record);
     prsz(Instance);
     prsz(CallFrame);
+    printf("\n");
 }
 
 int main(int argc, char **argv){
