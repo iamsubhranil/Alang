@@ -68,11 +68,21 @@ Data getInt(){
     char *s = readString();
     while(!isInt(s)){
         rwarn("[Input Error] Not an integer : %s!", s);
+int_retake:
+        memfree(s);
         info("[Re-input] ");
         s = readString();
     }
-    int32_t l = 0;
-    sscanf(s, "%" SCNd32, &l);
+    int64_t l = 0;
+    sscanf(s, "%" SCNd64, &l);
+    if(l > INT32_MAX){
+        rwarn("[Input Error] Integer out of range : %s > %" PRId32, s, INT32_MAX);
+        goto int_retake;
+    }
+    else if(l < INT32_MIN){
+        rwarn("[Input Error] Integer out of range : %s < %" PRId32, s, INT32_MIN);
+        goto int_retake;
+    }
     memfree(s);
     return new_int(l);
 }
@@ -101,6 +111,7 @@ Data getFloat(){
     char *s = readString();
     while(!isNumber(s)){
         rwarn("[Input Error] Not a number : %s!", s);
+        memfree(s);
         info("[Re-input] ");
         s = readString();
     }
