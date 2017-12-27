@@ -26,7 +26,7 @@ void printSizes(){
 int main(int argc, char **argv){
     if(argc != 2)
         return 2;
-    printSizes();
+    //printSizes();
     TokenList *tokens = scanTokens(argv[1]);
     if(hasScanErrors()){
         err("%d errors occured while scanning. Correct them and try to run again.", hasScanErrors());
@@ -41,9 +41,9 @@ int main(int argc, char **argv){
         memfree_all();
         return 1;
     }
+    freeList(tokens);
     
     //ins_print();
-    freeList(tokens);
     interpret();
 
     memfree_all();
