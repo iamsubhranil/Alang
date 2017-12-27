@@ -182,9 +182,17 @@ static double doubleOf(const char *s){
 }
 
 static int32_t longOf(const char *s){
-    int32_t l;
-    sscanf(s,"%" SCNd32, &l);
-    return l;
+    if(strlen(s) > 10){
+        lnerr("Integer overflow : %s > %" PRId32, presentToken(), s, INT32_MAX);
+        he++;
+    }
+    int64_t l;
+    sscanf(s,"%" SCNd64, &l);
+    if(l > INT32_MAX){
+        lnerr("Integer overflow : %" PRId64 " > %" PRId32, presentToken(), l, INT32_MAX);
+        he++;
+    }
+    return (int32_t)l;
 }
 
 static uint8_t insFromToken(Token t){
@@ -224,6 +232,8 @@ static uint8_t insFromToken(Token t){
 
 static uint32_t getCall(){
     uint32_t argCount = 0;
+    int bak = keepID;
+    keepID = 0;
     if(!match(TOKEN_RIGHT_PAREN)){
         do{
             expression();
@@ -231,6 +241,7 @@ static uint32_t getCall(){
         } while(match(TOKEN_COMMA));
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after expression!");
     }
+    keepID = bak;
     return argCount;
 }
 
@@ -267,7 +278,10 @@ static void primary(){
     else if(peek() == TOKEN_IDENTIFIER){
         uint32_t st = str_insert(stringOf(advance()));
         if(match(TOKEN_LEFT_SQUARE)){
+            int bak = keepID;
+            keepID = 0;
             expression(); // index
+            keepID = bak;
             ins_add(PUSHID);
             ins_add_val(st);
             ins_add(ARRAY);
@@ -281,11 +295,11 @@ static void primary(){
             uint32_t arity = getCall();
             inCall--;
             ins_add(CALL);
-            
+
             calls[tmp - 1].callAddress = ins_add_val(0);
-            
+
             ins_add_val(arity);
-            
+
             calls[tmp - 1].arity = arity;
             calls[tmp - 1].routineName = st;
         }
@@ -299,7 +313,10 @@ static void primary(){
         }
     }
     else if(match(TOKEN_LEFT_PAREN)){
+        int bak = keepID;
+        keepID = 0;
         expression();
+        keepID = bak;
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after grouping expression!");
     }
     else{
@@ -723,11 +740,11 @@ static void containerStatement(Compiler *compiler){
         do{
             args = (uint32_t *)reallocate(args, sizeof(uint32_t) * ++argp);
             args[argp - 1] = str_insert(stringOf(consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
-            
+
             routine_add_arg(&routine, args[argp - 1]);
         } while(match(TOKEN_COMMA));
         consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
-        
+
         while(argp > 0){
             if(routine.startAddress == 0)
                 routine.startAddress = ins_add(SETI);
@@ -874,9 +891,9 @@ void parse(TokenList *list){
     ins_set_val(lastjump, callMain); // After all globals statements are
     // executed, jump to the routine 'Main'
     ins_add(HALT); // After Main returns, halt the machine
-    
+
     register_native_routines(); 
-    
+
     patchRoutines();
     memfree(comp);
 }

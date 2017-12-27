@@ -277,6 +277,49 @@ FileInfo fileInfo_of(uint32_t ip){
     return fileInfos[ip];
 }
 
+void print_op_type(Data op){
+    printf("Data : 0x%lx ", op);
+    if(isfloat(op)){
+        printf("Float[ %g ]", tfloat(op));
+        return;
+    }
+    switch(ttype(op)){
+        case INT:
+            printf("Integer[ %" PRId32 " ]", tint(op));
+            break;
+        case STRING:
+            printf("String[ %s ]", tstr(op));
+            break;
+        case LOGICAL:
+            printf("Logical[ %s ]", tlogical(op)==0?"False":"True");
+            break;
+        case IDENTIFIER:
+            printf("Identifer[ %s ]", tstr(op));
+            break;
+        case INSTANCE:
+            printf("Instance[ Container %s ]", str_get(tins(op)->container_key));
+            break;
+        case NIL:
+            printf("Null");
+            break;
+        case NONE:
+            printf("None");
+            break;
+        case ARR:
+            printf("Array[ Size %" PRId32 "]", arr_size(tarr(op)));
+            break;
+        default:
+            printf("Unknown type 0x%lx[Data %lx]!", ttype(op), op);
+            break;
+    }
+}
+
+#define check_limit(x) {\
+    if(x > INT32_MAX){ \
+        rerr("Integer overflow : %" PRId64 " > %" PRId32 "!", x, INT32_MAX);} \
+    else if(x < INT32_MIN){ \
+        rerr("Integer underflow : %" PRId64 " < %" PRId32 "!", x, INT32_MIN);}}
+
 void interpret(){
     if(init == 0)
         init_interpreter();
@@ -321,676 +364,674 @@ DO_PUSHL:
         ip += 3;
         DISPATCH();
 DO_PUSHS:
-             dpushsk(ins_get_val(++ip));
-             //   printf("\n[Info] Pushing string [sp : %lu] %s", sp, str);
-             ip += 3;
-             //      Data *d;
-             //      dpopv(d,callFrame);
-             //     printf("\n[Info] Stored : %s", str_get(d->svalue));
-         
-         DISPATCH();
+        dpushsk(ins_get_val(++ip));
+        ip += 3;
+        DISPATCH();
 DO_PUSHID:
-         dpushidk(ins_get_val(++ip));
-         ip += 3;
-         DISPATCH();
+        dpushidk(ins_get_val(++ip));
+        ip += 3;
+        DISPATCH();
 DO_PUSHIDV:
-         
-            dpush(env_get(ins_get_val(++ip), &callFrame.env, 0));
+
+        dpush(env_get(ins_get_val(++ip), &callFrame.env, 0));
+        ip += 3;
+        DISPATCH();
+
+DO_PUSHN:
+        dpushn();
+        DISPATCH();
+DO_ADD:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(isnum(d1) && isnum(d2)){
+                if(isfloat(d1) || isfloat(d2)){
+                    double res = tnum(d1) + tnum(d2);
+                    dpushf(res);
+                    DISPATCH();
+                }
+
+                int64_t res = (int64_t)tint(d1) + tint(d2);
+                check_limit(res);
+                dpushi(res);
+                DISPATCH();
+            }
+            if(isstr(d1) && isstr(d2)){
+                size_t s1 = str_len(tstrk(d1)), s2 = str_len(tstrk(d2));
+                char *res = (char *)mallocate(sizeof(char) * (s1 + s2 + 1));
+                res[0] = '\0';
+                strcat(res, str_get(tstrk(d2)));
+                strcat(res, str_get(tstrk(d1)));
+                res[s1+s2] = '\0';
+                dpushs(res);
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '+'!");
+        }
+DO_SUB:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(isnum(d1) && isnum(d2)){
+                if(isfloat(d1) || isfloat(d2)){
+                    double res = tnum(d2) - tnum(d1);
+                    dpushf(res);
+                    DISPATCH();
+                }
+
+                int64_t res = (int64_t)tint(d2) - tint(d1);
+                check_limit(res);
+                dpushi(res);
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '-'!");
+        }
+DO_MUL:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(isnum(d1) && isnum(d2)){
+                if(isfloat(d1) || isfloat(d2)){
+                    double res = tnum(d2) * tnum(d1);
+                    dpushf(res);
+                    DISPATCH();
+                }
+
+                int64_t res = (int64_t)tint(d2) * tint(d1);
+                check_limit(res);
+                dpushi(res);
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '-'!");
+        }
+DO_DIV:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(isnum(d1) && isnum(d2)){
+                if(fabs(tnum(d1)) <= DBL_EPSILON){
+                    rerr("Division by zero!");
+                }
+                if(isfloat(d1) || isfloat(d2)){
+                    double res = tnum(d2) / tnum(d1);
+                    dpushf(res);
+                    DISPATCH();
+                }
+
+                int32_t res = tint(d2) / tint(d1);
+                dpushi(res);
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '-'!");
+        }
+DO_POW:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(isint(d1) && isnum(d2)){
+                dpushf(pow(tnum(d2), tint(d1)));
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '^'!");
+
+        }
+DO_MOD:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(isint(d1) && isint(d2)){
+                dpushi(tint(d2) % tint(d1));
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '%%'", ip);
+
+        }
+DO_GT:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(isnum(d1) && isnum(d2)){
+                dpushl(tnum(d2) > tnum(d1));
+                DISPATCH();
+            }
+            if(isstr(d1) && isstr(d2)){
+                dpushl(str_len(tstrk(d2)) > str_len(tstrk(d1)));
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '>'!");
+
+        }
+DO_GTE:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(isnum(d1) && isnum(d2)){
+                dpushl(tnum(d2) >= tnum(d1));
+                DISPATCH();
+            }
+
+            if(isstr(d1) && isstr(d2)){
+                dpushl(str_len(tstrk(d2)) >= str_len(tstrk(d1)));
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '>='!");
+
+        }
+DO_LT:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+
+            if(isnum(d1) && isnum(d2)){
+                dpushl(tnum(d2) < tnum(d1));
+                DISPATCH();
+            }
+
+            if(isstr(d1) && isstr(d2)){
+                dpushl(str_len(tstrk(d2)) < str_len(tstrk(d1)));
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '<'!");
+
+        }
+DO_LTE:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+
+            if(isnum(d1) && isnum(d2)){
+                dpushl(tnum(d2) <= tnum(d1));
+                DISPATCH();
+            }
+
+            if(isstr(d1) && isstr(d2)){
+                dpushl(str_len(tstrk(d2)) <= str_len(tstrk(d1)));
+                DISPATCH();
+            }
+
+            rerr("Bad operands for operator '<='!");
+
+        }
+DO_EQ:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+
+            if(isnum(d1) && isnum(d2)){
+                dpushl(fabs(tnum(d2) - tnum(d1)) <= DBL_EPSILON);
+                DISPATCH();
+            }
+
+            if(isnull(d1) || isnull(d2)){
+                dpushl(isnull(d1) && isnull(d2));
+                DISPATCH();
+            }
+
+            if(isstr(d1) && isstr(d2)){
+                dpushl(tstrk(d2) == tstrk(d1));
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '=='!");
+
+        }
+DO_NEQ:
+        {
+
+            Data d1, d2; dpop(d1); dpop(d2);
+
+            if(isnum(d1) && isnum(d2)){
+                dpushl(fabs(tnum(d2) - tnum(d1)) > DBL_EPSILON);
+                DISPATCH();
+            }
+
+            if(isnull(d1) || isnull(d2)){
+                dpushl(!(isnull(d1) && isnull(d2)));
+                DISPATCH();
+            }
+
+            if(isstr(d1) && isstr(d2)){
+                dpushl(tstrk(d1) != tstrk(d2));
+                DISPATCH();
+            }
+            rerr("Bad operands for operator '!='!");
+
+        }
+DO_AND:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(islogical(d1) && islogical(d2)){
+                dpushl(tint(d1) && tint(d2));
+                DISPATCH();
+            }
+
+            rerr("Bad operands for operator 'And'!");
+
+        }
+DO_OR:
+        {
+            Data d1, d2; dpop(d1); dpop(d2);
+            if(islogical(d1) && islogical(d2)){
+                dpushl(tint(d1) || tint(d2));
+                DISPATCH();
+            }
+
+            rerr("Bad operands for operator 'Or'!");
+
+
+        }
+DO_SET:
+        {
+            Data id, value;
+            dpopv(value, callFrame);
+            dpop(id); 
+            if(isidentifer(id)){
+                env_put(tstrk(id), value, &callFrame.env);
+                DISPATCH();
+            }
+            rerr("Bad assignment target!");
+
+        }
+DO_SETI:
+        {
+            Data value;
+            dpop(value);
+            env_implicit_put(ins_get_val(++ip), value, &callFrame.env);
             ip += 3;
             DISPATCH();
-         
-DO_PUSHN:
-         dpushn();
-         DISPATCH();
-DO_ADD:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(isnum(d1) && isnum(d2)){
-                 if(isfloat(d1) || isfloat(d2)){
-                     double res = tnum(d1) + tnum(d2);
-                     dpushf(res);
-                     DISPATCH();
-                 }
-
-                 int32_t res = tint(d1) + tint(d2);
-
-                 dpushi(res);
-                 DISPATCH();
-             }
-             if(isstr(d1) && isstr(d2)){
-                 size_t s1 = str_len(tstrk(d1)), s2 = str_len(tstrk(d2));
-                 char *res = (char *)mallocate(sizeof(char) * (s1 + s2 + 1));
-                 res[0] = '\0';
-                 strcat(res, str_get(tstrk(d2)));
-                 strcat(res, str_get(tstrk(d1)));
-                 res[s1+s2] = '\0';
-                 dpushs(res);
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '+'!");
-         }
-DO_SUB:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(isnum(d1) && isnum(d2)){
-                 if(isfloat(d1) || isfloat(d2)){
-                     double res = tnum(d2) - tnum(d1);
-                     dpushf(res);
-                     DISPATCH();
-                 }
-
-                 int32_t res = tint(d2) - tint(d1);
-                 dpushi(res);
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '-'!");
-         }
-DO_MUL:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(isnum(d1) && isnum(d2)){
-                 if(isfloat(d1) || isfloat(d2)){
-                     double res = tnum(d2) * tnum(d1);
-                     dpushf(res);
-                     DISPATCH();
-                 }
-
-                 int32_t res = tint(d2) * tint(d1);
-                 dpushi(res);
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '-'!");
-         }
-DO_DIV:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(isnum(d1) && isnum(d2)){
-                 if(isfloat(d1) || isfloat(d2)){
-                     double res = tnum(d2) / tnum(d1);
-                     dpushf(res);
-                     DISPATCH();
-                 }
-
-                 int32_t res = tint(d2) / tint(d1);
-                 dpushi(res);
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '-'!");
-         }
-DO_POW:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(isint(d1) && isnum(d2)){
-                 dpushf(pow(tnum(d2), tint(d1)));
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '^'!");
-
-         }
-DO_MOD:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(isint(d1) && isint(d2)){
-                 dpushi(tint(d2) % tint(d1));
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '%%'", ip);
-
-         }
-DO_GT:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(isnum(d1) && isnum(d2)){
-                 dpushl(tnum(d2) > tnum(d1));
-                 DISPATCH();
-             }
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(str_len(tstrk(d2)) > str_len(tstrk(d1)));
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '>'!");
-
-         }
-DO_GTE:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(isnum(d1) && isnum(d2)){
-                 dpushl(tnum(d2) >= tnum(d1));
-                 DISPATCH();
-             }
-
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(str_len(tstrk(d2)) >= str_len(tstrk(d1)));
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '>='!");
-
-         }
-DO_LT:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-
-             if(isnum(d1) && isnum(d2)){
-                 dpushl(tnum(d2) < tnum(d1));
-                 DISPATCH();
-             }
-
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(str_len(tstrk(d2)) < str_len(tstrk(d1)));
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '<'!");
-
-         }
-DO_LTE:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-
-             if(isnum(d1) && isnum(d2)){
-                 dpushl(tnum(d2) <= tnum(d1));
-                 DISPATCH();
-             }
-
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(str_len(tstrk(d2)) <= str_len(tstrk(d1)));
-                 DISPATCH();
-             }
-
-             rerr("Bad operands for operator '<='!");
-
-         }
-DO_EQ:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-
-             if(isnum(d1) && isnum(d2)){
-                 //     printf("\nComparaing %g and %g : %d!", tnum(d2), tnum(d1), tnum(d2) == tnum(d1));
-                 dpushl(fabs(tnum(d2) - tnum(d1)) <= FLT_EPSILON);
-                 DISPATCH();
-             }
-
-             if(isnull(d1) || isnull(d2)){
-                 dpushl(isnull(d1) && isnull(d2));
-                 DISPATCH();
-             }
-
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(tstrk(d2) == tstrk(d1));
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '=='!");
-
-         }
-DO_NEQ:
-         {
-
-             Data d1, d2; dpop(d1); dpop(d2);
-
-             if(isnum(d1) && isnum(d2)){
-                 dpushl(fabs(tnum(d2) - tnum(d1)) > FLT_EPSILON);
-                 DISPATCH();
-             }
-
-             if(isnull(d1) || isnull(d2)){
-                 dpushl(!(isnull(d1) && isnull(d2)));
-                 DISPATCH();
-             }
-
-             if(isstr(d1) && isstr(d2)){
-                 dpushl(tstrk(d1) != tstrk(d2));
-                 DISPATCH();
-             }
-             rerr("Bad operands for operator '!='!");
-
-         }
-DO_AND:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(islogical(d1) && islogical(d2)){
-                 dpushl(tint(d1) && tint(d2));
-                 DISPATCH();
-             }
-
-             rerr("Bad operands for operator 'And'!");
-
-         }
-DO_OR:
-         {
-             Data d1, d2; dpop(d1); dpop(d2);
-             if(islogical(d1) && islogical(d2)){
-                 dpushl(tint(d1) || tint(d2));
-                 DISPATCH();
-             }
-
-             rerr("Bad operands for operator 'Or'!");
-
-
-         }
-DO_SET:
-         {
-             Data id, value;
-             dpopv(value, callFrame);
-             dpop(id); 
-             if(isidentifer(id)){
-                 env_put(tstrk(id), value, &callFrame.env);
-                 DISPATCH();
-             }
-
-             rerr("Bad assignment target!");
-
-         }
-DO_SETI:
-         {
-             Data value;
-             dpop(value);
-             env_implicit_put(ins_get_val(++ip), value, &callFrame.env);
-             ip += 3;
-             DISPATCH();
-         }
+        }
 DO_INPUTI:
-         {
-             Data id;
-             dpop(id);
-             env_put(tstrk(id), getInt(), &callFrame.env);
-             DISPATCH();         
-         }
+        {
+            Data id;
+            dpop(id);
+            env_put(tstrk(id), getInt(), &callFrame.env);
+            DISPATCH();         
+        }
 DO_INPUTS:
-         {
-             Data id;
-             dpop(id);
-             env_put(tstrk(id), getString(), &callFrame.env);
-             DISPATCH();
-         }
+        {
+            Data id;
+            dpop(id);
+            env_put(tstrk(id), getString(), &callFrame.env);
+            DISPATCH();
+        }
 DO_INPUTF:
-         {
-             Data id;
-             dpop(id);
-             env_put(tstrk(id), getFloat(), &callFrame.env);
-             DISPATCH();
-         }
+        {
+            Data id;
+            dpop(id);
+            env_put(tstrk(id), getFloat(), &callFrame.env);
+            DISPATCH();
+        }
 DO_PRINT:
-         {
-             //printf("\n[Info] Printing [sp : %lu]", sp);
-             Data value;
-             dpopv(value, callFrame);
-             //printf("\nType : %d", (int)value->type);
-             if(isfloat(value)){
+        {
+            //printf("\n[Info] Printing [sp : %lu]", sp);
+            Data value;
+            dpopv(value, callFrame);
+            //printf("\nType : %d", (int)value->type);
+            if(isfloat(value)){
                 printf("%g", tfloat(value));
                 DISPATCH();
-             }
-             switch(ttype(value)){
-                 case INT:
-                     printf("%" PRId32, tint(value));
-                     DISPATCH();
-                 case LOGICAL:
-                     printf("%s", tint(value) == 0?"False":"True");
-                     DISPATCH();
-                 case NIL:
-                     printf("Null");
-                     DISPATCH();
-                 case STRING:
-                     printString(str_get(tstrk(value)));
-                     DISPATCH();
-                 case INSTANCE:
-                     printf("<instance of %s#%" PRIu32 ">", str_get(tins(value)->container_key),
-                             tins(value)->id);
-                     DISPATCH();
-                 case IDENTIFIER:
-                     printf("<identifer %s>", str_get(tstrk(value)));
-                     DISPATCH();
-                 case ARR:
-                     printf("<array of %" PRIu32 ">", arr_size(tarr(value)));
-                     DISPATCH();
-                 case NONE:
-                     printf("<none>");
-                     DISPATCH();
-             }
-         }
+            }
+            switch(ttype(value)){
+                case INT:
+                    printf("%" PRId32, tint(value));
+                    DISPATCH();
+                case LOGICAL:
+                    printf("%s", tint(value) == 0?"False":"True");
+                    DISPATCH();
+                case NIL:
+                    printf("Null");
+                    DISPATCH();
+                case STRING:
+                    printString(str_get(tstrk(value)));
+                    DISPATCH();
+                case INSTANCE:
+                    printf("<instance of %s#%" PRIu32 ">", str_get(tins(value)->container_key),
+                            tins(value)->id);
+                    DISPATCH();
+                case IDENTIFIER:
+                    printf("<identifer %s>", str_get(tstrk(value)));
+                    DISPATCH();
+                case ARR:
+                    printf("<array of %" PRIu32 ">", arr_size(tarr(value)));
+                    DISPATCH();
+                case NONE:
+                    printf("<none>");
+                    DISPATCH();
+            }
+        }
 DO_HALT:
-         stop(); 
+        stop(); 
 DO_JUMP:
-         {
-             uint32_t ja = ins_get_val(++ip);
-             ip = ja;
-             DISPATCH_WINC();
-         }
+        {
+            uint32_t ja = ins_get_val(++ip);
+            ip = ja;
+            DISPATCH_WINC();
+        }
 DO_JUMP_IF_TRUE:
-         {
-             Data c;
-             uint32_t ja = ins_get_val(++ip);
-             dpopv(c,callFrame); 
-             if(islogical(c)){
-                 if(tint(c)){
-                     ip = ja;
-                     DISPATCH_WINC();
-                 }
-                 ip += 3;
-                 DISPATCH();
-             }
+        {
+            Data c;
+            uint32_t ja = ins_get_val(++ip);
+            dpopv(c,callFrame); 
+            if(islogical(c)){
+                if(tint(c)){
+                    ip = ja;
+                    DISPATCH_WINC();
+                }
+                ip += 3;
+                DISPATCH();
+            }
 
-             rerr("Illogical jump!");
+            rerr("Illogical jump!");
 
 
-         }
+        }
 DO_JUMP_IF_FALSE:
-         {
-             Data c;
-             int32_t ja = ins_get_val(++ip);
-             dpopv(c,callFrame);
-             if(islogical(c)){
-                 if(!tint(c)){
-                     ip = ja;
-                     DISPATCH_WINC();
-                 }
-                 ip += 3;
-                 //        printf("\nCond is true!");
-                 DISPATCH();
+        {
+            Data c;
+            int32_t ja = ins_get_val(++ip);
+            dpopv(c,callFrame);
+            if(islogical(c)){
+                if(!tint(c)){
+                    ip = ja;
+                    DISPATCH_WINC();
+                }
+                ip += 3;
+                //        printf("\nCond is true!");
+                DISPATCH();
 
-             }
+            }
 
-             rerr("Illogical jump!");
+            rerr("Illogical jump!");
 
 
-         }
+        }
 DO_CALL:
-         {
-             //uint32_t numArg;
-             uint32_t ja;
-             ja = ins_get_val(++ip);
-             ip += 3;
-             //numArg = ins_get_val(++ip);
-             ip += 4;
+        {
+            //uint32_t numArg;
+            uint32_t ja;
+            ja = ins_get_val(++ip);
+            ip += 3;
+            //numArg = ins_get_val(++ip);
+            ip += 4;
 
-             cf_push(callFrame);
-             CallFrame nf = cf_new();
-             nf.env = env_new(cf_root_env());
-             nf.returnAddress = ip + 1;
+            cf_push(callFrame);
+            CallFrame nf = cf_new();
+            nf.env = env_new(cf_root_env());
+            nf.returnAddress = ip + 1;
 
-             callFrame = nf;
+            callFrame = nf;
 
-             ip = ja;
-             DISPATCH_WINC();
-         }
+            ip = ja;
+            DISPATCH_WINC();
+        }
 DO_CALLNATIVE:
-         {
-             uint32_t name = ins_get_val(++ip), i;
-             ip += 3;
-             uint32_t numArg = ins_get_val(++ip);
-             ip += 3;
-             cf_push(callFrame);
-             CallFrame nf = cf_new();
-             nf.env = env_new(cf_root_env());
-             nf.returnAddress = ip + 1;
+        {
+            uint32_t name = ins_get_val(++ip), i;
+            ip += 3;
+            uint32_t numArg = ins_get_val(++ip);
+            ip += 3;
+            cf_push(callFrame);
+            CallFrame nf = cf_new();
+            nf.env = env_new(cf_root_env());
+            nf.returnAddress = ip + 1;
 
-             Routine2 routine = routine_get(name);
+            Routine2 routine = routine_get(name);
 
-             if(numArg > 0){
-                 i = 0;
-                 while(i < numArg){
-                     Data d; dpop(d);
-                     env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
-                     i++;
-                 }
-             }
+            if(numArg > 0){
+                i = 0;
+                while(i < numArg){
+                    Data d; dpop(d);
+                    env_implicit_put(routine.arguments[routine.arity - i - 1], d, &nf.env);
+                    i++;
+                }
+            }
 
-             callFrame = nf;
+            callFrame = nf;
 
-             dpush(handle_native(routine.name, &nf.env));
-             goto DO_RETURN;
-         }
+            dpush(handle_native(routine.name, &nf.env));
+            goto DO_RETURN;
+        }
 DO_RETURN:
-         {
-             if(isins(dpeek()))
-                 tins(dpeek())->refCount++; 
+        {
+            if(isins(dpeek()))
+                tins(dpeek())->refCount++; 
 
-             ip = callFrame.returnAddress;
-             //dbg("Returning to %lu", ip);
-             cf_free(callFrame);
-             callFrame = cf_pop();
-             //dbg("ReStoring address : %lu", callFrame.returnAddress);
-             DISPATCH_WINC();
-         }
+            ip = callFrame.returnAddress;
+            //dbg("Returning to %lu", ip);
+            cf_free(callFrame);
+            callFrame = cf_pop();
+            //dbg("ReStoring address : %lu", callFrame.returnAddress);
+            DISPATCH_WINC();
+        }
 DO_ARRAY:
-         {
-             Data id, index;
-             dpop(id); dpopv(index, callFrame);
-             Data arr = env_get(tstrk(id), &callFrame.env, 0);
-             if(!isarray(arr) && !isstr(arr)){
-                 rerr("'%s' is not an array!"), str_get(tstrk(id));
+        {
+            Data id, index;
+            dpop(id); dpopv(index, callFrame);
+            Data arr = env_get(tstrk(id), &callFrame.env, 0);
+            if(!isarray(arr) && !isstr(arr)){
+                rerr("'%s' is not an array!"), str_get(tstrk(id));
 
-             }
-             if(isint(index)){
-                 if(isarray(arr)){
-                     if(tint(index) < 1 || tint(index) > arr_size(tarr(arr))){
-                         rerr("Array index out of range : %" PRId32, tint(index));
+            }
+            if(isint(index)){
+                if(isarray(arr)){
+                    if(tint(index) < 1 || tint(index) > arr_size(tarr(arr))){
+                        rerr("Array index out of range : %" PRId32, tint(index));
 
-                     }
+                    }
 
-                     dpush(arr_elements(tarr(arr))[tint(index) - 1]);
-                     DISPATCH();
-                 }
+                    dpush(arr_elements(tarr(arr))[tint(index) - 1]);
+                    DISPATCH();
+                }
 
-                 if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
-                     rerr("String index out of range for '%s' : %" PRId32 " [Expected <= %" PRIu32 "]", str_get(tstrk(arr)),
-                             tint(index), str_len(tstrk(arr)));
-                 }
+                if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
+                    rerr("String index out of range for '%s' : %" PRId32 " [Expected <= %" PRIu32 "]", str_get(tstrk(arr)),
+                            tint(index), str_len(tstrk(arr)));
+                }
 
-                 if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
-                     dpushn();
-                     DISPATCH();
-                 }
+                if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
+                    dpushn();
+                    DISPATCH();
+                }
 
-                 char *c = (char *)mallocate(sizeof(char) * 2);
-                 c[0] = tstr(arr)[tint(index) - 1];
-                 c[1] = 0;
-                 dpushs(c);
-                 DISPATCH();
+                char *c = (char *)mallocate(sizeof(char) * 2);
+                c[0] = tstr(arr)[tint(index) - 1];
+                c[1] = 0;
+                dpushs(c);
+                DISPATCH();
 
-             }
+            }
 
-             rerr("Array index must be an integer!");
+            rerr("Array index must be an integer!");
 
 
-         }
+        }
 DO_MEMREF:
-         {
-             Data ins, mem;
-             dpop(mem); dpopv(ins, callFrame);
-             if(isins(ins)){
-                 if(isidentifer(mem)){
-                     dpush(env_get(tstrk(mem), tenv(ins), 0));
-                     DISPATCH();
-                 }
-                 rerr("Bad identifer!");
+        {
+            Data ins, mem;
+            dpop(mem); dpopv(ins, callFrame);
+            if(isins(ins)){
+                if(isidentifer(mem)){
+                    dpush(env_get(tstrk(mem), tenv(ins), 0));
+                    DISPATCH();
+                }
+                rerr("Bad identifer!");
 
-             }
-             rerr("Referenced value is not a container instance!");
+            }
+            rerr("Referenced value is not a container instance!");
 
-         }
+        }
 DO_MAKE_ARRAY:
-         {
-             Data size, id;
-             dpop(id); dpopv(size, callFrame); 
-             if(isint(size)){
-                 if(isidentifer(id)){
-                     if(!isnone(env_get(tstrk(id), &callFrame.env, 1))){
-                         rerr("Variable '%s' is already defined!", str_get(tstrk(id)));
+        {
+            Data size, id;
+            dpop(id); dpopv(size, callFrame); 
+            if(isint(size)){
+                if(isidentifer(id)){
+                    if(!isnone(env_get(tstrk(id), &callFrame.env, 1))){
+                        rerr("Variable '%s' is already defined!", str_get(tstrk(id)));
 
-                     }
-                     if(tint(size) > 0){
-                         env_put(tstrk(id), new_array(tint(size)), &callFrame.env);
-                         DISPATCH();
-                     }
+                    }
+                    if(tint(size) > 0){
+                        env_put(tstrk(id), new_array(tint(size)), &callFrame.env);
+                        DISPATCH();
+                    }
 
-                     rerr("Array size must be positive!");
-
-
-                 }
-
-                 rerr("Expected array identifer!");
+                    rerr("Array size must be positive!");
 
 
-             }
+                }
 
-             rerr("Array size must be integer!");
+                rerr("Expected array identifer!");
 
-         }
+
+            }
+
+            rerr("Array size must be integer!");
+
+        }
 DO_NOOP:
-         {
-             DISPATCH();
-         }
+        {
+            DISPATCH();
+        }
 DO_NEW_CONTAINER:
-         {
-             uint32_t name;
-             dpopsk(name);
-             dpush(new_ins(&callFrame.env, name));
-             ip = callFrame.returnAddress;
-             callFrame = cf_pop();
-             DISPATCH_WINC();
-         }
+        {
+            uint32_t name;
+            dpopsk(name);
+            dpush(new_ins(&callFrame.env, name));
+            ip = callFrame.returnAddress;
+            callFrame = cf_pop();
+            DISPATCH_WINC();
+        }
 DO_MEMSET:
-         {
-             Data in, mem, data;
-             dpopv(data, callFrame); dpop(mem); dpopv(in, callFrame);
-             if(isins(in)){
-                 if(isidentifer(mem)){
-                     env_put(tstrk(mem), data, tenv(in));
-                     DISPATCH();
-                 }
-                 rerr("Bad member reference!");
+        {
+            Data in, mem, data;
+            dpopv(data, callFrame); dpop(mem); dpopv(in, callFrame);
+            if(isins(in)){
+                if(isidentifer(mem)){
+                    env_put(tstrk(mem), data, tenv(in));
+                    DISPATCH();
+                }
+                rerr("Bad member reference!");
 
-             }
-             rerr("Referenced value is not a container instance!");
+            }
+            rerr("Referenced value is not a container instance!");
 
-         }
+        }
 DO_ARRAYREF:
-         {
-             Data index, iden, cont;
-             dpop(iden); dpopv(index, callFrame); dpopv(cont, callFrame);
-             if(isint(index)){
-                 if(isins(cont)){
-                     if(isidentifer(iden)){
-                         Data arr = env_get(tstrk(iden), tenv(cont), 0);
-                         if(isarray(arr)){
-                             if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
-                                 dpush(arr_elements(tarr(arr))[tint(index)- 1]);
-                                 DISPATCH();
-                             }
-                             rerr("Array index out of range : %" PRId32, tint(index));
+        {
+            Data index, iden, cont;
+            dpop(iden); dpopv(index, callFrame); dpopv(cont, callFrame);
+            if(isint(index)){
+                if(isins(cont)){
+                    if(isidentifer(iden)){
+                        Data arr = env_get(tstrk(iden), tenv(cont), 0);
+                        if(isarray(arr)){
+                            if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
+                                dpush(arr_elements(tarr(arr))[tint(index)- 1]);
+                                DISPATCH();
+                            }
+                            rerr("Array index out of range : %" PRId32, tint(index));
 
-                         }
-                         if(isstr(arr)){
-                             if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
-                                 rerr("String index out of range : %" PRId32 " [Expected <= %" PRIu32 "]", 
-                                         tint(index), str_len(tstrk(arr)));
+                        }
+                        if(isstr(arr)){
+                            if(tint(index) < 1 || (size_t)tint(index) > (str_len(tstrk(arr)) + 1)){
+                                rerr("String index out of range : %" PRId32 " [Expected <= %" PRIu32 "]", 
+                                        tint(index), str_len(tstrk(arr)));
 
-                             }
+                            }
 
 
-                             if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
-                                 dpushn();
-                                 DISPATCH();
-                             }
-                             char *c = (char *)mallocate(sizeof(char) * 2);
-                             c[0] = tstr(arr)[tint(index) - 1];
-                             c[1] = 0;
-                             dpushs(c);
-                             DISPATCH();
+                            if((size_t)tint(index) == str_len(tstrk(arr)) + 1){
+                                dpushn();
+                                DISPATCH();
+                            }
+                            char *c = (char *)mallocate(sizeof(char) * 2);
+                            c[0] = tstr(arr)[tint(index) - 1];
+                            c[1] = 0;
+                            dpushs(c);
+                            DISPATCH();
 
-                         }
+                        }
 
-                         rerr("Referenced item '%s' is not an array!", tstr(iden));
+                        rerr("Referenced item '%s' is not an array!", tstr(iden));
 
-                     }
-                     rerr("Bad identifer");
+                    }
+                    rerr("Bad identifer");
 
-                 }
-                 rerr("Referenced value is not a container instance");
+                }
+                rerr("Referenced value is not a container instance");
 
-             }
-             rerr("Array index must be an integer!");
+            }
+            rerr("Array index must be an integer!");
 
-         }
+        }
 DO_ARRAYSET:
-         {
-             Data index, iden, cont, value;
-             dpopv(value, callFrame); dpop(iden); dpopv(index, callFrame); dpopv(cont, callFrame);
-             if(isint(index)){
-                 if(isins(cont)){
-                     if(isidentifer(iden)){
-                         Data arr = env_get(tstrk(iden), tenv(cont), 0);
-                         if(isarray(arr)){
-                             if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
-                                 arr_elements(tarr(arr))[tint(index)- 1] = value;
-                                 DISPATCH();
-                             }
-                             rerr("Array index out of range : %" PRId32, tint(index));
+        {
+            Data index, iden, cont, value;
+            dpopv(value, callFrame); dpop(iden); dpopv(index, callFrame); dpopv(cont, callFrame);
+            if(isint(index)){
+                if(isins(cont)){
+                    if(isidentifer(iden)){
+                        Data arr = env_get(tstrk(iden), tenv(cont), 0);
+                        if(isarray(arr)){
+                            if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
+                                arr_elements(tarr(arr))[tint(index)- 1] = value;
+                                DISPATCH();
+                            }
+                            rerr("Array index out of range : %" PRId32, tint(index));
 
-                         }
-                         if(isstr(arr)){
-                             if(tint(index) < 1 || (size_t)tint(index) > str_len(tstrk(arr))){
-                                 rerr("String index out of range : %" PRId32, tint(index));
+                        }
+                        if(isstr(arr)){
+                            if(tint(index) < 1 || (size_t)tint(index) > str_len(tstrk(arr))){
+                                rerr("String index out of range : %" PRId32, tint(index));
 
-                             }
-                             if(!isstr(value)){
-                                 rerr("Bad assignment to string!");
+                            }
+                            if(!isstr(value)){
+                                rerr("Bad assignment to string!");
 
-                             }
-                             if(str_len(tstrk(value)) > 1){
-                                 rwarn("Ignoring extra characters!");
-                             }
-                             char *s = strdup(tstr(arr));
-                             s[tint(index) - 1] = tstr(value)[0];
-                             env_put(tstrk(iden), new_str(s), tenv(cont));
-                             DISPATCH();
-                         }
+                            }
+                            if(str_len(tstrk(value)) > 1){
+                                rwarn("Ignoring extra characters!");
+                            }
+                            char *s = strdup(tstr(arr));
+                            s[tint(index) - 1] = tstr(value)[0];
+                            env_put(tstrk(iden), new_str(s), tenv(cont));
+                            DISPATCH();
+                        }
 
-                         rerr("Referenced item '%s' is not an array!", tstr(iden));
+                        rerr("Referenced item '%s' is not an array!", tstr(iden));
 
-                     }
-                     rerr("Bad identifer");
+                    }
+                    rerr("Bad identifer");
 
-                 }
-                 rerr("Referenced value is not a container instance");
+                }
+                rerr("Referenced value is not a container instance");
 
-             }
-             rerr("Array index must be an integer!");
+            }
+            rerr("Array index must be an integer!");
 
-         }
+        }
 DO_ARRAYWRITE:
-         {
-             Data index, iden, value;
-             dpopv(value, callFrame); dpop(iden); dpopv(index, callFrame);
-             if(isint(index)){
-                 if(isidentifer(iden)){
-                     Data arr = env_get(tstrk(iden), &callFrame.env, 0);
-                     if(isarray(arr)){
-                         if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
-                             arr_elements(tarr(arr))[tint(index)- 1] = value;
-                             DISPATCH();
-                         }
-                         rerr("Array index out of range : %" PRId32, tint(index));
-                     }
-                     if(isstr(arr)){
-                         if(tint(index) < 1 || (size_t)tint(index) > str_len(tstrk(arr))){
-                             rerr("String index out of range : %" PRId32, tint(index));
-                         }
-                         if(!isstr(value)){
-                             rerr("Bad assignment to string!");
-                         }
-                         if(str_len(tstrk(value)) > 1){
-                             rwarn("Ignoring extra characters!");
-                         }
-                         char *s = strdup(tstr(arr));
-                         s[tint(index) - 1] = tstr(value)[0];
-                         env_put(tstrk(iden), new_str(s), &callFrame.env);
-                         DISPATCH();
-                     }
-                     rerr("Referenced item '%s' is not an array!"), tstr(iden);
-                 }
-                 rerr("Bad identifer");
-             }
-             rerr("Array index must be an integer![%s]", tstr(iden));
-         }
+        {
+            Data index, iden, value;
+            dpopv(value, callFrame); dpop(iden); dpopv(index, callFrame);
+            if(isint(index)){
+                if(isidentifer(iden)){
+                    Data arr = env_get(tstrk(iden), &callFrame.env, 0);
+                    if(isarray(arr)){
+                        if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))){
+                            arr_elements(tarr(arr))[tint(index)- 1] = value;
+                            DISPATCH();
+                        }
+                        rerr("Array index out of range : %" PRId32, tint(index));
+                    }
+                    if(isstr(arr)){
+                        if(tint(index) < 1 || (size_t)tint(index) > str_len(tstrk(arr))){
+                            rerr("String index out of range : %" PRId32, tint(index));
+                        }
+                        if(!isstr(value)){
+                            rerr("Bad assignment to string!");
+                        }
+                        if(str_len(tstrk(value)) > 1){
+                            rwarn("Ignoring extra characters!");
+                        }
+                        char *s = strdup(tstr(arr));
+                        s[tint(index) - 1] = tstr(value)[0];
+                        env_put(tstrk(iden), new_str(s), &callFrame.env);
+                        DISPATCH();
+                    }
+                    rerr("Referenced item '%s' is not an array!"), tstr(iden);
+                }
+                rerr("Bad identifer");
+            }
+            rerr("Array index must be an integer![%s]", tstr(iden));
+        }
     }
 }
