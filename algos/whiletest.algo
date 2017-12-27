@@ -1,0 +1,15 @@
+Routine Main()
+    Array list[1000000]
+    Set time = Clock()
+    Set i = 0
+    While(i < 1000000)
+        Set list[i+1] = i, i = i + 1
+    EndWhile
+    Set sum = 0.0, i = 0
+    While(i < 1000000)
+        Set sum = sum + list[i+1], i = i + 1
+    EndWhile
+    Set time = 1.0 * (Clock() - time)/ClocksPerSecond
+    Print "\nsum : ", sum
+    Print "\nTook ", time, " seconds\n"
+EndRoutine
