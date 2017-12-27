@@ -1,0 +1,37 @@
+Routine Main()
+    Print "\nTesting breaks.."
+    Set i = 0, j = 0, c1 = 0, c2 = 0, c3 = 0
+    While(i < 10)
+        Set j = 0
+        While(j < 10)
+            If(j == 5)
+                Print "\nBreaking from first inner loop.."
+                Set c1 = c1 + 1
+                Break
+            EndIf
+            Set j = j + 1
+        EndWhile
+        If(i == 6)
+            Print "\nBreaking from outer loop.."
+            Set c2 = c2 + 1
+            Break
+        EndIf
+        Set i = i + 1, k = 0
+        While(k < 10)
+            If(k == 5)
+                Print "\nBreaking from second inner loop.."
+                Set c3 = c3 + 1
+                Break
+            EndIf
+            Set k = k + 1
+        EndWhile
+    EndWhile
+    Print "\nFirst inner loop broke : ", c1, " times"
+    Print "\nSecond inner loop broke : ", c3, " times"
+    Print "\nOuter loop broke : ", c2, " times"
+    If(c2 == 1 And c1 == 7 And c3 == 6)
+        Print "\nTest succeeded!"
+    Else
+        Print "\nTest failed!"
+    EndIf
+EndRoutine

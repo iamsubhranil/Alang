@@ -15,9 +15,35 @@
 
 static int inWhile = 0, inContainer = 0, inCall = 0, inReturn = 0, inRef = 0, keepID = 0;
 static int he = 0;
-static uint32_t *breakAddresses, breakCount = 0;
+static uint32_t **breakAddresses = NULL, breakLevel = 0, *breakCount = NULL;
 static TokenList *head = NULL;
 static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1,NULL};
+
+static void break_push_scope(){
+    breakAddresses = (uint32_t **)reallocate(breakAddresses, sizeof(uint32_t *) * ++breakLevel);
+    breakAddresses[breakLevel - 1] = NULL;
+    breakCount = (uint32_t *)reallocate(breakCount, breakLevel);
+    breakCount[breakLevel - 1] = 0;
+}
+
+static void break_add_address(uint32_t address){
+    breakAddresses[breakLevel - 1] = (uint32_t *)reallocate(breakAddresses[breakLevel - 1], 32 * ++breakCount[breakLevel - 1]);
+    breakAddresses[breakLevel - 1][breakCount[breakLevel - 1] - 1] = address;
+}
+
+static uint32_t* break_peek_scope(){
+    if(breakLevel == 0)
+        return NULL;
+    return breakAddresses[breakLevel - 1];
+}
+
+static void break_pop_scope(){
+    if(breakLevel == 0)
+        return;
+    --breakLevel;
+    breakAddresses = (uint32_t **)reallocate(breakAddresses, sizeof(uint32_t *) * breakLevel);
+    breakCount = (uint32_t *)reallocate(breakCount, breakLevel);
+}
 
 typedef struct{
     uint32_t routineName;
@@ -480,6 +506,9 @@ static void whileStatement(Compiler* compiler){
         consume(TOKEN_NEWLINE, "Expected newline after begin!");
     }
     inWhile++;
+
+    break_push_scope();
+
     blockStatement(compiler, BLOCK_WHILE);
     ins_add(JUMP);
     ins_add_val(start);
@@ -488,11 +517,14 @@ static void whileStatement(Compiler* compiler){
     consume(TOKEN_ENDWHILE, "Expected EndWhile after while on same indent!");
     consume(TOKEN_NEWLINE, "Expected newline after EndWhile!");
     //dbg("While statement parsed");
-    while(breakCount > 0)
-        ins_set_val(breakAddresses[--breakCount], ip_get());
-    memfree(breakAddresses);
-    breakAddresses = NULL;
-    breakCount = 0;
+    uint32_t *bks = break_peek_scope();
+    if(bks != NULL){
+        while(breakCount[breakLevel - 1] > 0)
+           ins_set_val(bks[--breakCount[breakLevel - 1]], ip_get());
+    }
+
+    break_pop_scope();
+ 
     inWhile--;
 }
 
@@ -530,8 +562,7 @@ static void breakStatement(){
     }
     else{
         ins_add(JUMP);
-        breakAddresses = (uint32_t *)reallocate(breakAddresses, 32*++breakCount);
-        breakAddresses[breakCount - 1] = ins_add_val(0);
+        break_add_address(ins_add_val(0));
     }
     consume(TOKEN_NEWLINE, "Expected newline after Break!");
     //debug("Break statement parsed");
