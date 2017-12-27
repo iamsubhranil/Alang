@@ -17,7 +17,7 @@ typedef uint64_t Data;
 // The bits that must be set to indicate a quiet NaN.
 #define QNAN ((uint64_t)0x7ffc000000000000)
 
-#define ttype(value) (value & 0xffff000000000000)
+#define ttype(value) (value & 0xfffff80000000000)
 
 // If the NaN bits are set, it's not a number.
 #define isfloat(value) ((value & QNAN) != QNAN)
