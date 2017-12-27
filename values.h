@@ -70,7 +70,9 @@ static Data inline new_float(double x){
 }
 //#define new_float(value) (value)
 static Data inline new_int(int32_t i){
-    return INT|i;
+    Data d = 0;
+    memcpy(&d, &i, sizeof(i));
+    return INT|d;
 }
 //#define new_int(value) ((INT | value))
 static Data inline new_strk(uint32_t value){
