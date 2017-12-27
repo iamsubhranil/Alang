@@ -651,10 +651,8 @@ DO_INPUTF:
         }
 DO_PRINT:
         {
-            //printf("\n[Info] Printing [sp : %lu]", sp);
             Data value;
-            dpopv(value, callFrame);
-            //printf("\nType : %d", (int)value->type);
+            dpop(value);
             if(isfloat(value)){
                 printf("%g", tfloat(value));
                 DISPATCH();
