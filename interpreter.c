@@ -341,12 +341,32 @@ void interpret(){
         &&DO_NEW_CONTAINER, &&DO_MEMSET, &&DO_ARRAYREF, &&DO_ARRAYSET, &&DO_ARRAYWRITE,
         &&DO_CALLNATIVE, &&DO_SETI, &&DO_PUSHIDV};
 
-#define DISPATCH() {insExec++; \
-    ++counter[instructions[ip+1]]; \
-    goto *dispatchTable[instructions[++ip]];}
-#define DISPATCH_WINC() {insExec++; \
-    ++counter[instructions[ip]]; \
-    goto *dispatchTable[instructions[ip]];}
+#define INC_COUNTER() {insExec++; \
+    ++counter[instructions[ip+1]];}
+#define GO() {goto *dispatchTable[instructions[++ip]];}
+#define GO_WINC() {goto *dispatchTable[instructions[ip]];}
+#define SHOW_STEP() { \
+    dbg("[%s:%3" PRIu32 "][ip : %4" PRIu32 "] %s", \
+            str_get(fileInfos[ip].fileName), fileInfos[ip].line, \
+            ip, opString[instructions[ip + 1]]);}
+#define SHOW_STEP2() { \
+    dbg("[%s:%3" PRIu32 "][ip : %4" PRIu32 "] %s", \
+            str_get(fileInfos[ip].fileName), fileInfos[ip].line, \
+            ip, opString[instructions[ip]]);}
+
+//#define STEP
+
+#ifdef STEP
+    #define DISPATCH() {INC_COUNTER(); \
+        SHOW_STEP(); \
+        GO();}
+    #define DISPATCH_WINC() {INC_COUNTER(); \
+        SHOW_STEP2(); \
+        GO_WINC();}
+#else
+    #define DISPATCH() {INC_COUNTER(); GO();}
+    #define DISPATCH_WINC() {INC_COUNTER(); GO_WINC();}
+#endif
 
     tmStart = clock();
     DISPATCH_WINC();
@@ -611,7 +631,7 @@ DO_OR:
 DO_SET:
         {
             Data id, value;
-            dpopv(value, callFrame);
+            dpop(value);
             dpop(id); 
             if(isidentifer(id)){
                 env_put(tstrk(id), value, &callFrame.env);
@@ -653,6 +673,7 @@ DO_PRINT:
         {
             Data value;
             dpop(value);
+            //dbg("Value : %lx", value);
             if(isfloat(value)){
                 printf("%g", tfloat(value));
                 DISPATCH();
