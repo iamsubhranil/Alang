@@ -18,11 +18,6 @@ static int32_t stackLastIncremented = 0;
         stackLastIncremented = 0; \
         dataStack = (Data *)reallocate(dataStack, sizeof(Data)*stackSize);}
 
-#define decr() if(stackLastIncremented < STACK_INC_CACHE && stackSize > 10 && (sp+1) < stackSize/2){\
-        stackSize /= 2; \
-        dataStack = (Data *)reallocate(dataStack, sizeof(Data)*stackSize);\
-        stackLastIncremented--;}
-
 #define dpush(x) {incr(); dataStack[sp++] = x;}
 #define dpushi(x) {incr(); dataStack[sp++] = new_int(x);}
 #define dpushf(x) {incr(); dataStack[sp++] = new_float(x);}
