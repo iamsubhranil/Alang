@@ -20,6 +20,9 @@ if nterms <= 0:
 else:
    print("Fibonacci sequence : ")
    t0 = time.clock()
-   print(recur_fibo(28))
+   i = 0
+   while i < 5:
+       print(recur_fibo(28))
+       i = i + 1
    t0 = time.clock() - t0
    print("Took ", t0)
