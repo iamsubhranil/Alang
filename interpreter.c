@@ -23,7 +23,7 @@ uint32_t ins_add(uint8_t ins){
     lastins = ip - 1;
     fileInfos = (FileInfo *)reallocate(fileInfos, sizeof(FileInfo)*ip);
     Token t = presentToken();
-    fileInfos[ip - 1].fileName = str_insert(t.fileName);
+    fileInfos[ip - 1].fileName = str_insert(strdup(t.fileName));
     fileInfos[ip - 1].line = t.line;
     return ip - 1;
 }
@@ -219,6 +219,8 @@ void print_stat(){
     }
 }
 
+static CallFrame callFrame;
+
 void stop(){
     tmEnd = clock()-tmStart;
     double tm = (double)tmEnd / CLOCKS_PER_SEC;
@@ -228,12 +230,17 @@ void stop(){
     dbg("[Interpreter] Average execution speed : %gs", tm/insExec);
     print_stat();
     printf("\n");
-    //heap_free();
+
     str_free();
     dStackFree();
+    env_free(callFrame.env);
     memfree(instructions);
+    memfree(fileInfos);
     cs_free();
+    unload_all();
+    routine_free();
     free_all();
+    
     exit(0);
 }
 
@@ -327,7 +334,7 @@ void interpret(){
     cs_init();
     init_cache();
 
-    CallFrame callFrame = cf_new();
+    callFrame = cf_new();
     callFrame.env = env_new(NULL);
     callFrame.returnAddress = 0;
     register_native(&callFrame.env);
@@ -343,6 +350,8 @@ void interpret(){
 
 #define INC_COUNTER() {insExec++; \
     ++counter[instructions[ip+1]];}
+#define INC_COUNTER_WINC() {insExec++; \
+    ++counter[instructions[ip]];}
 #define GO() {goto *dispatchTable[instructions[++ip]];}
 #define GO_WINC() {goto *dispatchTable[instructions[ip]];}
 #define SHOW_STEP() { \
@@ -360,12 +369,12 @@ void interpret(){
     #define DISPATCH() {INC_COUNTER(); \
         SHOW_STEP(); \
         GO();}
-    #define DISPATCH_WINC() {INC_COUNTER(); \
+    #define DISPATCH_WINC() {INC_COUNTER_WINC(); \
         SHOW_STEP2(); \
         GO_WINC();}
 #else
     #define DISPATCH() {INC_COUNTER(); GO();}
-    #define DISPATCH_WINC() {INC_COUNTER(); GO_WINC();}
+    #define DISPATCH_WINC() {INC_COUNTER_WINC(); GO_WINC();}
 #endif
 
     tmStart = clock();

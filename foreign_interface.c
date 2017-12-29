@@ -7,7 +7,7 @@
 #include "strings.h"
 
 double get_double(const char *identifer, Environment *env){
-    Data o = env_get(str_insert(identifer), env, 0);
+    Data o = env_get(str_insert(strdup(identifer)), env, 0);
     if(!isnum(o)){
         rerr("Expected numeric value!");
     }
@@ -15,7 +15,7 @@ double get_double(const char *identifer, Environment *env){
 }
 
 int32_t get_int(const char *identifer, Environment *env){
-    Data o = env_get(str_insert(identifer), env, 0);
+    Data o = env_get(str_insert(strdup(identifer)), env, 0);
     if(!isint(o)){
         rerr("Expected integer value!");
     }
@@ -23,7 +23,7 @@ int32_t get_int(const char *identifer, Environment *env){
 }
 
 char* get_string(const char *identifer, Environment *env){
-    Data o = env_get(str_insert(identifer), env, 0);
+    Data o = env_get(str_insert(strdup(identifer)), env, 0);
     if(!isstr(o)){
         err("Expected integer value!");
     }

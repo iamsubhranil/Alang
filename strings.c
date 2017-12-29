@@ -32,6 +32,7 @@ uint32_t str_insert(const char *str){
         if(strarray[i]->hash == has){
             strarray[i]->refCount++;
 //            printf(debug("[Strings] Match found for [%s] at %lu[%s]"), str, i, strarray[i]->value);
+            memfree((void *)str);
             return i;
         }
         i++;
@@ -73,6 +74,7 @@ const char* str_get(uint32_t index){
 void str_free(){
     uint64_t i = 0;
     while(i < stringCount){
+        memfree((void *)strarray[i]->value);
         memfree(strarray[i++]);
     }
     memfree(strarray);

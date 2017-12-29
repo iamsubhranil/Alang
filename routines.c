@@ -29,3 +29,12 @@ void routine_add(Routine2 r){
 //    printf(debug("[Routine] Adding routine : [%s]"), str_get(r.name));
     routines[rp - 1] = r;
 }
+
+void routine_free(){
+    uint32_t i = 0;
+    while(i < rp){
+        memfree(routines[i].arguments);
+        i++;
+    }
+    memfree(routines);
+}

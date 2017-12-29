@@ -86,6 +86,13 @@ static char* fstack_pop(){
     return fileStack[--fsp];
 }
 
+static void fstack_free(){
+    int i = 0;
+    while(i < fsp)
+        memfree(fileStack[i++]);
+    memfree(fileStack);
+}
+
 static int initScanner(const char* source, const char* file) {
     if(source == NULL)
         return 0;
@@ -455,7 +462,7 @@ TokenList* scanTokens(char *file){
     }
 
     insertList(&head, &ret, newList(makeToken(TOKEN_EOF)));
-
+    fstack_free();
     return head;
 }
 

@@ -33,7 +33,7 @@ static int hasLib(uint32_t name){
 
 static Data load_library(Environment *env, uint32_t name){
     if(env != NULL){
-        Data d = env_get(str_insert("x"), env, 0);
+        Data d = env_get(str_insert(strdup("x")), env, 0);
         name = tstrk(d);
     }
 
@@ -125,12 +125,14 @@ static Data run_native(uint32_t name, Environment *env){
     return fhandle(env);
 }
 
+static uint32_t LoadLibrary = 0, UnloadLibrary = 0, Clock = 0;
+
 Data handle_native(uint32_t name, Environment *env){
-    if(str_insert("LoadLibrary") == name)
+    if(LoadLibrary == name)
         return load_library(env, name);
-    else if(str_insert("UnloadLibrary") == name)
+    else if(UnloadLibrary == name)
         return unload_library(env);
-    else if(str_insert("Clock") == name)
+    else if(Clock == name)
         return new_int((int32_t)clock());
     else
         return run_native(name, env);
@@ -154,7 +156,7 @@ static void add_argument(Routine2 *r, uint32_t argName){
 
 static Routine2 getSingleArgRoutine(uint32_t name){
     Routine2 r = get_routine(name, 0);
-    add_argument(&r, str_insert("x"));
+    add_argument(&r, str_insert(strdup("x")));
     return r;
 }
 
@@ -163,21 +165,24 @@ static Routine2 getZeroArgRoutine(uint32_t name){
 }
 
 static void define_cons(Environment *env){
-    env_put(str_insert("Math_Pi"), new_float(acos(-1.0)), env);
-    env_put(str_insert("Math_E"), new_float(M_E), env);
-    env_put(str_insert("ClocksPerSecond"), new_int(CLOCKS_PER_SEC), env);
+    env_put(str_insert(strdup("Math_Pi")), new_float(acos(-1.0)), env);
+    env_put(str_insert(strdup("Math_E")), new_float(M_E), env);
+    env_put(str_insert(strdup("ClocksPerSecond")), new_int(CLOCKS_PER_SEC), env);
 }
 
 void register_native_routines(){
-    routine_add(getSingleArgRoutine(str_insert("LoadLibrary")));
-    routine_add(getSingleArgRoutine(str_insert("UnloadLibrary")));
-    routine_add(getZeroArgRoutine(str_insert("Clock")));
+    LoadLibrary = str_insert(strdup("LoadLibrary"));
+    UnloadLibrary = str_insert(strdup("UnloadLibrary"));
+    Clock = str_insert(strdup("Clock"));
+    routine_add(getSingleArgRoutine(LoadLibrary));
+    routine_add(getSingleArgRoutine(UnloadLibrary));
+    routine_add(getZeroArgRoutine(Clock));
 }
 
 void register_native(Environment *env){
     //double tm = clock();
     define_cons(env);
-    load_library(NULL, str_insert("./liblalang.so"));
+    load_library(NULL, str_insert(strdup("./liblalang.so")));
     //tm = (clock() - tm)/CLOCKS_PER_SEC;
     //printf(debug("[Native] Registration took %gs"), tm);
 }

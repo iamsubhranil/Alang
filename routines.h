@@ -17,6 +17,7 @@ extern uint32_t rp;
 Routine2 routine_new();
 void routine_add_arg(Routine2 *routine, uint32_t arg);
 void routine_add(Routine2 routine);
+void routine_free();
 static inline Routine2 routine_get(uint32_t name);
 
 static inline Routine2 routine_get(uint32_t name){

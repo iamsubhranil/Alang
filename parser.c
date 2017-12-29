@@ -22,7 +22,7 @@ static Token errorToken = {TOKEN_ERROR,"BadToken",0,-1,NULL};
 static void break_push_scope(){
     breakAddresses = (uint32_t **)reallocate(breakAddresses, sizeof(uint32_t *) * ++breakLevel);
     breakAddresses[breakLevel - 1] = NULL;
-    breakCount = (uint32_t *)reallocate(breakCount, breakLevel);
+    breakCount = (uint32_t *)reallocate(breakCount, 32*breakLevel);
     breakCount[breakLevel - 1] = 0;
 }
 
@@ -41,8 +41,9 @@ static void break_pop_scope(){
     if(breakLevel == 0)
         return;
     --breakLevel;
+    memfree(breakAddresses[breakLevel]);
     breakAddresses = (uint32_t **)reallocate(breakAddresses, sizeof(uint32_t *) * breakLevel);
-    breakCount = (uint32_t *)reallocate(breakCount, breakLevel);
+    breakCount = (uint32_t *)reallocate(breakCount, 32*breakLevel);
 }
 
 typedef struct{
@@ -913,7 +914,7 @@ void parse(TokenList *list){
     while(!match(TOKEN_EOF)){
         part(comp);
     }
-    Routine2 r = routine_get(str_insert("Main")); // Check if Main is defined
+    Routine2 r = routine_get(str_insert(strdup("Main"))); // Check if Main is defined
 
     uint32_t callMain = ins_add(CALL);
     ins_add_val(r.startAddress);

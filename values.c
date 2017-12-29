@@ -11,6 +11,9 @@ Data new_array(int32_t size){
     Array *arr = (Array *)mallocate(sizeof(Array));
     arr->numElements = size;
     arr->arr = (Data *)mallocate(sizeof(Data) * size);
+    int32_t i = 0;
+    while(i < size)
+        arr->arr[i++] = new_null();
     return ARR | (uintptr_t)arr;
 }
 

@@ -80,7 +80,7 @@ static Data inline new_strk(uint32_t value){
 }
 //#define new_strk(value) ((STRING | value))
 static Data inline new_str(const char *str){
-    return STRING|str_insert(str);
+    return STRING | str_insert(str);
 }
 //#define new_str(value) ((STRING | str_insert(value)))
 static Data inline new_identiferk(uint32_t value){
@@ -88,7 +88,7 @@ static Data inline new_identiferk(uint32_t value){
 }
 //#define new_identiferk(value) ((IDENTIFIER | value))
 static Data inline new_identifer(const char *value){
-    return IDENTIFIER|str_insert(value);
+    return IDENTIFIER | str_insert(value);
 }
 //#define new_identifer(value) ((IDENTIFIER | str_insert(value)))
 static Data inline new_logical(int32_t value){
