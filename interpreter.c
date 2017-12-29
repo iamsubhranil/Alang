@@ -380,13 +380,19 @@ void interpret(){
 #define GO() {goto *dispatchTable[instructions[++ip]];}
 #define GO_WINC() {goto *dispatchTable[instructions[ip]];}
 #define SHOW_STEP() { \
+    FileInfo fInfo = fileInfo_of(ip + 1); \
     dbg("[%s:%3" PRIu32 "][ip : %4" PRIu32 "] %s", \
-            str_get(fileInfos[ip].fileName), fileInfos[ip].line, \
-            ip, opString[instructions[ip + 1]]);}
+            str_get(fInfo.fileName), fInfo.line, \
+            ip, opString[instructions[ip + 1]]); \
+    fflush(stdin); \
+    getchar(); }
 #define SHOW_STEP2() { \
+    FileInfo fInfo = fileInfo_of(ip); \
     dbg("[%s:%3" PRIu32 "][ip : %4" PRIu32 "] %s", \
-            str_get(fileInfos[ip].fileName), fileInfos[ip].line, \
-            ip, opString[instructions[ip]]);}
+            str_get(fInfo.fileName), fInfo.line, \
+            ip, opString[instructions[ip]]); \
+    fflush(stdin); \
+    getchar(); }
 
 //#define STEP
 
