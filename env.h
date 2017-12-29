@@ -70,6 +70,7 @@ static inline void data_free(Data d) {
             data_free(arr_elements(arr)[i]);
             i++;
         }
+        memfree(arr_elements(arr));
         memfree(tarr(d));
     }
 }
