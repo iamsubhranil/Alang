@@ -47,6 +47,7 @@ static Data load_library(Environment *env, uint32_t name){
         else{
             rerr("%s", dlerror());
         }
+        return new_null();
     }
     libCount++;
     libraries = (Library *)reallocate(libraries, sizeof(Library) * libCount);
