@@ -111,10 +111,10 @@ typedef struct{
 // Two types of pointers are used : Instances and Arrays
 // An object pointer is a NaN with a set sign bit.
 #define is_pointer(value) (((value) & (QNAN | SIGN_BIT)) == (QNAN | SIGN_BIT))
-// 1. Instance : 1 [111 1111 1111] 1 110 -------------- => 0xfffe000000000000
+// 1. Instance : 1 [111 1111 1111] 1 110 0------------- => 0xfffe000000000000
 #define INSTANCE 0xfffe000000000000
 #define PMASK 0xffffffffffff
-#define isins(value) ((value & INSTANCE) == INSTANCE)
+#define isins(value) ((value >> 47) == 0x1fffc)
 #define tins(value) ((Instance *)((uintptr_t)value & PMASK))
 #define tenv(value) ((Environment *)tins(value)->env)
 #define MAX_FREE_INSTANCES 512
@@ -128,9 +128,9 @@ extern uint16_t freeInstancePointer;
                     else \
                          memfree(x);\
                     }
-// 2. Array : 1 [111 1111 1111] 1 101 ---------------- => 0xfffd000000000000
+// 2. Array : 1 [111 1111 1111] 1 101 0--------------- => 0xfffd000000000000
 #define ARR 0xfffd000000000000
-#define isarray(value) ((value & ARR) == ARR)
+#define isarray(value) ((value >> 47) == 0x1fffa)
 #define tarr(value) ((Array *)((uintptr_t)value & PMASK))
 #define arr_size(value) (value->numElements)
 #define arr_elements(value) (value->arr)
@@ -139,4 +139,4 @@ Data new_array(int32_t size);
 
 Data new_ins(void *env, uint32_t container_key);
 
-#define ttype(value) (is_pointer(value)?value & 0xffff000000000000 : value & 0xfffff00000000000)
+#define ttype(value) (value & 0xffff800000000000)
