@@ -537,7 +537,7 @@ DO_MOD:
                 dpushi(tint(d2) % tint(d1));
                 DISPATCH();
             }
-            rerr("Bad operands for operator '%%'", ip);
+            rerr("Bad operands for operator '%%'");
 
         }
 DO_GT:
