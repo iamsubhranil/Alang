@@ -34,31 +34,31 @@ static inline double tfloat(Data value){
 // i.e. : IntMask : 0x00000000ffffffff
 #define MASK 0xffffffff
 // Types :
-// 1 : Integer (int32_t) => 0 [111 1111 1111] [1 100 0001 ------------ [value]] => 0x7ffc100000000000
-#define INT 0x7ffc100000000000
-#define isint(value) ((value & INT) == INT)
+// 1 : Integer (int32_t) => 0 [111 1111 1111] [1 100 1--------------- [value]] => 0x7ffc800000000000
+#define INT 0x7ffc800000000000
+#define isint(value) ((value >> 47) == 0x0fff9)
 #define isnum(value) (isfloat(value) || isint(value))
 #define tint(value) ((int32_t)(value & MASK))
 #define tnum(value) (isfloat(value)?tfloat(value):tint(value))
-// 2 : String (uint32_t) => 0 [111 1111 1111] [1 100 0010 ------------- [value]] => 0x7ffc200000000000
-#define STRING 0x7ffc200000000000
-#define isstr(value) ((value & STRING) == STRING)
+// 2 : String (uint32_t) => 0 [111 1111 1111] [1 101 0------------- [value]] => 0x7ffd00000000000
+#define STRING 0x7ffd000000000000
+#define isstr(value) ((value >> 47) == 0x0fffa)
 #define tstrk(value) ((uint32_t)(value & MASK))
 #define tstr(value) (str_get(tstrk(value)))
-// 3 : Identifer (uint32_t) => 0 [111 1111 1111] [1 100 0011 ------------- [value]] => 0x7ffc300000000000
-#define IDENTIFIER 0x7ffc300000000000
-#define isidentifer(value) ((value & IDENTIFIER) == IDENTIFIER)
+// 3 : Identifer (uint32_t) => 0 [111 1111 1111] [1 101 1------------- [value]] => 0x7ffd800000000000
+#define IDENTIFIER 0x7ffd800000000000
+#define isidentifer(value) ((value >> 47) == 0x0fffb)
 #define tiden(value) ((uint32_t)(value & MASK))
-// 4 : Logical (int32_t) => 0 [111 1111 1111] [1 100 0100 -------------- [value]] => 0x7ffc400000000000
-#define LOGICAL 0x7ffc400000000000
-#define islogical(value) ((value & LOGICAL) == LOGICAL)
+// 4 : Logical (int32_t) => 0 [111 1111 1111] [1 110 0-------------- [value]] => 0x7ffe00000000000
+#define LOGICAL 0x7ffe000000000000
+#define islogical(value) ((value >> 47) == 0x0fffc)
 #define tlogical(value) ((uint32_t)((uint32_t)value & MASK))
-// 5 : Null => 0 [111 1111 1111] [1 100 0101------------- [value]] => 0x7ffc500000000000
-#define NIL 0x7ffc500000000000
-#define isnull(value) ((value & NIL) == NIL)
-// 6 : None => 0 [111 1111 1111] [1 100 0110-------------- [value]] => 0x7ffc600000000000
-#define NONE 0x7ffc600000000000
-#define isnone(value) ((value & NONE) == NONE)
+// 5 : Null => 0 [111 1111 1111] [1 110 1------------- [value]] => 0x7ffe800000000000
+#define NIL 0x7ffe800000000000
+#define isnull(value) ((value >> 47) == 0x0fffd)
+// 6 : None => 0 [111 1111 1111] [1 111 0-------------- [value]] => 0x7fff00000000000
+#define NONE 0x7fff000000000000
+#define isnone(value) ((value >> 47) == 0x0fffe)
 
 static Data inline new_float(double x){
     Data d;
