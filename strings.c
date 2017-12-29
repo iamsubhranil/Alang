@@ -56,6 +56,8 @@ size_t str_len(uint32_t index){
 }
 
 void str_ref_decr(uint32_t index){
+    //if(stringCount == 0 || index > (stringCount - 1))
+    //    return;
     strarray[index]->refCount--;
     if(strarray[index]->refCount == 0){
         String *s = strarray[index];
@@ -78,4 +80,5 @@ void str_free(){
         memfree(strarray[i++]);
     }
     memfree(strarray);
+    stringCount = 0;
 }

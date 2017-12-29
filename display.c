@@ -64,7 +64,7 @@ void lninfo(const char* msg, Token t, ...){
 }
 
 void rerr(const char* msg, ...){
-    FileInfo f = fileInfo_of(ip_get());
+    FileInfo f = fileInfo_of(ip_get() - 1);
     printf(ANSI_COLOR_RED "\n[Runtime Error] <%s:%" PRIu32 "> ", str_get(f.fileName), f.line);
     va_list args;
     va_start(args, msg);
@@ -74,7 +74,7 @@ void rerr(const char* msg, ...){
 }
 
 void rwarn(const char* msg, ...){
-    FileInfo f = fileInfo_of(ip_get());
+    FileInfo f = fileInfo_of(ip_get() - 1);
     printf(ANSI_COLOR_YELLOW "\n[Warning] <%s:%" PRIu32 "> ", str_get(f.fileName), f.line);
     va_list args;
     va_start(args, msg);

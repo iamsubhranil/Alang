@@ -13,18 +13,34 @@
 #include "parser.h"
 
 static uint8_t *instructions = NULL;
-static uint32_t ip = 0, lastins = 0;
+static uint32_t ip = 0, lastins = 0, fileInfoPointer = 0;
 
 static FileInfo *fileInfos = NULL;
+
+int info_onSameFile(Token t){
+    uint32_t nname = str_insert(strdup(t.fileName));
+    FileInfo l = fileInfos[fileInfoPointer - 1];
+    return ((l.fileName == nname) && ((int)l.line == t.line));
+}
 
 uint32_t ins_add(uint8_t ins){
     instructions = (uint8_t *)reallocate(instructions, 8*++ip);
     instructions[ip - 1] = ins;
     lastins = ip - 1;
-    fileInfos = (FileInfo *)reallocate(fileInfos, sizeof(FileInfo)*ip);
     Token t = presentToken();
-    fileInfos[ip - 1].fileName = str_insert(strdup(t.fileName));
-    fileInfos[ip - 1].line = t.line;
+    //dbg("IP : %" PRIu32 " FileName : %s Line : %" PRIu32, ip - 1, t.fileName, t.line);
+    if(fileInfoPointer == 0 || !info_onSameFile(t)){
+        if(fileInfoPointer > 0){
+          //  dbg("New block created : %" PRId32 " to %" PRId32 " Line : %" PRId32, fileInfos[fileInfoPointer - 1].from, ip - 2,
+          //          fileInfos[fileInfoPointer - 1].line);
+            fileInfos[fileInfoPointer - 1].to = ip - 2;
+        }
+        fileInfos = (FileInfo *)reallocate(fileInfos, sizeof(FileInfo)* ++fileInfoPointer);
+        fileInfos[fileInfoPointer - 1].fileName = str_insert(strdup(t.fileName));
+        fileInfos[fileInfoPointer - 1].line = t.line;
+        fileInfos[fileInfoPointer - 1].from = ip - 1;
+        fileInfos[fileInfoPointer - 1].to = INT32_MAX;
+    }
     return ip - 1;
 }
 
@@ -231,9 +247,10 @@ void stop(){
     print_stat();
     printf("\n");
 
-    str_free();
+
     dStackFree();
     env_free(callFrame.env);
+    str_free();
     memfree(instructions);
     memfree(fileInfos);
     cs_free();
@@ -281,7 +298,15 @@ void init_interpreter(){
 }
 
 FileInfo fileInfo_of(uint32_t ip){
-    return fileInfos[ip];
+    uint32_t i = 0;
+    //dbg("Searching for info of IP %" PRIu32, ip);
+    while(i < fileInfoPointer){
+        if(fileInfos[i].from <= ip && fileInfos[i].to >= ip)
+            return fileInfos[i];
+        i++;
+    }
+    //err("No file information found for IP : %" PRIu32 "!", ip);
+    return fileInfos[0];
 }
 
 void print_op_type(Data op){

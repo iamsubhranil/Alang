@@ -26,6 +26,8 @@ void stop();
 typedef struct{
     uint32_t fileName;
     uint32_t line;
+    uint32_t from; // From ip
+    uint32_t to; // To ip
 } FileInfo;
 
 FileInfo fileInfo_of(uint32_t line);
