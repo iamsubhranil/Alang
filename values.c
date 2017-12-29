@@ -27,7 +27,7 @@ Data new_ins(void *env, uint32_t key){
     n->records = o->records;
     ins->refCount = 0;
     ins->id = id++;
-    return INSTANCE| (uintptr_t)ins;
+    return INSTANCE | (uintptr_t)ins;
 }
 
 void print_bit(Data d){

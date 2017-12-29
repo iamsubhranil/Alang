@@ -16,9 +16,6 @@ typedef uint64_t Data;
 #define SIGN_BIT ((uint64_t)1 << 63)
 // The bits that must be set to indicate a quiet NaN.
 #define QNAN ((uint64_t)0x7ffc000000000000)
-
-#define ttype(value) (value & 0xfffff80000000000)
-
 // If the NaN bits are set, it's not a number.
 #define isfloat(value) ((value & QNAN) != QNAN)
 //#define tfloat(value) ((double)value)
@@ -37,30 +34,30 @@ static inline double tfloat(Data value){
 // i.e. : IntMask : 0x00000000ffffffff
 #define MASK 0xffffffff
 // Types :
-// 1 : Integer (int32_t) => 0 [111 1111 1111] [1 100 1--------------- [value]] => 0x7ff9000000000000
-#define INT 0x7ffc800000000000
+// 1 : Integer (int32_t) => 0 [111 1111 1111] [1 100 0001 ------------ [value]] => 0x7ffc100000000000
+#define INT 0x7ffc100000000000
 #define isint(value) ((value & INT) == INT)
 #define isnum(value) (isfloat(value) || isint(value))
 #define tint(value) ((int32_t)(value & MASK))
 #define tnum(value) (isfloat(value)?tfloat(value):tint(value))
-// 2 : String (uint32_t) => 0 [111 1111 1111] [1 101 0---------------- [value]] => 0x7ffa000000000000
-#define STRING 0x7ffd000000000000
+// 2 : String (uint32_t) => 0 [111 1111 1111] [1 100 0010 ------------- [value]] => 0x7ffc200000000000
+#define STRING 0x7ffc200000000000
 #define isstr(value) ((value & STRING) == STRING)
 #define tstrk(value) ((uint32_t)(value & MASK))
 #define tstr(value) (str_get(tstrk(value)))
-// 3 : Identifer (uint32_t) => 0 [111 1111 1111] [1 101 1--------------- [value]] => 0x7ffb000000000000
-#define IDENTIFIER 0x7ffd800000000000
+// 3 : Identifer (uint32_t) => 0 [111 1111 1111] [1 100 0011 ------------- [value]] => 0x7ffc300000000000
+#define IDENTIFIER 0x7ffc300000000000
 #define isidentifer(value) ((value & IDENTIFIER) == IDENTIFIER)
 #define tiden(value) ((uint32_t)(value & MASK))
-// 4 : Logical (int32_t) => 0 [111 1111 1111] [1 110 0----------------- [value]] => 0x7ffc000000000000
-#define LOGICAL 0x7ffe000000000000
+// 4 : Logical (int32_t) => 0 [111 1111 1111] [1 100 0100 -------------- [value]] => 0x7ffc400000000000
+#define LOGICAL 0x7ffc400000000000
 #define islogical(value) ((value & LOGICAL) == LOGICAL)
 #define tlogical(value) ((uint32_t)((uint32_t)value & MASK))
-// 5 : Null => 0 [111 1111 1111] [1 110 1---------------- [value]] => 0x7ffd000000000000
-#define NIL 0x7ffe800000000000
+// 5 : Null => 0 [111 1111 1111] [1 100 0101------------- [value]] => 0x7ffc500000000000
+#define NIL 0x7ffc500000000000
 #define isnull(value) ((value & NIL) == NIL)
-// 6 : None => 0 [111 1111 1111] [1 111 0----------------- [value]] => 0x7ffe000000000000
-#define NONE 0x7fff000000000000
+// 6 : None => 0 [111 1111 1111] [1 100 0110-------------- [value]] => 0x7ffc600000000000
+#define NONE 0x7ffc600000000000
 #define isnone(value) ((value & NONE) == NONE)
 
 static Data inline new_float(double x){
@@ -114,10 +111,11 @@ typedef struct{
 // Two types of pointers are used : Instances and Arrays
 // An object pointer is a NaN with a set sign bit.
 #define is_pointer(value) (((value) & (QNAN | SIGN_BIT)) == (QNAN | SIGN_BIT))
-// 1. Instance : 1 [111 1111 1111] 1 100 -------------- => 0xfffc000000000000
-#define INSTANCE 0xfffc000000000000
-#define isins(value) ((value >> 48) == 0xfffc)
-#define tins(value) ((Instance *)((uintptr_t)value & ~INSTANCE))
+// 1. Instance : 1 [111 1111 1111] 1 110 -------------- => 0xfffe000000000000
+#define INSTANCE 0xfffe000000000000
+#define PMASK 0xffffffffffff
+#define isins(value) ((value & INSTANCE) == INSTANCE)
+#define tins(value) ((Instance *)((uintptr_t)value & PMASK))
 #define tenv(value) ((Environment *)tins(value)->env)
 #define MAX_FREE_INSTANCES 512
 
@@ -130,13 +128,15 @@ extern uint16_t freeInstancePointer;
                     else \
                          memfree(x);\
                     }
-// 2. Array : 1 [111 1111 1111] 1 000 ---------------- => 0xfff8000000000000
-#define ARR 0xfff8000000000000
-#define isarray(value) ((value >> 48) == 0xfff8)
-#define tarr(value) ((Array *)((uintptr_t)value & ~ARR))
+// 2. Array : 1 [111 1111 1111] 1 101 ---------------- => 0xfffd000000000000
+#define ARR 0xfffd000000000000
+#define isarray(value) ((value & ARR) == ARR)
+#define tarr(value) ((Array *)((uintptr_t)value & PMASK))
 #define arr_size(value) (value->numElements)
 #define arr_elements(value) (value->arr)
 
 Data new_array(int32_t size);
 
 Data new_ins(void *env, uint32_t container_key);
+
+#define ttype(value) (is_pointer(value)?value & 0xffff000000000000 : value & 0xfffff00000000000)
