@@ -99,7 +99,7 @@ static inline Record* env_match(uint32_t key, Environment *env){
 
 #define env_implicit_put(key, value, env) { \
     Record *top = (env)->records; \
-    if(!isnum(value)){ \
+    if(!isfloat(value)){ \
         if(isins(value)){ \
             tins(value)->refCount++; \
         } \
@@ -120,7 +120,7 @@ static void env_put(uint32_t key, Data value, Environment *env){
     //if(env == NULL)
     //    return;
     //    printf(debug("[Env:Put] Putting [%s]"), str_get(key));
-    if(!isnum(value)){
+    if(!isfloat(value)){
         if(isins(value))
             tins(value)->refCount++;
         else if(isstr(value))
@@ -130,7 +130,7 @@ static void env_put(uint32_t key, Data value, Environment *env){
     if(match != NULL){
         if(isarray(match->data))
             rerr("Array '%s' must be accessed using indices!", str_get(key));
-        else if(!isnum(match->data))
+        else if(!isfloat(match->data))
             data_free(match->data);
         match->data = value;
         return;
@@ -161,7 +161,7 @@ static inline void env_free(Environment env){
     Record *top = env.records;
     while(top!=NULL){
         Record *bak = top->next;
-        if(!isnum(top->data))
+        if(!isfloat(top->data))
             data_free(top->data);
         rec_free(top);
         top = bak;

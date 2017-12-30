@@ -8,10 +8,10 @@
 
 double get_double(const char *identifer, Environment *env){
     Data o = env_get(str_insert(strdup(identifer)), env, 0);
-    if(!isnum(o)){
+    if(!isfloat(o)){
         rerr("Expected numeric value!");
     }
-    return tnum(o);
+    return tfloat(o);
 }
 
 int32_t get_int(const char *identifer, Environment *env){

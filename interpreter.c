@@ -316,9 +316,9 @@ void print_op_type(Data op){
         return;
     }
     switch(ttype(op)){
-        case INT:
-            printf("Integer[ %" PRId32 " ]", tint(op));
-            break;
+        //case INT:
+        //    printf("Integer[ %" PRId32 " ]", tint(op));
+        //    break;
         case STRING:
             printf("String[ %s ]", tstr(op));
             break;
@@ -443,18 +443,11 @@ DO_PUSHN:
 DO_ADD:
         {
             Data d1, d2; dpop(d1); dpop(d2);
-            if(isnum(d1) && isnum(d2)){
-                if(isfloat(d1) || isfloat(d2)){
-                    double res = tnum(d1) + tnum(d2);
+                if(isfloat(d1) && isfloat(d2)){
+                    double res = tfloat(d1) + tfloat(d2);
                     dpushf(res);
                     DISPATCH();
                 }
-
-                int64_t res = (int64_t)tint(d1) + tint(d2);
-                check_limit(res);
-                dpushi(res);
-                DISPATCH();
-            }
             if(isstr(d1) && isstr(d2)){
                 size_t s1 = str_len(tstrk(d1)), s2 = str_len(tstrk(d2));
                 char *res = (char *)mallocate(sizeof(char) * (s1 + s2 + 1));
@@ -470,61 +463,41 @@ DO_ADD:
 DO_SUB:
         {
             Data d1, d2; dpop(d1); dpop(d2);
-            if(isnum(d1) && isnum(d2)){
-                if(isfloat(d1) || isfloat(d2)){
-                    double res = tnum(d2) - tnum(d1);
+                if(isfloat(d1) && isfloat(d2)){
+                    double res = tfloat(d2) - tfloat(d1);
                     dpushf(res);
                     DISPATCH();
                 }
-
-                int64_t res = (int64_t)tint(d2) - tint(d1);
-                check_limit(res);
-                dpushi(res);
-                DISPATCH();
-            }
             rerr("Bad operands for operator '-'!");
         }
 DO_MUL:
         {
             Data d1, d2; dpop(d1); dpop(d2);
-            if(isnum(d1) && isnum(d2)){
-                if(isfloat(d1) || isfloat(d2)){
-                    double res = tnum(d2) * tnum(d1);
+                if(isfloat(d1) && isfloat(d2)){
+                    double res = tfloat(d2) * tfloat(d1);
                     dpushf(res);
                     DISPATCH();
                 }
-
-                int64_t res = (int64_t)tint(d2) * tint(d1);
-                check_limit(res);
-                dpushi(res);
-                DISPATCH();
-            }
             rerr("Bad operands for operator '-'!");
         }
 DO_DIV:
         {
             Data d1, d2; dpop(d1); dpop(d2);
-            if(isnum(d1) && isnum(d2)){
-                if(fabs(tnum(d1)) <= DBL_EPSILON){
+                if(isfloat(d1) || isfloat(d2)){
+                if(fabs(tfloat(d1)) <= DBL_EPSILON){
                     rerr("Division by zero!");
                 }
-                if(isfloat(d1) || isfloat(d2)){
-                    double res = tnum(d2) / tnum(d1);
+                    double res = tfloat(d2) / tfloat(d1);
                     dpushf(res);
                     DISPATCH();
                 }
-
-                int32_t res = tint(d2) / tint(d1);
-                dpushi(res);
-                DISPATCH();
-            }
             rerr("Bad operands for operator '-'!");
         }
 DO_POW:
         {
             Data d1, d2; dpop(d1); dpop(d2);
-            if(isint(d1) && isnum(d2)){
-                dpushf(pow(tnum(d2), tint(d1)));
+            if(isfloat(d1) && isfloat(d2)){
+                dpushf(pow(tfloat(d2), tfloat(d1)));
                 DISPATCH();
             }
             rerr("Bad operands for operator '^'!");
@@ -533,8 +506,8 @@ DO_POW:
 DO_MOD:
         {
             Data d1, d2; dpop(d1); dpop(d2);
-            if(isint(d1) && isint(d2)){
-                dpushi(tint(d2) % tint(d1));
+            if(isfloat(d1) && isfloat(d2)){
+                dpushi(fmod(tfloat(d2), tfloat(d1)));
                 DISPATCH();
             }
             rerr("Bad operands for operator '%%'");
@@ -543,8 +516,8 @@ DO_MOD:
 DO_GT:
         {
             Data d1, d2; dpop(d1); dpop(d2);
-            if(isnum(d1) && isnum(d2)){
-                dpushl(tnum(d2) > tnum(d1));
+            if(isfloat(d1) && isfloat(d2)){
+                dpushl(tfloat(d2) > tfloat(d1));
                 DISPATCH();
             }
             if(isstr(d1) && isstr(d2)){
@@ -557,8 +530,8 @@ DO_GT:
 DO_GTE:
         {
             Data d1, d2; dpop(d1); dpop(d2);
-            if(isnum(d1) && isnum(d2)){
-                dpushl(tnum(d2) >= tnum(d1));
+            if(isfloat(d1) && isfloat(d2)){
+                dpushl(tfloat(d2) >= tfloat(d1));
                 DISPATCH();
             }
 
@@ -573,8 +546,8 @@ DO_LT:
         {
             Data d1, d2; dpop(d1); dpop(d2);
 
-            if(isnum(d1) && isnum(d2)){
-                dpushl(tnum(d2) < tnum(d1));
+            if(isfloat(d1) && isfloat(d2)){
+                dpushl(tfloat(d2) < tfloat(d1));
                 DISPATCH();
             }
 
@@ -589,8 +562,8 @@ DO_LTE:
         {
             Data d1, d2; dpop(d1); dpop(d2);
 
-            if(isnum(d1) && isnum(d2)){
-                dpushl(tnum(d2) <= tnum(d1));
+            if(isfloat(d1) && isfloat(d2)){
+                dpushl(tfloat(d2) <= tfloat(d1));
                 DISPATCH();
             }
 
@@ -606,8 +579,8 @@ DO_EQ:
         {
             Data d1, d2; dpop(d1); dpop(d2);
 
-            if(isnum(d1) && isnum(d2)){
-                dpushl(fabs(tnum(d2) - tnum(d1)) <= DBL_EPSILON);
+            if(isfloat(d1) && isfloat(d2)){
+                dpushl(fabs(tfloat(d2) - tfloat(d1)) <= DBL_EPSILON);
                 DISPATCH();
             }
 
@@ -628,8 +601,8 @@ DO_NEQ:
 
             Data d1, d2; dpop(d1); dpop(d2);
 
-            if(isnum(d1) && isnum(d2)){
-                dpushl(fabs(tnum(d2) - tnum(d1)) > DBL_EPSILON);
+            if(isfloat(d1) && isfloat(d2)){
+                dpushl(fabs(tfloat(d2) - tfloat(d1)) > DBL_EPSILON);
                 DISPATCH();
             }
 
@@ -649,7 +622,7 @@ DO_AND:
         {
             Data d1, d2; dpop(d1); dpop(d2);
             if(islogical(d1) && islogical(d2)){
-                dpushl(tint(d1) && tint(d2));
+                dpushl(tlogical(d1) && tlogical(d2));
                 DISPATCH();
             }
 
@@ -660,7 +633,7 @@ DO_OR:
         {
             Data d1, d2; dpop(d1); dpop(d2);
             if(islogical(d1) && islogical(d2)){
-                dpushl(tint(d1) || tint(d2));
+                dpushl(tlogical(d1) || tlogical(d2));
                 DISPATCH();
             }
 
@@ -719,9 +692,9 @@ DO_PRINT:
                 DISPATCH();
             }
             switch(ttype(value)){
-                case INT:
-                    printf("%" PRId32, tint(value));
-                    DISPATCH();
+                //case INT:
+               //     printf("%" PRId32, tint(value));
+               //     DISPATCH();
                 case LOGICAL:
                     printf("%s", tint(value) == 0?"False":"True");
                     DISPATCH();
@@ -760,7 +733,7 @@ DO_JUMP_IF_TRUE:
             uint32_t ja = ins_get_val(++ip);
             dpopv(c,callFrame); 
             if(islogical(c)){
-                if(tint(c)){
+                if(tlogical(c)){
                     ip = ja;
                     DISPATCH_WINC();
                 }
@@ -778,7 +751,7 @@ DO_JUMP_IF_FALSE:
             int32_t ja = ins_get_val(++ip);
             dpopv(c,callFrame);
             if(islogical(c)){
-                if(!tint(c)){
+                if(!tlogical(c)){
                     ip = ja;
                     DISPATCH_WINC();
                 }

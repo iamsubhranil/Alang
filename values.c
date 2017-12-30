@@ -7,6 +7,8 @@
 
 static uint32_t id = 0;
 
+double isInt_IntPart = 0;
+
 Data new_array(int32_t size){
     Array *arr = (Array *)mallocate(sizeof(Array));
     arr->numElements = size;

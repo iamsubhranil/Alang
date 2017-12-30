@@ -11,6 +11,14 @@
 #include <string.h>
 
 typedef uint64_t Data;
+extern double isInt_IntPart;
+
+typedef union{
+    uint64_t bits64;
+    uint32_t bits32[2];
+    double num;
+} DoubleBits;
+
 
 // A mask that selects the sign bit.
 #define SIGN_BIT ((uint64_t)1 << 63)
@@ -20,9 +28,8 @@ typedef uint64_t Data;
 #define isfloat(value) ((value & QNAN) != QNAN)
 //#define tfloat(value) ((double)value)
 static inline double tfloat(Data value){
-    double x;
-    memcpy(&x, &value, sizeof(double));
-    return x;
+    DoubleBits x = {value};
+    return x.num;
 }
 // Masking
 // We need to specify various types that Alang already supports and works with
@@ -35,11 +42,11 @@ static inline double tfloat(Data value){
 #define MASK 0xffffffff
 // Types :
 // 1 : Integer (int32_t) => 0 [111 1111 1111] [1 100 1--------------- [value]] => 0x7ffc800000000000
-#define INT 0x7ffc800000000000
-#define isint(value) ((value >> 47) == 0x0fff9)
-#define isnum(value) (isfloat(value) || isint(value))
-#define tint(value) ((int32_t)(value & MASK))
-#define tnum(value) (isfloat(value)?tfloat(value):tint(value))
+//#define INT 0x7ffc800000000000
+#define isint(value) (modf(tfloat(value), &isInt_IntPart) == 0)
+//#define isnum(value) (isfloat(value) || isint(value))
+#define tint(value) ((int32_t)tfloat(value))
+//#define tnum(value) (isfloat(value)?tfloat(value):tint(value))
 // 2 : String (uint32_t) => 0 [111 1111 1111] [1 101 0------------- [value]] => 0x7ffd00000000000
 #define STRING 0x7ffd000000000000
 #define isstr(value) ((value >> 47) == 0x0fffa)
@@ -61,15 +68,14 @@ static inline double tfloat(Data value){
 #define isnone(value) ((value >> 47) == 0x0fffe)
 
 static Data inline new_float(double x){
-    Data d;
-    memcpy(&d, &x, sizeof(Data));
-    return d;
+    DoubleBits d;
+    d.num = x;
+    return d.bits64;
 }
+
 //#define new_float(value) (value)
 static Data inline new_int(int32_t i){
-    Data d = 0;
-    memcpy(&d, &i, sizeof(i));
-    return INT|d;
+    return new_float(i);
 }
 //#define new_int(value) ((INT | value))
 static Data inline new_strk(uint32_t value){

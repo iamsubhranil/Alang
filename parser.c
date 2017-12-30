@@ -191,7 +191,7 @@ static char* stringOf(Token t){
     // printf("\nGiven : %s of size %d \nReturing : [%s] of size %lu", t.start, t.length, s, strlen(s));
     return s;
 }
-
+/*
 static int isDouble(const char *string){
     int i = 0;
     while(string[i] != '\0'){
@@ -201,13 +201,14 @@ static int isDouble(const char *string){
     }
     return 0;
 }
-
+*/
 static double doubleOf(const char *s){
     double d;
     sscanf(s, "%lf", &d);
     return d;
 }
 
+/*
 static int32_t longOf(const char *s){
     if(strlen(s) > 10){
         lnerr("Integer overflow : %s > %" PRId32, presentToken(), s, INT32_MAX);
@@ -221,7 +222,7 @@ static int32_t longOf(const char *s){
     }
     return (int32_t)l;
 }
-
+*/
 static uint8_t insFromToken(Token t){
     switch(t.type){
         case TOKEN_CARET:
@@ -286,14 +287,14 @@ static void primary(){
     }
     else if(peek() == TOKEN_NUMBER){
         char *val = stringOf(advance());
-        if(isDouble(val)){
+       // if(isDouble(val)){
             ins_add(PUSHF);
             ins_add_double(doubleOf(val));
-        }
-        else{
-            ins_add(PUSHI);
-            ins_add_val(longOf(val));
-        }
+      //  }
+      //  else{
+      //      ins_add(PUSHI);
+      //      ins_add_val(longOf(val));
+      //  }
         memfree(val);
     }
     else if(peek() == TOKEN_STRING){
