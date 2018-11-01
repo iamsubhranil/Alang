@@ -13,8 +13,8 @@
 #include "strings.h"
 #include "values.h"
 
-static int inWhile = 0, inContainer = 0, inCall = 0, inReturn = 0, inRef = 0,
-           keepID                = 0;
+static int inWhile = 0, inContainer = 0, inCall = 0, inReturn = 0, keepID = 0,
+           canDeclare            = 0;
 static int        he             = 0;
 static uint32_t **breakAddresses = NULL, breakLevel = 0, *breakCount = NULL;
 static TokenList *head       = NULL;
@@ -72,15 +72,82 @@ typedef struct Compiler {
 	struct Compiler *parent;
 	int              indentLevel;
 	BlockType        blockName;
+	uint32_t *       variables;
+	uint32_t         varSize;
+	uint8_t          ownVariables;
 } Compiler;
 
-static Compiler *initCompiler(Compiler *parent, int indentLevel,
-                              BlockType name) {
-	Compiler *ret    = (Compiler *)mallocate(sizeof(Compiler));
-	ret->parent      = parent;
-	ret->indentLevel = indentLevel;
-	ret->blockName   = name;
+static Compiler *presentCompiler = NULL;
+
+static Compiler *initCompiler(Compiler *parent, int indentLevel, BlockType name,
+                              uint8_t ownVariables) {
+	Compiler *ret     = (Compiler *)mallocate(sizeof(Compiler));
+	ret->parent       = parent;
+	ret->indentLevel  = indentLevel;
+	ret->blockName    = name;
+	ret->variables    = NULL;
+	ret->varSize      = 0;
+	ret->ownVariables = ownVariables;
 	return ret;
+}
+
+static uint32_t compiler_declare_variable(Compiler *compiler, uint32_t name) {
+	if(compiler->varSize == MAX_LOCALS) {
+		lnerr("More than %d variables in one scope in not allowed!",
+		      presentToken(), MAX_LOCALS);
+		he++;
+	}
+	compiler->varSize++;
+	compiler->variables = (uint32_t *)reallocate(
+	    compiler->variables, sizeof(uint32_t) * compiler->varSize);
+	compiler->variables[compiler->varSize - 1] = name;
+	Compiler *tmp                              = compiler;
+	while(!tmp->ownVariables && tmp->parent != NULL) {
+		tmp->parent->variables = tmp->variables;
+		tmp                    = tmp->parent;
+	}
+	return compiler->varSize - 1;
+}
+
+static uint8_t compiler_has_variable(Compiler *compiler, uint32_t name) {
+	// dbg("[has] Searching for %s in %p variables %p\n", str_get(name),
+	// compiler, compiler->variables);
+	for(uint8_t i = 0; i < compiler->varSize; i++) {
+		if(compiler->variables[i] == name)
+			return 1;
+	}
+	return 0;
+}
+
+static uint32_t compiler_get_variable(Compiler *compiler, uint32_t name) {
+	// dbg("Searching for %s in %p : ", str_get(name), compiler);
+	for(uint32_t i = 0; i < compiler->varSize; i++) {
+		if(compiler->variables[i] == name) {
+			// printf("found\n");
+			return i;
+		}
+	}
+	// printf("not found\n");
+	return 256;
+}
+
+static uint32_t compiler_get_global(Compiler *compiler, uint32_t name,
+                                    uint8_t isSilent) {
+	// dbg("Retrieving global %s for %p parent %p\n", str_get(name), compiler,
+	//    compiler->parent);
+	if(compiler == NULL || compiler->parent == NULL) {
+		if(!isSilent) {
+			lnerr("Variable not declared in any parent scope : %s",
+			      presentToken(), str_get(name), compiler);
+			he++;
+		} else
+			return 256;
+	} else if(compiler_has_variable(compiler->parent, name)) {
+		return compiler_get_variable(compiler->parent, name);
+	} else {
+		return compiler_get_global(compiler->parent, name, isSilent);
+	}
+	return 256;
 }
 
 static TokenType peek() {
@@ -104,18 +171,6 @@ static Token advance() {
 		return h;
 	}
 	return errorToken;
-}
-
-/*
-   static Token advance(){
-   Token present = head->value;
-   advance();
-   return present;
-   }
-   */
-
-static int presentLine() {
-	return head->value.line;
 }
 
 static int match(TokenType type) {
@@ -166,14 +221,6 @@ static int getNextIndent() {
 	return nextIndent;
 }
 
-static int isOperator(TokenType type) {
-	return type == TOKEN_EQUAL || type == TOKEN_EQUAL_EQUAL ||
-	       type == TOKEN_LESS_EQUAL || type == TOKEN_GREATER_EQUAL ||
-	       type == TOKEN_GREATER || type == TOKEN_LESS || type == TOKEN_PLUS ||
-	       type == TOKEN_MINUS || type == TOKEN_STAR || type == TOKEN_SLASH ||
-	       type == TOKEN_PERCEN;
-}
-
 static void expression();
 
 static char *numericString(Token t) {
@@ -196,16 +243,16 @@ static char *stringOf(Token t) {
 	return s;
 }
 /*
-static int isDouble(const char *string){
-    int i = 0;
-    while(string[i] != '\0'){
-        if(string[i] == '.')
-            return 1;
-        i++;
-    }
-    return 0;
-}
-*/
+   static int isDouble(const char *string){
+   int i = 0;
+   while(string[i] != '\0'){
+   if(string[i] == '.')
+   return 1;
+   i++;
+   }
+   return 0;
+   }
+   */
 static double doubleOf(const char *s) {
 	double d;
 	sscanf(s, "%lf", &d);
@@ -213,20 +260,20 @@ static double doubleOf(const char *s) {
 }
 
 /*
-static int32_t longOf(const char *s){
-    if(strlen(s) > 10){
-        lnerr("Integer overflow : %s > %" PRId32, presentToken(), s, INT32_MAX);
-        he++;
-    }
-    int64_t l;
-    sscanf(s,"%" SCNd64, &l);
-    if(l > INT32_MAX){
-        lnerr("Integer overflow : %" PRId64 " > %" PRId32, presentToken(), l,
-INT32_MAX); he++;
-    }
-    return (int32_t)l;
-}
-*/
+   static int32_t longOf(const char *s){
+   if(strlen(s) > 10){
+   lnerr("Integer overflow : %s > %" PRId32, presentToken(), s, INT32_MAX);
+   he++;
+   }
+   int64_t l;
+   sscanf(s,"%" SCNd64, &l);
+   if(l > INT32_MAX){
+   lnerr("Integer overflow : %" PRId64 " > %" PRId32, presentToken(), l,
+   INT32_MAX); he++;
+   }
+   return (int32_t)l;
+   }
+   */
 static uint8_t insFromToken(Token t) {
 	switch(t.type) {
 		case TOKEN_CARET: return POW;
@@ -262,7 +309,36 @@ static uint32_t getCall() {
 	return argCount;
 }
 
+static void compiler_resolve_variable(Compiler *compiler, uint32_t st) {
+	if(compiler_has_variable(compiler,
+	                         st)) { // Check whether the variable
+		// is declared locally
+		ins_add(compiler->blockName == BLOCK_NONE ? LOAD_SLOT_GLOBAL
+		                                          : LOAD_SLOT);
+		ins_add_val(compiler_get_variable(compiler, st));
+	} else { // Local variable not found, let's try globally
+		uint32_t slot = compiler_get_global(compiler, st, canDeclare);
+		if(slot == 256) { // Even globally the variable not found
+			slot = 0;
+			if(canDeclare) { // Let's check if we can declare it now
+				slot = compiler_declare_variable(compiler, st);
+				ins_add(compiler->blockName == BLOCK_NONE ? LOAD_SLOT_GLOBAL
+				                                          : LOAD_SLOT);
+			}
+		} else // Variable found globally
+			ins_add(LOAD_SLOT_GLOBAL);
+		ins_add_val(slot);
+	}
+}
+
 static void primary() {
+	// If it is a reference, the referee must be
+	// an identifier
+	if(keepID && peek() != TOKEN_IDENTIFIER) {
+		lnerr("Bad reference!", presentToken());
+		he++;
+	}
+
 	if(match(TOKEN_TRUE)) {
 		ins_add(PUSHL);
 		ins_add_val(1);
@@ -283,22 +359,13 @@ static void primary() {
 		//  }
 		memfree(val);
 	} else if(peek() == TOKEN_STRING) {
-		uint32_t st = str_insert(stringOf(advance()));
+		uint32_t st = str_insert(stringOf(advance()), 1);
 		ins_add(PUSHS);
 		//    printf("\nPushing string %lu", st);
 		ins_add_val(st);
 	} else if(peek() == TOKEN_IDENTIFIER) {
-		uint32_t st = str_insert(stringOf(advance()));
-		if(match(TOKEN_LEFT_SQUARE)) {
-			int bak = keepID;
-			keepID  = 0;
-			expression(); // index
-			keepID = bak;
-			ins_add(PUSHID);
-			ins_add_val(st);
-			ins_add(ARRAY);
-			consume(TOKEN_RIGHT_SQUARE, "Expected ']' after array index!");
-		} else if(match(TOKEN_LEFT_PAREN)) {
+		uint32_t st = str_insert(stringOf(advance()), 1);
+		if(match(TOKEN_LEFT_PAREN)) {
 			calls = (Call *)reallocate(calls, sizeof(Call) * ++callPointer);
 			calls[callPointer - 1].t = presentToken();
 			uint32_t tmp             = callPointer;
@@ -315,10 +382,21 @@ static void primary() {
 			calls[tmp - 1].routineName = st;
 		} else {
 			if(keepID == 0) {
-				ins_add(PUSHIDV);
-			} else
-				ins_add(PUSHID);
-			ins_add_val(st);
+				compiler_resolve_variable(presentCompiler, st);
+			} else {
+				// dbg("String inserted %s at %" PRIu32, str_get(st), st);
+				ins_add(MEMREF);
+				ins_add_val(st);
+				// ins_print();
+			}
+			if(match(TOKEN_LEFT_SQUARE)) {
+				int bak = keepID;
+				keepID  = 0;
+				expression(); // index
+				keepID = bak;
+				consume(TOKEN_RIGHT_SQUARE, "Expected ']' after array index!");
+				ins_add(ARRAYREF);
+			}
 		}
 	} else if(match(TOKEN_LEFT_PAREN)) {
 		int bak = keepID;
@@ -339,10 +417,6 @@ static void call() {
 			keepID++;
 			primary();
 			keepID--;
-			if(ins_last() == ARRAY)
-				ins_set(ip_get() - 1, ARRAYREF);
-			else
-				ins_add(MEMREF);
 		} else
 			break;
 	}
@@ -419,15 +493,43 @@ static void expression() {
 
 static void statement(Compiler *compiler);
 
-static void blockStatement(Compiler *compiler, BlockType name) {
+static void blockStatement(Compiler *compiler, BlockType name,
+                           uint8_t ownVariables) {
 	// debug("Parsing block statement");
-	int       indent        = compiler->indentLevel + 1;
-	Compiler *blockCompiler = initCompiler(compiler, indent, name);
+	int       indent = compiler->indentLevel + 1;
+	Compiler *blockCompiler =
+	    initCompiler(compiler, indent, name, ownVariables);
+	if(!ownVariables) {
+		blockCompiler->variables = compiler->variables;
+		blockCompiler->varSize   = compiler->varSize;
+	}
+
 	while(getNextIndent() == indent) {
 		// dbg("Found a block statement");
 		statement(blockCompiler);
 	}
+
+	if(!ownVariables) {
+		compiler->variables = blockCompiler->variables;
+		compiler->varSize   = blockCompiler->varSize;
+	} else {
+		memfree(blockCompiler->variables);
+	}
+
 	memfree(blockCompiler);
+
+	presentCompiler = compiler;
+	// debug("Block statement parsed");
+}
+
+static void blockStatement_compiler(Compiler *compiler, BlockType name) {
+	// debug("Parsing block statement");
+	int indent = compiler->indentLevel;
+	while(getNextIndent() == indent) {
+		// dbg("Found a block statement");
+		statement(compiler);
+	}
+	// memfree(compiler);
 	// debug("Block statement parsed");
 }
 
@@ -448,7 +550,7 @@ static void ifStatement(Compiler *compiler) {
 		consume(TOKEN_NEWLINE, "Expected newline after Then!");
 	}
 
-	blockStatement(compiler, BLOCK_IF);
+	blockStatement(compiler, BLOCK_IF, 0);
 	consumeIndent(compiler->indentLevel);
 	ins_add(JUMP);
 	uint32_t skip = ins_add_val(0);
@@ -458,7 +560,7 @@ static void ifStatement(Compiler *compiler) {
 			ifStatement(compiler);
 		} else {
 			consume(TOKEN_NEWLINE, "Expected newline after Else!");
-			blockStatement(compiler, BLOCK_ELSE);
+			blockStatement(compiler, BLOCK_ELSE, 0);
 			consumeIndent(compiler->indentLevel);
 			consume(TOKEN_ENDIF, "Expected EndIf after If!");
 			consume(TOKEN_NEWLINE, "Expected newline after EndIf!");
@@ -489,7 +591,8 @@ static void whileStatement(Compiler *compiler) {
 
 	break_push_scope();
 
-	blockStatement(compiler, BLOCK_WHILE);
+	blockStatement(compiler, BLOCK_WHILE, 0);
+
 	ins_add(JUMP);
 	ins_add_val(start);
 	ins_set_val(jmp, ip_get());
@@ -547,34 +650,49 @@ static void breakStatement() {
 	// debug("Break statement parsed");
 }
 
+static uint8_t generate_store() {
+	uint8_t replace_ins = NOOP;
+	uint8_t ins         = ins_last();
+	switch(ins) {
+		case ARRAYREF:
+			ins_set(ip_get() - 1, NOOP);
+			replace_ins = ARRAYSET;
+			break;
+		case MEMREF:
+			ins_set(ip_get() - 5, PUSHI);
+			replace_ins = MEMSET;
+			break;
+		case LOAD_SLOT:
+			ins_set(ip_get() - 5, SAVE_STORE_SLOT);
+			replace_ins = STORE_SLOT;
+			break;
+		case LOAD_SLOT_GLOBAL:
+			ins_set(ip_get() - 5, SAVE_STORE_SLOT);
+			replace_ins = STORE_SLOT_GLOBAL;
+			break;
+		default:
+			// printf("\n%d\n", ins_last());
+			// ins_print();
+			lnerr("Bad assignment target!", presentToken());
+			he++;
+			break;
+	}
+	return replace_ins;
+}
+
 static void setStatement() {
 	// debug("Parsing set statement");
 	do {
-		keepID++;
+		// keepID++;
+		canDeclare = 1;
 		expression();
-		keepID--;
-		uint8_t type = 0;
-		if(ins_last() == MEMREF) {
-			type = 1;
-			ins_set(ip_get() - 1, NOOP);
-		} else if(ins_last() == ARRAY) {
-			type = 2;
-			ins_set(ip_get() - 1, NOOP);
-		} else if(ins_last() == ARRAYREF) {
-			type = 3;
-			ins_set(ip_get() - 1, NOOP);
-		}
+		canDeclare = 0;
+		// keepID--;
+		uint8_t replace_ins = generate_store();
 		consume(TOKEN_EQUAL, "Expected '=' after identifer!");
 		expression();
 
-		if(type == 0)
-			ins_add(SET);
-		else if(type == 1)
-			ins_add(MEMSET);
-		else if(type == 2)
-			ins_add(ARRAYWRITE);
-		else
-			ins_add(ARRAYSET);
+		ins_add(replace_ins);
 
 	} while(match(TOKEN_COMMA));
 	consume(TOKEN_NEWLINE, "Expected newline after Set statement!");
@@ -585,14 +703,23 @@ static void arrayStatement() {
 	// debug("Parsing array statement");
 
 	do {
-		keepID++;
-		expression();
-		keepID--;
-		if(ins_last() != ARRAY) {
-			lnerr("Expected array expression!", presentToken());
+		Token iden =
+		    consume(TOKEN_IDENTIFIER, "Expected identifier after 'Array!'");
+		uint32_t name = str_insert(stringOf(iden), 1);
+		if(compiler_has_variable(presentCompiler, name)) {
+			lnerr("Variable %s has already been declared!", iden,
+			      str_get(name));
 			he++;
+		} else {
+			uint32_t id = compiler_declare_variable(presentCompiler, name);
+			consume(TOKEN_LEFT_SQUARE, "Expected '[' after identifier!");
+			expression();
+			consume(TOKEN_RIGHT_SQUARE,
+			        "Expected ']' after array declaration!");
+			ins_add(
+			    MAKE_ARRAY); // MAKE_ARRAY is passed the slot number to store
+			ins_add_val(id);
 		}
-		ins_set(ip_get() - 1, MAKE_ARRAY);
 	} while(match(TOKEN_COMMA));
 	consume(TOKEN_NEWLINE, "Expected newline after Array statement!");
 	// debug("Array statement parsed");
@@ -601,27 +728,25 @@ static void arrayStatement() {
 static void inputStatement() {
 	// debug("Parsing input statement");
 	do {
-		if(peek() == TOKEN_IDENTIFIER) {
-			uint32_t name = str_insert(stringOf(advance()));
-			uint8_t  op   = INPUTS;
-			if(match(TOKEN_COLON)) {
-				if(match(TOKEN_INT))
-					op = INPUTI;
-				else if(match(TOKEN_FLOAT))
-					op = INPUTF;
-				else {
-					lnerr("Bad input format specifier!", presentToken());
-					he++;
-				}
+		canDeclare++;
+		expression();
+		canDeclare--;
+		uint8_t store = generate_store();
+		uint8_t op    = INPUTS;
+		if(match(TOKEN_COLON)) {
+			Token t = advance();
+			if(t.type == TOKEN_IDENTIFIER && strncmp(t.start, "Int", 3) == 0)
+				op = INPUTI;
+			else if(t.type == TOKEN_IDENTIFIER &&
+			        strncmp(t.start, "Float", 5) == 0)
+				op = INPUTF;
+			else {
+				lnerr("Bad input format specifier!", presentToken());
+				he++;
 			}
-			ins_add(PUSHID);
-			ins_add_val(name);
-			ins_add(op);
-		} else {
-			lnerr("Bad input statement!", presentToken());
-			he++;
-			continue;
 		}
+		ins_add(op);
+		ins_add(store);
 	} while(match(TOKEN_COMMA));
 
 	consume(TOKEN_NEWLINE, "Expected newline after Input!");
@@ -663,42 +788,70 @@ static void routineStatement(Compiler *compiler) {
 		routine.isNative = 1;
 
 	routine.name = str_insert(
-	    stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!")));
+	    stringOf(consume(TOKEN_IDENTIFIER, "Expected routine name!")), 1);
 
+	// dbg("Routine started %s\n", str_get(routine.name));
 	uint32_t *args = NULL, argp = 0;
 
 	consume(TOKEN_LEFT_PAREN, "Expected '(' after routine declaration!");
+	Compiler *comp =
+	    initCompiler(compiler, compiler->indentLevel + 1, BLOCK_FUNC, 1);
 	if(peek() != TOKEN_RIGHT_PAREN) {
 		do {
 			args = (uint32_t *)reallocate(args, sizeof(uint32_t) * ++argp);
-			args[argp - 1] = str_insert(stringOf(
-			    consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
+			args[argp - 1] =
+			    str_insert(stringOf(consume(TOKEN_IDENTIFIER,
+			                                "Expected identifer as argument!")),
+			               1);
+
+			routine.arity++;
+
 			if(routine.isNative)
-				routine_add_arg(&routine, args[argp - 1]);
-			else
-				routine.arity++;
+				routine_add_slot(&routine, args[argp - 1]);
+			compiler_declare_variable(comp, args[argp - 1]);
 		} while(match(TOKEN_COMMA));
 
 		consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
 
-		if(!routine.isNative) {
-			while(argp > 0) {
-				if(routine.startAddress == 0)
-					routine.startAddress = ins_add(SETI);
-				else
-					ins_add(SETI);
-				ins_add_val(args[--argp]);
-			}
-		}
+		// This is no longer required. The CALL opcode itself handles this
+		/*
+		   if(!routine.isNative) {
+		   while(argp > 0) {
+		   if(routine.startAddress == 0)
+		   routine.startAddress = ins_add(SETI);   // LOAD_SLOT
+		   else
+		   ins_add(SETI);                          // LOAD_SLOT
+		   ins_add_val(args[--argp]);
+		   }
+		   }*/
 		memfree(args);
 	} else
 		advance();
+
+	// Reserve slot for locals
+	uint32_t slotpatch = 0;
+	if(!routine.isNative) {
+		routine.startAddress = ins_add(RESERVE_SLOT);
+		slotpatch            = ins_add_val(0);
+	}
+
 	consume(TOKEN_NEWLINE, "Expected newline after routine declaration!");
 
 	if(routine.isNative == 0) {
 		if(routine.startAddress == 0)
 			routine.startAddress = ip_get();
-		blockStatement(compiler, BLOCK_FUNC);
+		blockStatement_compiler(comp, BLOCK_FUNC);
+		// Patch the RESERVE_SLOT
+		// dbg("comp->varsize = %d", comp->varSize);
+		// Ignore routine arguments, as they are in the stack
+		// and automatically reserved by CALL
+		ins_set_val(slotpatch, comp->varSize - routine.arity);
+		// Copy the variable name and slots
+		routine.variables = comp->variables;
+		routine.slots     = comp->varSize;
+		// Explicitly free the memory
+		memfree(comp);
+
 		if(ins_last() != RETURN) {
 			ins_add(PUSHN);
 			ins_add(RETURN);
@@ -708,6 +861,7 @@ static void routineStatement(Compiler *compiler) {
 		consume(TOKEN_NEWLINE, "Expected newline after routine definition!");
 	}
 	routine_add(routine);
+	// dbg("Routine complete\n");
 }
 
 static void callStatement() {
@@ -742,42 +896,65 @@ static void containerStatement(Compiler *compiler) {
 	routine.isNative = 0;
 
 	routine.name = str_insert(
-	    stringOf(consume(TOKEN_IDENTIFIER, "Expected container name!")));
+	    stringOf(consume(TOKEN_IDENTIFIER, "Expected container name!")), 1);
 
 	uint32_t *args = NULL, argp = 0;
 
 	consume(TOKEN_LEFT_PAREN, "Expected '(' after container declaration!");
+	Compiler *comp =
+	    initCompiler(compiler, compiler->indentLevel + 1, BLOCK_FUNC, 1);
 	if(peek() != TOKEN_RIGHT_PAREN) {
 		do {
 			args = (uint32_t *)reallocate(args, sizeof(uint32_t) * ++argp);
-			args[argp - 1] = str_insert(stringOf(
-			    consume(TOKEN_IDENTIFIER, "Expected identifer as argument!")));
+			args[argp - 1] =
+			    str_insert(stringOf(consume(TOKEN_IDENTIFIER,
+			                                "Expected identifer as argument!")),
+			               1);
 
-			routine_add_arg(&routine, args[argp - 1]);
+			// routine_add_slot(&routine, args[argp - 1]);
+			compiler_declare_variable(comp, args[argp - 1]);
+			routine.arity++;
 		} while(match(TOKEN_COMMA));
 		consume(TOKEN_RIGHT_PAREN, "Expected ')' after argument declaration!");
 
+		// No need
+		/*
 		while(argp > 0) {
-			if(routine.startAddress == 0)
-				routine.startAddress = ins_add(SETI);
-			else
-				ins_add(SETI);
-			ins_add_val(args[--argp]);
+		    if(routine.startAddress == 0)
+		        routine.startAddress = ins_add(SETI);
+		    else
+		        ins_add(SETI);
+		    ins_add_val(args[--argp]);
 		}
+		*/
 
 		memfree(args);
 	} else
 		advance();
 	consume(TOKEN_NEWLINE, "Expected newline after container declaration!");
 
+	// Reserve slot for locals
+	routine.startAddress = ins_add(RESERVE_SLOT);
+	uint32_t slotpatch   = ins_add_val(0);
+
 	if(routine.startAddress == 0)
 		routine.startAddress = ip_get();
 
 	inContainer++;
-	blockStatement(compiler, BLOCK_FUNC);
-	ins_add(PUSHID);
-	ins_add_val(routine.name);
+	blockStatement_compiler(comp, BLOCK_FUNC);
+	// Copy the variable array and slots
+	routine.variables = comp->variables;
+	routine.slots     = comp->varSize;
+
+	// Ignore container arguments, as they are in the stack
+	// and automatically reserved by CALL
+	ins_set_val(slotpatch, comp->varSize - routine.arity);
+
+	// Explicitly free the memory
+	memfree(comp);
+
 	ins_add(NEW_CONTAINER);
+	ins_add_val(routine.name);
 	inContainer--;
 	consume(TOKEN_ENDCONTAINER, "Expected EndContainer on the same indent!");
 	consume(TOKEN_NEWLINE, "Expected newline after EndContainer!");
@@ -792,6 +969,8 @@ static void containerStatement(Compiler *compiler) {
    */
 static void statement(Compiler *compiler) {
 	consumeIndent(compiler->indentLevel);
+	presentCompiler = compiler;
+	// dbg("Reassigning compiler to %p", compiler);
 	if(match(TOKEN_BEGIN))
 		return beginStatement();
 	else if(match(TOKEN_END))
@@ -827,6 +1006,7 @@ static void statement(Compiler *compiler) {
 uint32_t lastjump = 0;
 
 void part(Compiler *c) {
+	presentCompiler = c;
 	if(peek() == TOKEN_EOF)
 		beginStatement();
 	else if(match(TOKEN_ROUTINE)) {
@@ -860,29 +1040,41 @@ static void patchRoutines() {
 		// dbg("i : %" PRIu32 " calladdr : %" PRIu32 " name : %s arity : %"
 		// PRIu32,
 		//        i, c.callAddress, str_get(c.routineName), c.arity);
-		Routine2 r = routine_get(c.routineName);
-		if(r.arity != c.arity) {
+		Routine2 *r = routine_get(c.routineName);
+		if(r->arity != c.arity) {
 			lnerr("Arity mismatch for routine '%s' : Expected %" PRIu32
 			      " Received %" PRIu32,
-			      c.t, str_get(r.name), r.arity, c.arity);
+			      c.t, str_get(r->name), r->arity, c.arity);
 			he++;
 			i++;
 			continue;
 		}
-		if(r.isNative) {
+		if(r->isNative) {
 			ins_set(c.callAddress - 1, CALLNATIVE);
-			ins_set_val(c.callAddress, r.name);
+			ins_set_val(c.callAddress, r->name);
 		} else
-			ins_set_val(c.callAddress, r.startAddress);
+			ins_set_val(c.callAddress, r->startAddress);
 		i++;
 	}
 	memfree(calls);
 }
 
+static uint32_t const_count = 0;
+
+void parser_register_variable(const char *var) {
+	const_count++;
+	compiler_declare_variable(presentCompiler, str_insert(strdup(var), 1));
+}
+
 void parse(TokenList *list) {
 	head = list;
 	// heap_init();
-	Compiler *comp = initCompiler(NULL, 0, BLOCK_NONE);
+	// Reserve slots for globals
+	ins_add(RESERVE_SLOT);
+	uint32_t  globals = ins_add_val(0);
+	Compiler *comp    = initCompiler(NULL, 0, BLOCK_NONE, 1);
+	presentCompiler   = comp;
+	register_natives();
 	ins_add(JUMP); // Jump to the first global instruction
 	lastjump = ins_add_val(
 	    0); // The first location will tell the address of first instruction
@@ -891,18 +1083,21 @@ void parse(TokenList *list) {
 	while(!match(TOKEN_EOF)) {
 		part(comp);
 	}
-	Routine2 r =
-	    routine_get(str_insert(strdup("Main"))); // Check if Main is defined
+	Routine2 *r =
+	    routine_get(str_insert(strdup("Main"), 1)); // Check if Main is defined
 
 	uint32_t callMain = ins_add(CALL);
-	ins_add_val(r.startAddress);
+	ins_add_val(r->startAddress);
 	ins_add_val(0);
 
 	ins_set_val(lastjump, callMain); // After all globals statements are
 	// executed, jump to the routine 'Main'
 	ins_add(HALT); // After Main returns, halt the machine
 
-	register_native_routines();
+	// Patch the global storage
+	ins_set_val(globals, comp->varSize - const_count);
+
+	// register_native_routines();
 
 	patchRoutines();
 	memfree(comp);

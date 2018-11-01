@@ -4,10 +4,9 @@
 #include <stdlib.h>
 
 #include "allocator.h"
-#include "callframe.h"
 #include "display.h"
-#include "env.h"
 #include "interpreter.h"
+#include "object.h"
 #include "parser.h"
 #include "scanner.h"
 #include "values.h"
@@ -16,10 +15,7 @@
 
 void printSizes() {
 	prsz(Data);
-	prsz(Environment);
-	prsz(Record);
 	prsz(Instance);
-	prsz(CallFrame);
 	printf("\n");
 }
 
@@ -48,8 +44,10 @@ int main(int argc, char **argv) {
 	freeList(tokens);
 
 	// ins_print();
+	printf("\n");
 	interpret();
 
+	obj_free();
 	memfree_all();
 	return 0;
 }

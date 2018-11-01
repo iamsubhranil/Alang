@@ -7,7 +7,7 @@
 
 #include "allocator.h"
 #include "display.h"
-#include "env.h"
+//#include "env.h"
 #include "foreign_interface.h"
 #include "interpreter.h"
 #include "native.h"
@@ -31,58 +31,48 @@ static int hasLib(uint32_t name) {
 	return 0;
 }
 
-static Data load_library(Environment *env, uint32_t name) {
-	if(env != NULL) {
-		Data d = env_get(str_insert(strdup("x")), env, 0);
-		name   = tstrk(d);
-	}
+// Return True if the library is loaded,
+// otherwise returns False
+static Data LoadLibrary(Data *stack) {
+	Data d = stack[0];
 
+	if(!native_isstr(d))
+		native_rerr("Expected name of the library to load!");
+
+	uint32_t name = tstrk(d);
 	if(hasLib(name))
 		return new_null();
 
 	void *lib = dlopen(str_get(name), RTLD_LAZY);
 	if(!lib) {
-		if(env == NULL)
-			warn("%s", dlerror());
-		else {
-			rerr("%s", dlerror());
-		}
-		return new_null();
+		native_rwarn("%s", dlerror());
+		return new_logical(0);
 	}
 	libCount++;
 	libraries = (Library *)reallocate(libraries, sizeof(Library) * libCount);
 	libraries[libCount - 1].name   = name;
 	libraries[libCount - 1].handle = lib;
 
-	return new_null();
+	return new_logical(1);
 }
 
-void unload_all() {
-	uint32_t i   = 0;
-	char *   err = NULL;
-	while(i < libCount) {
-		dlclose(libraries[i].handle);
-		if((err = dlerror()) != NULL)
-			rwarn("%s", err);
-		i++;
+// Return True if the library is unloaded successfully,
+// otherwise returns False
+static Data UnloadLibrary(Data *stk) {
+	if(!isstr(stk[0])) {
+		native_rerr("Expected name of the library to unload!");
 	}
-	memfree(libraries);
-	libCount  = 0;
-	libraries = NULL;
-}
-
-static Data unload_library(Environment *env) {
-	uint32_t name = tstrk(env_get(str_insert("x"), env, 0));
+	uint32_t name = tstrk(stk[0]);
 
 	if(!hasLib(name)) {
-		rwarn("Library '%s' is not loaded!", str_get(name));
-		return new_null();
+		native_rwarn("Library '%s' is not loaded!", str_get(name));
+		return new_logical(0);
 	}
 
 	char *err = NULL;
 	if(libCount == 1) {
 		unload_all();
-		return new_null();
+		return new_logical(1);
 	}
 
 	uint32_t i = 0;
@@ -91,22 +81,64 @@ static Data unload_library(Environment *env) {
 			dlclose(libraries[i].handle);
 			if((err = dlerror()) != NULL) {
 				rwarn("%s", err);
+				return new_logical(0);
+			} else {
+				libraries[i].name   = libraries[libCount - 1].name;
+				libraries[i].handle = libraries[libCount - 1].handle;
+				libCount--;
+				libraries = (Library *)reallocate(libraries,
+				                                  sizeof(Library) * libCount);
+				return new_logical(1);
 			}
-			libraries[i].name   = libraries[libCount - 1].name;
-			libraries[i].handle = libraries[libCount - 1].handle;
 			break;
 		}
 		i++;
 	}
-	libCount--;
-	libraries = (Library *)reallocate(libraries, sizeof(Library) * libCount);
 	return new_null();
 }
 
-static void *get_func(uint32_t name) {
+static Data Int(Data *stack) {
+	Data top = stack[0];
+	if(isint(top))
+		return top;
+	if(isfloat(top))
+		return new_int((int32_t)(tfloat(top)));
+	if(isstr(top)) {
+		const char *str = tstr(top);
+		char *      err = NULL;
+		long        res = strtol(str, &err, 10);
+		if(*err != 0) {
+			native_rerr("Not a valid integer string : '%s'", str);
+		}
+		if(res > INT32_MAX || res < INT32_MIN) {
+			native_rerr("Converted number is out of range : %ld", res);
+		}
+		return new_int((int32_t)res);
+	}
+
+	native_rerr("Given object is not convertible to integer!");
+	return new_null();
+}
+
+void unload_all() {
+	// uint32_t i   = 0;
+	// char *   err = NULL;
+	// while(i < libCount) {
+	//	dlclose(libraries[i].handle);
+	//	if((err = dlerror()) != NULL)
+	//		native_rwarn("%s", err);
+	//	i++;
+	//}
+	if(libraries)
+		memfree(libraries);
+	libCount  = 0;
+	libraries = NULL;
+}
+
+static void *GetNative(uint32_t name) {
 	uint32_t i = 0;
 	if(libCount == 0) {
-		rerr("Unable to call %s : No libraries loaded!", str_get(name));
+		native_rerr("Unable to call %s : No libraries loaded!", str_get(name));
 	}
 	while(i < libCount) {
 		void *f = dlsym(libraries[i].handle, str_get(name));
@@ -114,29 +146,34 @@ static void *get_func(uint32_t name) {
 			return f;
 		i++;
 	}
-	rerr("Foreign routine '%s' not found in loaded libraries!", str_get(name));
+	native_rerr("Foreign routine '%s' not found in loaded libraries!",
+	            str_get(name));
 	stop();
 	return NULL;
 }
 
-typedef Data (*handler)(Environment *env);
+typedef NativeData (*handler)(NativeData args);
 
-static Data run_native(uint32_t name, Environment *env) {
-	handler fhandle = (handler)get_func(name);
-	return fhandle(env);
+static Data RunNative(uint32_t name, uint32_t numargs, Data *stack) {
+	handler    fhandle = (handler)GetNative(name);
+	NativeData arr     = native_arr_new(numargs);
+	for(size_t i = 0; i < numargs; i++) native_arr_set(arr, i, stack[i]);
+	return fhandle(arr);
 }
 
-static uint32_t LoadLibrary = 0, UnloadLibrary = 0, Clock = 0;
+static uint32_t loadLibrary = 0, unloadLibrary = 0, Clock = 0, toInt = 0;
 
-Data handle_native(uint32_t name, Environment *env) {
-	if(LoadLibrary == name)
-		return load_library(env, name);
-	else if(UnloadLibrary == name)
-		return unload_library(env);
-	else if(Clock == name)
+Data handle_native(uint32_t name, uint32_t numargs, Data *stack) {
+	if(name == toInt)
+		return Int(stack);
+	if(name == loadLibrary)
+		return LoadLibrary(stack);
+	if(name == unloadLibrary)
+		return UnloadLibrary(stack);
+	if(name == Clock)
 		return new_int((int32_t)clock());
-	else
-		return run_native(name, env);
+
+	return RunNative(name, numargs, stack);
 }
 
 static Routine2 get_routine(uint32_t name, int arity) {
@@ -144,20 +181,20 @@ static Routine2 get_routine(uint32_t name, int arity) {
 	r.isNative  = 1;
 	r.name      = name;
 	r.arity     = arity;
-	r.arguments = NULL;
+	r.variables = NULL;
 
 	return r;
 }
 
 static void add_argument(Routine2 *r, uint32_t argName) {
 	r->arity++;
-	r->arguments = (uint32_t *)reallocate(r->arguments, 64 * r->arity);
-	r->arguments[r->arity - 1] = argName;
+	r->variables = (uint32_t *)reallocate(r->variables, 64 * r->arity);
+	r->variables[r->arity - 1] = argName;
 }
 
 static Routine2 getSingleArgRoutine(uint32_t name) {
 	Routine2 r = get_routine(name, 0);
-	add_argument(&r, str_insert(strdup("x")));
+	add_argument(&r, str_insert(strdup("x"), 1));
 	return r;
 }
 
@@ -165,26 +202,48 @@ static Routine2 getZeroArgRoutine(uint32_t name) {
 	return get_routine(name, 0);
 }
 
-static void define_cons(Environment *env) {
-	env_put(str_insert(strdup("Math_Pi")), new_float(acos(-1.0)), env);
-	env_put(str_insert(strdup("Math_E")), new_float(M_E), env);
-	env_put(str_insert(strdup("ClocksPerSecond")), new_int(CLOCKS_PER_SEC),
-	        env);
+typedef struct {
+	const char *name;
+	Data        value;
+} Constant;
+
+static Constant constants[3];
+static size_t   num_constants = sizeof(constants) / sizeof(Constant);
+
+static void register_to_parser() {
+	for(size_t i = 0; i < num_constants; i++)
+		parser_register_variable(constants[i].name);
+}
+
+static void define_cons() {
+	constants[0] = (Constant){"Math_Pi", new_float(acos(-1.0))};
+	constants[1] = (Constant){"Math_E", new_float(M_E)};
+	constants[2] = (Constant){"ClocksPerSecond", new_int(CLOCKS_PER_SEC)};
+	register_to_parser();
 }
 
 void register_native_routines() {
-	LoadLibrary   = str_insert(strdup("LoadLibrary"));
-	UnloadLibrary = str_insert(strdup("UnloadLibrary"));
-	Clock         = str_insert(strdup("Clock"));
-	routine_add(getSingleArgRoutine(LoadLibrary));
-	routine_add(getSingleArgRoutine(UnloadLibrary));
+	loadLibrary   = str_insert(strdup("LoadLibrary"), 1);
+	unloadLibrary = str_insert(strdup("UnloadLibrary"), 1);
+	Clock         = str_insert(strdup("Clock"), 1);
+	toInt         = str_insert(strdup("Int"), 1);
+	routine_add(getSingleArgRoutine(loadLibrary));
+	routine_add(getSingleArgRoutine(unloadLibrary));
 	routine_add(getZeroArgRoutine(Clock));
+	routine_add(getSingleArgRoutine(toInt));
 }
 
-void register_native(Environment *env) {
+void register_natives() {
 	// double tm = clock();
-	define_cons(env);
-	load_library(NULL, str_insert(strdup("./liblalang.so")));
+	define_cons();
+	register_native_routines();
 	// tm = (clock() - tm)/CLOCKS_PER_SEC;
 	// printf(debug("[Native] Registration took %gs"), tm);
+}
+
+void load_natives() {
+	Data d = new_str(strdup("./libalang_math.so"));
+	LoadLibrary(&d);
+	for(size_t i = 0; i < num_constants; i++)
+		interpreter_push(constants[i].value);
 }

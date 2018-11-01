@@ -21,7 +21,7 @@ Routine Main()
                 Set n[i] = e
                 Set i = i + 1
             EndIf
-            Set d = d/2
+            Set d = Int(d/2)
             Set e = e*2
         EndWhile
         Set s = n[1]

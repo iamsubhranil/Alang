@@ -2,49 +2,50 @@
 
 #include "../foreign_interface.h"
 
-Data Sin(Environment *env){
-    return new_float(sin(get_double("x",  env)));
+NativeData Sin(NativeData args) {
+    return native_fromfloat(sin(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data Cos(Environment *env){
-    return new_float(cos(get_double("x",  env)));
+NativeData ASin(NativeData args) {
+    return native_fromfloat(asin(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data Tan(Environment *env){
-    return new_float(tan(get_double("x",  env)));
+NativeData Sinh(NativeData args) {
+    return native_fromfloat(sinh(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data ASin(Environment *env){
-    return new_float(asin(get_double("x",  env)));
-}
-Data ACos(Environment *env){
-    return new_float(acos(get_double("x",  env)));
+NativeData Cos(NativeData args) {
+    return native_fromfloat(cos(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data ATan(Environment *env){
-    return new_float(atan(get_double("x",  env)));
+NativeData ACos(NativeData args) {
+    return native_fromfloat(acos(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data Sinh(Environment *env){
-    return new_float(sinh(get_double("x",  env)));
+NativeData Cosh(NativeData args) {
+    return native_fromfloat(cosh(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data Cosh(Environment *env){
-    return new_float(cosh(get_double("x",  env)));
+NativeData Tan(NativeData args) {
+    return native_fromfloat(tan(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data Tanh(Environment *env){
-    return new_float(tanh(get_double("x",  env)));
+NativeData ATan(NativeData args) {
+    return native_fromfloat(atan(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data Log(Environment *env){
-    return new_float(log(get_double("x",  env)));
+NativeData Tanh(NativeData args) {
+    return native_fromfloat(tanh(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data Log10(Environment *env){
-    return new_float(log10(get_double("x",  env)));
+NativeData Log(NativeData args) {
+    return native_fromfloat(log(native_expect_float(native_arr_get(args, 0))));
 }
 
-Data Exp(Environment *env){
-    return new_float(exp(get_double("x",  env)));
+NativeData Log10(NativeData args) {
+    return native_fromfloat(log10(native_expect_float(native_arr_get(args, 0))));
+}
+
+NativeData Exp(NativeData args) {
+    return native_fromfloat(exp(native_expect_float(native_arr_get(args, 0))));
 }

@@ -21,8 +21,8 @@ static Keyword keywords[] = {{"Begin", 5, TOKEN_BEGIN},
                              {"Null", 4, TOKEN_NULL},
                              {"And", 3, TOKEN_AND},
                              {"Or", 2, TOKEN_OR},
-                             {"Int", 3, TOKEN_INT},
-                             {"Float", 5, TOKEN_FLOAT},
+                             //{"Int", 3, TOKEN_INT},
+                             //{"Float", 5, TOKEN_FLOAT},
 
                              {"Set", 3, TOKEN_SET},
                              {"Array", 5, TOKEN_ARRAY},
@@ -472,7 +472,7 @@ TokenList *scanTokens(char *file) {
 
 void printList(TokenList *list) {
 	if(list == NULL) {
-		printf("\n[Error] Empty list!");
+		err("Empty list!");
 		return;
 	}
 	printf("\n");
@@ -481,7 +481,7 @@ void printList(TokenList *list) {
 		if(list->value.type == TOKEN_NEWLINE)
 			printf("\n");
 		else if(list->value.type == TOKEN_ERROR) {
-			printf("\n[Error] %s\n", list->value.start);
+			err("%s", list->value.start);
 		}
 		list = list->next;
 	}

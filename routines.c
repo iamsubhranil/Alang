@@ -14,14 +14,24 @@ Routine2 routine_new() {
 	r.name         = 0;
 	r.startAddress = 0;
 	r.isNative     = 0;
-	r.arguments    = NULL;
+	r.variables    = NULL;
+	r.slots        = 0;
 	return r;
 }
 
-void routine_add_arg(Routine2 *r, uint32_t arg) {
-	r->arity++;
-	r->arguments = (uint32_t *)reallocate(r->arguments, 64 * r->arity);
-	r->arguments[r->arity - 1] = arg;
+void routine_add_slot(Routine2 *r, uint32_t var) {
+	r->variables =
+	    (uint32_t *)reallocate(r->variables, sizeof(var) * ++r->slots);
+	r->variables[r->arity - 1] = var;
+}
+
+uint8_t routine_get_slot(Routine2 *r, uint32_t var) {
+	for(uint8_t i = 0; i < r->slots; i++) {
+		if(r->variables[i] == var)
+			return i;
+	}
+	routine_add_slot(r, var);
+	return r->slots - 1;
 }
 
 void routine_add(Routine2 r) {
@@ -33,8 +43,20 @@ void routine_add(Routine2 r) {
 void routine_free() {
 	uint32_t i = 0;
 	while(i < rp) {
-		memfree(routines[i].arguments);
+		memfree(routines[i].variables);
 		i++;
 	}
 	memfree(routines);
+}
+
+Routine2 *routine_get(uint32_t name) {
+	uint32_t i = 0;
+	while(i < rp) {
+		//        printf(debug("Routine : %s"), str_get(routines[i]->name));
+		if(routines[i].name == name)
+			return &routines[i];
+		i++;
+	}
+	rerr("Routine not found : '%s'!", str_get(name));
+	return NULL;
 }

@@ -5,7 +5,7 @@ Routine Main()
         Print "[Error] Input must be >= 2"
         End
     EndIf
-    Set i = N/2, count = 0
+    Set i = Int(N/2), count = 0
     While(i >= 2)
         If(N % i == 0)
             Set isPrime = True

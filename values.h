@@ -4,10 +4,12 @@
 // at 9661a5b
 
 #include "display.h"
+#include "object.h"
+#include "parser.h"
+#include "routines.h"
+#include "strings.h"
 #include <math.h>
 #include <stdint.h>
-//#include "allocator.h"
-#include "strings.h"
 #include <string.h>
 
 typedef uint64_t Data;
@@ -15,7 +17,6 @@ extern double    isInt_IntPart;
 
 typedef union {
 	uint64_t bits64;
-	uint32_t bits32[2];
 	double   num;
 } DoubleBits;
 
@@ -27,8 +28,7 @@ typedef union {
 #define isfloat(value) ((value & QNAN) != QNAN)
 //#define tfloat(value) ((double)value)
 static inline double tfloat(Data value) {
-	DoubleBits x = {value};
-	return x.num;
+	return (DoubleBits){.bits64 = value}.num;
 }
 // Masking
 // We need to specify various types that Alang already supports and works with
@@ -47,12 +47,14 @@ static inline double tfloat(Data value) {
 //#define isnum(value) (isfloat(value) || isint(value))
 #define tint(value) ((int32_t)tfloat(value))
 //#define tnum(value) (isfloat(value)?tfloat(value):tint(value))
+
 // 2 : String (uint32_t) => 0 [111 1111 1111] [1 101 0------------- [value]] =>
 // 0x7ffd00000000000
 #define STRING 0x7ffd000000000000
 #define isstr(value) ((value >> 47) == 0x0fffa)
 #define tstrk(value) ((uint32_t)(value & MASK))
 #define tstr(value) (str_get(tstrk(value)))
+
 // 3 : Identifer (uint32_t) => 0 [111 1111 1111] [1 101 1------------- [value]]
 // => 0x7ffd800000000000
 #define IDENTIFIER 0x7ffd800000000000
@@ -73,9 +75,7 @@ static inline double tfloat(Data value) {
 #define isnone(value) ((value >> 47) == 0x0fffe)
 
 static Data inline new_float(double x) {
-	DoubleBits d;
-	d.num = x;
-	return d.bits64;
+	return (DoubleBits){.num = x}.bits64;
 }
 
 //#define new_float(value) (value)
@@ -87,16 +87,16 @@ static Data inline new_strk(uint32_t value) {
 	return STRING | value;
 }
 //#define new_strk(value) ((STRING | value))
-static Data inline new_str(const char *str) {
-	return STRING | str_insert(str);
+static Data inline new_str(char *str) {
+	return STRING | str_insert(str, 0);
 }
 //#define new_str(value) ((STRING | str_insert(value)))
 static Data inline new_identiferk(uint32_t value) {
 	return IDENTIFIER | value;
 }
 //#define new_identiferk(value) ((IDENTIFIER | value))
-static Data inline new_identifer(const char *value) {
-	return IDENTIFIER | str_insert(value);
+static Data inline new_identifer(char *value) {
+	return IDENTIFIER | str_insert(value, 1);
 }
 //#define new_identifer(value) ((IDENTIFIER | str_insert(value)))
 static Data inline new_logical(int32_t value) {
@@ -107,15 +107,17 @@ static Data inline new_logical(int32_t value) {
 #define new_none() (NONE)
 
 typedef struct {
-	uint32_t container_key;
-	uint32_t id;
-	uint32_t refCount;
-	void *   env;
+	Object    obj;
+	uint32_t *member;
+	Data *    values;
+	uint32_t  name;
+	size_t    memberCount;
 } Instance;
 
 typedef struct {
-	Data *  arr;
-	int32_t numElements;
+	Object obj;
+	Data * values;
+	size_t size;
 } Array;
 
 // Two types of pointers are used : Instances and Arrays
@@ -146,11 +148,45 @@ extern uint16_t  freeInstancePointer;
 #define ARR 0xfffd000000000000
 #define isarray(value) ((value >> 47) == 0x1fffa)
 #define tarr(value) ((Array *)((uintptr_t)value & PMASK))
-#define arr_size(value) (value->numElements)
-#define arr_elements(value) (value->arr)
+#define arr_size(value) (value->size)
+#define arr_elements(value) (value->values)
 
-Data new_array(int32_t size);
+Data new_array(uint32_t size);
 
-Data new_ins(void *env, uint32_t container_key);
+Data new_ins(Data *baseStack, Routine2 *r);
+
+// 3. (Base)Pointer : 1 [111 1111 1111] 1 100 0--------------- =>
+// 0xfffd000000000000
+#define POINTER 0xfffc000000000000
+#define new_ptr(x) ((POINTER | (uintptr_t)x))
+#define tptr(value) ((Data *)((uintptr_t)value & PMASK))
 
 #define ttype(value) (value & 0xffff800000000000)
+
+void data_free(Data d);
+void print_value(const char *expected, Data d);
+
+#define ref_incr(value)                 \
+	if(!isfloat(value)) {               \
+		if(isins(value)) {              \
+			obj_ref_incr(tins(value));  \
+		} else if(isstr(value))         \
+			str_ref_incr(tstrk(value)); \
+		else if(isarray(value))         \
+			obj_ref_incr(tarr(value));  \
+	}
+
+#define ref_decr(value)                 \
+	if(!isfloat(value)) {               \
+		if(isins(value)) {              \
+			obj_ref_decr(tins(value));  \
+		} else if(isstr(value))         \
+			str_ref_decr(tstrk(value)); \
+		else if(isarray(value))         \
+			obj_ref_decr(tarr(value));  \
+	}
+
+Data   get_member(Instance *ins, uint32_t mem);
+void   set_member(Instance *ins, uint32_t mem, Data value);
+size_t arr_release(void *arr);
+size_t ins_release(void *ins);

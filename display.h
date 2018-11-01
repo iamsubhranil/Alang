@@ -11,6 +11,7 @@
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
+#define ANSI_FONT_BOLD "\x1b[1m"
 
 void dbg(const char *msg, ...);
 void err(const char *msg, ...);
@@ -21,7 +22,7 @@ void lnerr(const char *msg, Token t, ...);
 void lnwarn(const char *msg, Token t, ...);
 void lninfo(const char *msg, Token t, ...);
 
-void rerr(const char *msg, ...);
+int  rerr(const char *msg, ...);
 void rwarn(const char *msg, ...);
 
 #endif

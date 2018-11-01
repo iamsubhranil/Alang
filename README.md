@@ -99,12 +99,14 @@ An Alang program is a collection of statements, each of which starts with one of
 
 2. Input : Takes an input from the standard input. You can specify what type of value to read by using either of Int or Float keywords, otherwise a string is read implicitly. You can also specify by a prompt to display by writing a string as an argument, which will be displayed to the user.
 ```
-    Input ["prompt_string" ,] variable1[:Int|Float] [, variable2[:Int|Float] [...]]
+    Input variable1[:Int|Float] [, variable2[:Int|Float] [...]]
+    Input container.member[:Int|Float]
+    Input array[19][:Int|Float]
 ```
 
 3. Print : Prints a string, a variable, or an expression to the standard output.
 ```
-    Print ["output_string", ] variable1 [, expression1 [...]]
+    Print variable1 [, expression1 [...]]
 ```
 
 4. Array : Declares an array. Array dimension needs to be specified using square braces while declaration, and it can be changed later. Though the dimension can be an arithmetic expression, but it *must* be an integer. An array can be resized by redefining it.
@@ -161,6 +163,61 @@ An Alang program is a collection of statements, each of which starts with one of
 ```
     Call MyRoutine(arg1, arg2, arg3, ...)
 ```
+
+#### Native Functions
+
+You can load and execute a function precompiled in binary from Alang.
+
+1. First, declare the routine as `Foreign` in the Alang source.
+```
+Routine Foreign MyRoutine(x, y, z)
+```
+
+2. Next, add a call to `LoadLibrary` to load the library (`.so/.dll`) where your function resides. 
+`LoadLibrary` will return `True` if the shared object can be successfully loaded, `False` otherwise.
+```
+    If(LoadLibrary("MyLibrary.so"))
+        <Put the call to MyRoutine inside this>
+    Else
+        Print "Unable to load MyLibrary!"
+    EndIf
+```
+
+3. In `mylibrary.c`, delcare the native function with the same name as in the Alang source, with the following signature
+```
+#include <alang/foreign_interface.h>
+
+// Do not try to directly manipulate the NativeData
+// variables. Use the provided native_* helper functions
+// defined in foreign_interface.h
+NativeData MyRoutine(NativeData args) {
+    // args is just an array of values
+    NativeData arg1 = native_arr_get(args, 0);
+    int32_t val = native_expect_int(arg1);
+
+    return native_fromint(val - 1);
+}
+```
+
+4. Compile `mylibrary.c` as a shared library and link it with `-llalang`.
+
+5. Voila, now the call to `MyRoutine` should work.
+
+See `algos/nativefibonacci.algo` and corresponding `.c` source for more information.
+
+Some predefined native library functions :
+
+* `LoadLibrary` : Loads a shared object and maps it to the address space of Alang.
+* `UnloadLibrary` : Unmaps a shared object from Alang.
+* `Clock` : Returns the system clock, in milis. (`clock()` in `<time.h>`)
+* `Int` : Converts a given float or string to `int` (by default all numbers are `float`s).
+* `Sin`, `Sinh`, `ASin`, `Cos`, `Cosh`, `ACos`, `Tan`, `Tanh`, `ATan` : Represents their counterparts in `<math.h>`.
+
+Some predefined constants :
+
+* `Math_Pi` : `acos(-1.0)` in `<math.h>`.
+* `Math_E` : `M_E` in glibc.
+* `ClocksPerSecond` : `CLOCKS_PER_SEC` in `<time.h>`.
 
 #### Examples
 

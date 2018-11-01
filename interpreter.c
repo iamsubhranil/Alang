@@ -1,29 +1,40 @@
+#include <float.h>
 #include <inttypes.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "allocator.h"
+//#include "callframe.h"
+#include "datastack.h"
 #include "display.h"
+//#include "env.h"
+//#include "fman.h"
 #include "interpreter.h"
+#include "io.h"
+#include "native.h"
 #include "parser.h"
+#include "routines.h"
 #include "scanner.h"
 #include "strings.h"
 #include "values.h"
 
 static uint8_t *instructions = NULL;
-static uint32_t ip = 0, lastins = 0, fileInfoPointer = 0;
+static size_t   lastins = 0, fileInfoPointer = 0;
+static size_t   ip = 0, baseptr = 0;
 
 static FileInfo *fileInfos = NULL;
 
 int info_onSameFile(Token t) {
-	uint32_t nname = str_insert(strdup(t.fileName));
+	uint32_t nname = str_insert(strdup(t.fileName), 1);
 	FileInfo l     = fileInfos[fileInfoPointer - 1];
 	return ((l.fileName == nname) && ((int)l.line == t.line));
 }
 
-uint32_t ins_add(uint8_t ins) {
+size_t ins_add(uint8_t ins) {
 	instructions         = (uint8_t *)reallocate(instructions, 8 * ++ip);
 	instructions[ip - 1] = ins;
 	lastins              = ip - 1;
@@ -40,7 +51,7 @@ uint32_t ins_add(uint8_t ins) {
 		fileInfos = (FileInfo *)reallocate(fileInfos, sizeof(FileInfo) *
 		                                                  ++fileInfoPointer);
 		fileInfos[fileInfoPointer - 1].fileName =
-		    str_insert(strdup(t.fileName));
+		    str_insert(strdup(t.fileName), 1);
 		fileInfos[fileInfoPointer - 1].line = t.line;
 		fileInfos[fileInfoPointer - 1].from = ip - 1;
 		fileInfos[fileInfoPointer - 1].to   = INT32_MAX;
@@ -48,7 +59,7 @@ uint32_t ins_add(uint8_t ins) {
 	return ip - 1;
 }
 
-void ins_set(uint32_t mem, uint8_t ins) {
+void ins_set(size_t mem, uint8_t ins) {
 	instructions[mem] = ins;
 }
 
@@ -56,12 +67,12 @@ uint8_t ins_last() {
 	return instructions[lastins];
 }
 
-uint32_t ins_add_val(uint32_t store) {
+size_t ins_add_val(uint32_t store) {
 	//    printf("\nStoring %lu at %lu : 0x", store, ip);
 	instructions = (uint8_t *)reallocate(instructions, 8 * (ip + 4));
-	uint32_t i   = 0;
+	uint8_t i    = 0;
 	while(i < 4) {
-		instructions[ip + i] = (store >> ((3 - i) * 8)) & 0xff;
+		instructions[ip + i] = (store >> (i * 8)) & 0xff;
 		//        printf("%x", instructions[ip + i]);
 		i++;
 	}
@@ -71,7 +82,7 @@ uint32_t ins_add_val(uint32_t store) {
 	return ip - 4;
 }
 
-uint32_t ins_add_double(double d) {
+size_t ins_add_double(double d) {
 	uint8_t *bits = (uint8_t *)&d;
 	instructions =
 	    (uint8_t *)reallocate(instructions, 8 * (ip + sizeof(double)));
@@ -86,58 +97,98 @@ uint32_t ins_add_double(double d) {
 	return ip - 8;
 }
 
-void ins_set_val(uint32_t mem, uint32_t store) {
+void ins_set_val(size_t mem, uint32_t store) {
 	//    printf("\nReStoring %lu at %lu : 0x", store, mem);
 	uint8_t i = 0;
 	while(i < 4) {
-		instructions[mem + i] = (store >> ((3 - i) * 8)) & 0xff;
+		instructions[mem + i] = (store >> (i * 8)) & 0xff;
 		//        printf("%x", instructions[mem + i]);
 		i++;
 	}
 }
 
-static inline uint32_t ins_get_val(uint32_t mem) {
-	uint32_t ret = instructions[mem];
-	ret          = (ret << 8) | instructions[mem + 1];
-	ret          = (ret << 8) | instructions[mem + 2];
-	ret          = (ret << 8) | instructions[mem + 3];
-	return ret;
+static inline uint32_t ins_get_val(size_t mem) {
+	uint32_t *ret = (uint32_t *)&instructions[mem];
+	return *ret;
 }
 
-static inline double ins_get_double(uint32_t mem) {
-	double   ret;
-	uint8_t *bytes = (uint8_t *)&ret;
-	bytes[0]       = instructions[mem];
-	bytes[1]       = instructions[mem + 1];
-	bytes[2]       = instructions[mem + 2];
-	bytes[3]       = instructions[mem + 3];
-	bytes[4]       = instructions[mem + 4];
-	bytes[5]       = instructions[mem + 5];
-	bytes[6]       = instructions[mem + 6];
-	bytes[7]       = instructions[mem + 7];
-	return ret;
+static inline double ins_get_double(size_t mem) {
+	double *ret = (double *)&instructions[mem];
+	return *ret;
 }
 
-uint8_t ins_get(uint32_t mem) {
+uint8_t ins_get(size_t mem) {
 	return instructions[mem];
 }
 
-uint32_t ip_get() {
+size_t ip_get() {
 	return ip;
 }
 
-static const char *opString[] = {
-    "pushf",  "pushi",  "pushl",  "pushs", "pushid", "pushn",  "add",
-    "sub",    "mul",    "div",    "pow",   "mod",    "gt",     "gte",
-    "lt",     "lte",    "eq",     "neq",   "and",    "or",     "set",
-    "inputi", "inputs", "inputf", "print", "halt",   "jump",   "jift",
-    "jiff",   "call",   "return", "array", "memref", "narray", "noop",
-    "ncont",  "memset", "aref",   "aset",  "awrite", "calln",  "seti",
-    "pushidv"};
+static const char *opString[] = {"pushf",
+                                 "pushi",
+                                 "pushl",
+                                 "pushs",
+                                 "pushid",
+                                 "pushn",
+                                 "add",
+                                 "sub",
+                                 "mul",
+                                 "div",
+                                 "pow",
+                                 "mod",
+                                 "gt",
+                                 "gte",
+                                 "lt",
+                                 "lte",
+                                 "eq",
+                                 "neq",
+                                 "and",
+                                 "or",
+                                 "set",
+                                 "inputi",
+                                 "inputs",
+                                 "inputf",
+                                 "print",
+                                 "halt",
+                                 "jump",
+                                 "jift",
+                                 "jiff",
+                                 "call",
+                                 "return",
+                                 "arrayref",
+                                 "memref",
+                                 "narray",
+                                 "noop",
+                                 "ncont",
+                                 "memset",
+                                 "aref",
+                                 "aset",
+                                 "awrite",
+                                 "calln",
+                                 "seti",
+                                 "pushidv",
+                                 "store_slot",
+                                 "load_slot",
+                                 "reserve_slot",
+                                 "store_slot_global",
+                                 "load_slot_global",
+                                 "save_store_slot"};
+
+void print_stack_trace() {
+	size_t bakptr = baseptr;
+	size_t bip    = ip;
+	while(bakptr > 0) {
+		bip         = tint(dataStack[bakptr - 2]);
+		FileInfo fi = fileInfo_of(bip);
+		info("Called from %s:%" PRIu32, str_get(fi.fileName), fi.line);
+		bakptr = tint(dataStack[bakptr - 1]);
+	}
+}
 
 void ins_print() {
 	uint32_t i = 0;
-	printf("\n\nPrinting memory[ip : %" PRIu32 "]..\n", ip);
+	printf("\n\nPrinting memory[ip : %zu]..\n", ip);
 	while(i < ip) {
 		printf("%x ", instructions[i]);
 		i++;
@@ -149,101 +200,83 @@ void ins_print() {
 	printf("\nPrinting instructions..\n");
 	while(i < ip) {
 		printf("ip %4" PRIu32 " : ", i);
+		printf("%-20s ", opString[instructions[i]]);
 		switch(instructions[i]) {
 			case PUSHF:
-				printf("pushf %g", ins_get_double(++i));
+				printf("%g", ins_get_double(++i));
 				i += 7;
 				break;
 			case PUSHI:
-				printf("pushi %" PRId32, ins_get_val(++i));
-				i += 3;
-				break;
-			case PUSHIDV:
-				printf("pushidv %s", str_get(ins_get_val(++i)));
+				printf("%" PRId32, ins_get_val(++i));
 				i += 3;
 				break;
 			case PUSHL:
-				printf("pushl %s", ins_get_val(++i) == 0 ? "false" : "true");
+				printf("%s", ins_get_val(++i) == 0 ? "false" : "true");
 				i += 3;
 				break;
 			case PUSHS:
-				printf("pushs %s", str_get(ins_get_val(++i)));
-				i += 3;
-				break;
 			case PUSHID:
-				printf("pushid %s", str_get(ins_get_val(++i)));
+			case MEMREF:
+			case NEW_CONTAINER:
+				printf("%s", str_get(ins_get_val(++i)));
 				i += 3;
 				break;
-			case SETI:
-				printf("seti %s", str_get(ins_get_val(++i)));
-				i += 3;
-				break;
+			case INPUTF:
+			case INPUTI:
+			case INPUTS:
 			case JUMP:
-				printf("jump %" PRIu32, ins_get_val(++i));
-				i += 3;
-				break;
 			case JUMP_IF_TRUE:
-				printf("jump_if_true %" PRIu32, ins_get_val(++i));
-				i += 3;
-				break;
 			case JUMP_IF_FALSE:
-				printf("jump_if_false %" PRIu32, ins_get_val(++i));
+			case LOAD_SLOT:
+			case LOAD_SLOT_GLOBAL:
+			case MAKE_ARRAY:
+			case RESERVE_SLOT:
+			case SAVE_STORE_SLOT:
+				printf("%" PRIu32, ins_get_val(++i));
 				i += 3;
 				break;
 			case CALL:
-				printf("call %" PRIu32, ins_get_val(++i));
+				printf("%" PRIu32, ins_get_val(++i));
 				i += 3;
 				printf(" arity=%" PRIu32, ins_get_val(++i));
 				i += 3;
 				break;
 			case CALLNATIVE:
-				printf("calln %s", str_get(ins_get_val(++i)));
+				printf("%s", str_get(ins_get_val(++i)));
 				i += 3;
 				printf(" arity=%" PRIu32, ins_get_val(++i));
 				i += 3;
 				break;
-			default: printf("%s", opString[instructions[i]]); break;
 		}
 		i++;
 		printf("\n");
 	}
 }
 
-#include "callframe.h"
-#include "datastack.h"
-#include "env.h"
-#include "fman.h"
-#include "io.h"
-#include "native.h"
-#include "routines.h"
-#include <float.h>
-#include <math.h>
-#include <string.h>
-#include <time.h>
-
-static uint8_t  run = 1;
 static clock_t  tmStart, tmEnd;
-static uint64_t insExec = 0, counter[43] = {0};
+static uint64_t insExec = 0, counter[49] = {0};
 
 void print_stat() {
 	uint8_t i = 0;
-	printf("\nInstruction    Execution Count");
-	printf("\n===========    ===============");
-	while(i < 43) {
+	printf("\n     Instruction        Execution Count");
+	printf("\n====================    ===============");
+	while(i < 49) {
 		if(counter[i] > 0) {
-			printf("\n%s", opString[i]);
-			printf("\t%16" PRIu64, counter[i]);
+			printf("\n%20s", opString[i]);
+			printf("\t%" PRIu64, counter[i]);
 		}
 		i++;
 	}
+	printf("\n");
 }
 
-static CallFrame callFrame;
+// static CallFrame callFrame;
 
 void stop() {
 	tmEnd     = clock() - tmStart;
 	double tm = (double)tmEnd / CLOCKS_PER_SEC;
 	// printf("\nRealloc called : %d times\n", get_realloc_count());
+	printf("\n");
 	dbg("[Interpreter] Execution time : %gs", tm);
 	dbg("[Interpreter] Instructions executed : %" PRIu64, insExec);
 	dbg("[Interpreter] Average execution speed : %gs", tm / insExec);
@@ -251,15 +284,16 @@ void stop() {
 	printf("\n");
 
 	dStackFree();
-	env_free(callFrame.env);
+	obj_free();
+	// env_free(callFrame.env);
 	str_free();
 	memfree(instructions);
 	memfree(fileInfos);
-	cs_free();
+	// cs_free();
 	unload_all();
 	routine_free();
-	free_all();
-
+	// free_all();
+	printf("\n");
 	exit(0);
 }
 
@@ -288,7 +322,9 @@ static void printString(const char *s) {
 static uint8_t init = 0;
 
 void init_interpreter() {
+#ifdef DYNAMIC_STACK
 	dataStack = NULL;
+#endif
 	sp        = 0;
 	stackSize = 0;
 	dStackInit();
@@ -323,14 +359,17 @@ void print_op_type(Data op) {
 			break;
 		case IDENTIFIER: printf("Identifer[ %s ]", tstr(op)); break;
 		case INSTANCE:
-			printf("Instance[ Container %s ]",
-			       str_get(tins(op)->container_key));
+			printf("Instance[ Container %s ]", str_get(tins(op)->name));
 			break;
 		case NIL: printf("Null"); break;
 		case NONE: printf("None"); break;
-		case ARR: printf("Array[ Size %" PRId32 "]", arr_size(tarr(op))); break;
+		case ARR: printf("Array[ Size %zu]", arr_size(tarr(op))); break;
 		default: printf("Unknown type 0x%lx[Data %lx]!", ttype(op), op); break;
 	}
+}
+
+void interpreter_push(Data d) {
+	dpush(d);
 }
 
 #define check_limit(x)                                                \
@@ -344,18 +383,21 @@ void print_op_type(Data op) {
 		}                                                             \
 	}
 
+size_t stored_slots[16]    = {0};
+size_t stored_slot_pointer = 0;
+
 void interpret() {
 	if(init == 0)
 		init_interpreter();
 
-	cs_init();
-	init_cache();
+#define push_store_slot(x) stored_slots[stored_slot_pointer++] = x
+#define pop_store_slot() stored_slots[--stored_slot_pointer]
 
-	callFrame               = cf_new();
-	callFrame.env           = env_new(NULL);
-	callFrame.returnAddress = 0;
-	register_native(&callFrame.env);
-	ip                                 = 0;
+	ip = 0;
+	load_natives();
+	baseptr         = 0; // The base pointer for slot referencing
+	Data *baseStack = &dataStack[0];
+	// uint32_t           store_slot = 0;
 	static const void *dispatchTable[] = {&&DO_PUSHF,
 	                                      &&DO_PUSHI,
 	                                      &&DO_PUSHL,
@@ -376,7 +418,7 @@ void interpret() {
 	                                      &&DO_NEQ,
 	                                      &&DO_AND,
 	                                      &&DO_OR,
-	                                      &&DO_SET,
+	                                      &&DO_NOOP, //&&DO_SET,
 	                                      &&DO_INPUTI,
 	                                      &&DO_INPUTS,
 	                                      &&DO_INPUTF,
@@ -387,19 +429,27 @@ void interpret() {
 	                                      &&DO_JUMP_IF_FALSE,
 	                                      &&DO_CALL,
 	                                      &&DO_RETURN,
-	                                      &&DO_ARRAY,
+	                                      &&DO_ARRAYREF,
 	                                      &&DO_MEMREF,
 	                                      &&DO_MAKE_ARRAY,
 	                                      &&DO_NOOP,
 	                                      &&DO_NEW_CONTAINER,
 	                                      &&DO_MEMSET,
-	                                      &&DO_ARRAYREF,
+	                                      &&DO_NOOP, //&&DO_ARRAYREF,
 	                                      &&DO_ARRAYSET,
-	                                      &&DO_ARRAYWRITE,
+	                                      &&DO_NOOP, //&&DO_ARRAYWRITE,
 	                                      &&DO_CALLNATIVE,
-	                                      &&DO_SETI,
-	                                      &&DO_PUSHIDV};
+	                                      &&DO_NOOP, //&&DO_SETI,
+	                                      &&DO_NOOP, //&&DO_PUSHIDV
+	                                      &&DO_STORE_SLOT,
+	                                      &&DO_LOAD_SLOT,
+	                                      &&DO_RESERVE_SLOT,
+	                                      &&DO_STORE_SLOT_GLOBAL,
+	                                      &&DO_LOAD_SLOT_GLOBAL,
+	                                      &&DO_SAVE_STORE_SLOT};
 
+#define COUNT_INS
+#ifdef COUNT_INS
 #define INC_COUNTER()                    \
 	{                                    \
 		insExec++;                       \
@@ -410,43 +460,49 @@ void interpret() {
 		insExec++;                   \
 		++counter[instructions[ip]]; \
 	}
+#else
+#define INC_COUNTER()
+#define INC_COUNTER_WINC()
+#endif
 #define GO() \
 	{ goto *dispatchTable[instructions[++ip]]; }
 #define GO_WINC() \
 	{ goto *dispatchTable[instructions[ip]]; }
-#define SHOW_STEP()                                    \
-	{                                                  \
-		FileInfo fInfo = fileInfo_of(ip + 1);          \
-		dbg("[%s:%3" PRIu32 "][ip : %4" PRIu32 "] %s", \
-		    str_get(fInfo.fileName), fInfo.line, ip,   \
-		    opString[instructions[ip + 1]]);           \
-		fflush(stdin);                                 \
-		getchar();                                     \
+#define SHOW_STEP()                                                       \
+	{                                                                     \
+		FileInfo fInfo = fileInfo_of(ip + 1);                             \
+		dbg("[%s:%3" PRIu32 "][ip : %4" PRIu32 ", sp : %4" PRIu32 "] %s", \
+		    str_get(fInfo.fileName), fInfo.line, ip, sp,                  \
+		    opString[instructions[ip + 1]]);                              \
+		fflush(stdin);                                                    \
+		getchar();                                                        \
 	}
-#define SHOW_STEP2()                                   \
-	{                                                  \
-		FileInfo fInfo = fileInfo_of(ip);              \
-		dbg("[%s:%3" PRIu32 "][ip : %4" PRIu32 "] %s", \
-		    str_get(fInfo.fileName), fInfo.line, ip,   \
-		    opString[instructions[ip]]);               \
-		fflush(stdin);                                 \
-		getchar();                                     \
+#define SHOW_STEP2()                                                      \
+	{                                                                     \
+		FileInfo fInfo = fileInfo_of(ip);                                 \
+		dbg("[%s:%3" PRIu32 "][ip : %4" PRIu32 ", sp : %4" PRIu32 "] %s", \
+		    str_get(fInfo.fileName), fInfo.line, ip, sp,                  \
+		    opString[instructions[ip]]);                                  \
+		fflush(stdin);                                                    \
+		getchar();                                                        \
 	}
 
 	//#define STEP
 
 #ifdef STEP
-#define DISPATCH()     \
-	{                  \
-		INC_COUNTER(); \
-		SHOW_STEP();   \
-		GO();          \
+#define DISPATCH()                             \
+	{                                          \
+		INC_COUNTER();                         \
+		print_value("any", dataStack[sp - 1]); \
+		SHOW_STEP();                           \
+		GO();                                  \
 	}
-#define DISPATCH_WINC()     \
-	{                       \
-		INC_COUNTER_WINC(); \
-		SHOW_STEP2();       \
-		GO_WINC();          \
+#define DISPATCH_WINC()                        \
+	{                                          \
+		INC_COUNTER_WINC();                    \
+		print_value("any", dataStack[sp - 1]); \
+		SHOW_STEP2();                          \
+		GO_WINC();                             \
 	}
 #else
 #define DISPATCH()     \
@@ -484,12 +540,13 @@ void interpret() {
 		dpushidk(ins_get_val(++ip));
 		ip += 3;
 		DISPATCH();
+		/*
 	DO_PUSHIDV:
 
 		dpush(env_get(ins_get_val(++ip), &callFrame.env, 0));
 		ip += 3;
 		DISPATCH();
-
+*/
 	DO_PUSHN:
 		dpushn();
 		DISPATCH();
@@ -697,16 +754,17 @@ void interpret() {
 
 		rerr("Bad operands for operator 'Or'!");
 	}
-	DO_SET : {
-		Data id, value;
-		dpop(value);
-		dpop(id);
-		if(isidentifer(id)) {
-			env_put(tstrk(id), value, &callFrame.env);
-			DISPATCH();
-		}
-		rerr("Bad assignment target!");
+		/*
+DO_SET : {
+	Data id, value;
+	dpop(value);
+	dpop(id);
+	if(isidentifer(id)) {
+		env_put(tstrk(id), value, &callFrame.env);
+		DISPATCH();
 	}
+	rerr("Bad assignment target!");
+}
 	DO_SETI : {
 		Data value;
 		dpop(value);
@@ -714,22 +772,17 @@ void interpret() {
 		ip += 3;
 		DISPATCH();
 	}
+	*/
 	DO_INPUTI : {
-		Data id;
-		dpop(id);
-		env_put(tstrk(id), getInt(), &callFrame.env);
+		dpush(getInt());
 		DISPATCH();
 	}
 	DO_INPUTS : {
-		Data id;
-		dpop(id);
-		env_put(tstrk(id), getString(), &callFrame.env);
+		dpush(getString());
 		DISPATCH();
 	}
 	DO_INPUTF : {
-		Data id;
-		dpop(id);
-		env_put(tstrk(id), getFloat(), &callFrame.env);
+		dpush(getFloat());
 		DISPATCH();
 	}
 	DO_PRINT : {
@@ -741,23 +794,22 @@ void interpret() {
 			DISPATCH();
 		}
 		switch(ttype(value)) {
-				// case INT:
-				//     printf("%" PRId32, tint(value));
-				//     DISPATCH();
+			// case INT:
+			//     printf("%" PRId32, tint(value));
+			//     DISPATCH();
 			case LOGICAL:
 				printf("%s", tint(value) == 0 ? "False" : "True");
 				DISPATCH();
 			case NIL: printf("Null"); DISPATCH();
 			case STRING: printString(str_get(tstrk(value))); DISPATCH();
 			case INSTANCE:
-				printf("<instance of %s#%" PRIu32 ">",
-				       str_get(tins(value)->container_key), tins(value)->id);
+				printf("<instance of %s>", str_get(tins(value)->name));
 				DISPATCH();
 			case IDENTIFIER:
 				printf("<identifer %s>", str_get(tstrk(value)));
 				DISPATCH();
 			case ARR:
-				printf("<array of %" PRIu32 ">", arr_size(tarr(value)));
+				printf("<array of %zu>", arr_size(tarr(value)));
 				DISPATCH();
 			case NONE: printf("<none>"); DISPATCH();
 		}
@@ -772,7 +824,7 @@ void interpret() {
 	DO_JUMP_IF_TRUE : {
 		Data     c;
 		uint32_t ja = ins_get_val(++ip);
-		dpopv(c, callFrame);
+		dpop(c);
 		if(islogical(c)) {
 			if(tlogical(c)) {
 				ip = ja;
@@ -785,9 +837,9 @@ void interpret() {
 		rerr("Illogical jump!");
 	}
 	DO_JUMP_IF_FALSE : {
-		Data    c;
-		int32_t ja = ins_get_val(++ip);
-		dpopv(c, callFrame);
+		Data     c;
+		uint32_t ja = ins_get_val(++ip);
+		dpop(c);
 		if(islogical(c)) {
 			if(!tlogical(c)) {
 				ip = ja;
@@ -805,65 +857,137 @@ void interpret() {
 		uint32_t ja;
 		ja = ins_get_val(++ip);
 		ip += 3;
-		// numArg = ins_get_val(++ip);
-		ip += 4;
+		uint32_t numArg = ins_get_val(++ip), bak = numArg;
+		ip += 3;
 
-		cf_push(callFrame);
-		CallFrame nf     = cf_new();
-		nf.env           = env_new(cf_root_env());
-		nf.returnAddress = ip + 1;
+		// printf("\nsp previously %lu numarg %d", sp, numArg);
 
-		callFrame = nf;
+		// Add two more slots to the top of the stack
+		dpushn();
+		dpushn();
+
+		// sp points to the next slot, so decrement it
+		// to point to the first arg
+		--sp;
+
+		// Move all arguments to two slot top
+		while(numArg--) {
+			dataStack[sp] = dataStack[sp - 2];
+			// Since they are now stored in a new slot,
+			// increment their reference count
+			ref_incr(dataStack[sp]);
+			--sp;
+		}
+
+		// sp now points to the first empty slot
+		// point it to the second
+		--sp;
+
+		// Push return address and baseptr to the newly created
+		// two slots
+
+		dpushi(ip + 1);  // Push the return address
+		dpushi(baseptr); // Push the base pointer
+
+		// dpushn();
+		baseptr   = sp; // Assign the new base pointer
+		baseStack = &dataStack[baseptr];
+
+		// Move the stack pointer to the top of arguments
+		sp += bak;
+
+		// printf("\nbaseptr now %d", baseptr);
 
 		ip = ja;
 		DISPATCH_WINC();
 	}
 	DO_CALLNATIVE : {
-		uint32_t name = ins_get_val(++ip), i;
+		uint32_t name = ins_get_val(++ip);
 		ip += 3;
-		uint32_t numArg = ins_get_val(++ip);
+		uint32_t numArg = ins_get_val(++ip), bak = numArg;
 		ip += 3;
-		cf_push(callFrame);
-		CallFrame nf     = cf_new();
-		nf.env           = env_new(cf_root_env());
-		nf.returnAddress = ip + 1;
 
-		Routine2 routine = routine_get(name);
+		// Add two more slots to the top of the stack
+		dpushn();
+		dpushn();
 
-		if(numArg > 0) {
-			i = 0;
-			while(i < numArg) {
-				Data d;
-				dpop(d);
-				env_implicit_put(routine.arguments[routine.arity - i - 1], d,
-				                 &nf.env);
-				i++;
-			}
+		// sp points to the next slot, so decrement it
+		// to point to the first arg
+		--sp;
+
+		// Move all arguments to two slot top
+		while(numArg--) {
+			dataStack[sp] = dataStack[sp - 2];
+			// Since they are now stored in a new slot,
+			// increment their reference count
+			ref_incr(dataStack[sp]);
+			--sp;
 		}
 
-		callFrame = nf;
+		// sp now points to the first empty slot
+		// point it to the second
+		--sp;
 
-		dpush(handle_native(routine.name, &nf.env));
-		goto DO_RETURN;
+		// Push return address and baseptr to the newly created
+		// two slots
+
+		dpushi(ip + 1);  // Push the return address
+		dpushi(baseptr); // Push the base pointer
+
+		// dpushn();
+		baseptr   = sp; // Assign the new base pointer
+		baseStack = &dataStack[baseptr];
+
+		// Move the stack pointer to the top of arguments
+		sp += bak;
+
+		dpush(handle_native(name, bak, baseStack));
+		// goto DO_RETURN;
 	}
 	DO_RETURN : {
-		if(isins(dpeek()))
-			tins(dpeek())->refCount++;
+		// Return value
+		Data ret;
+		dpop(ret);
+		// dbg("Returning");
+		// print_value("any", ret);
+		// ref_incr(ret);
 
-		ip = callFrame.returnAddress;
-		// dbg("Returning to %lu", ip);
-		cf_free(callFrame);
-		callFrame = cf_pop();
+		// Decrement ref of locals
+		while(sp > baseptr) {
+			// printf("\nPopping %lu", sp);
+			Data p;
+			dpop(p);
+			ref_decr(p);
+		}
+
+		// Pop the old baseptr
+		dpopi(baseptr);
+		// Repoint the baseStack
+		baseStack = &dataStack[baseptr];
+
+		// Pop the return address
+		dpopi(ip);
+
+		// Push the return value back
+		dpush(ret);
+
+		// dbg("Returning to %u\n", ip);
+
+		/*
+		   ip = callFrame.returnAddress;
+		   cf_free(callFrame);
+		   callFrame = cf_pop();
 		// dbg("ReStoring address : %lu", callFrame.returnAddress);
+		*/
 		DISPATCH_WINC();
 	}
-	DO_ARRAY : {
-		Data id, index;
-		dpop(id);
-		dpopv(index, callFrame);
-		Data arr = env_get(tstrk(id), &callFrame.env, 0);
+	DO_ARRAYREF : {
+		Data index;
+		Data arr;
+		dpop(index);
+		dpop(arr);
 		if(!isarray(arr) && !isstr(arr)) {
-			rerr("'%s' is not an array!"), str_get(tstrk(id));
+			rerr("Subscripted element is not an array or string!");
 		}
 		if(isint(index)) {
 			if(isarray(arr)) {
@@ -897,191 +1021,226 @@ void interpret() {
 		rerr("Array index must be an integer!");
 	}
 	DO_MEMREF : {
-		Data ins, mem;
-		dpop(mem);
-		dpopv(ins, callFrame);
+		Data     ins;
+		uint32_t mem = ins_get_val(++ip);
+		ip += 3;
+		dpop(ins);
 		if(isins(ins)) {
-			if(isidentifer(mem)) {
-				dpush(env_get(tstrk(mem), tenv(ins), 0));
-				DISPATCH();
-			}
-			rerr("Bad identifer!");
+			dpush(get_member(tins(ins), mem));
+			DISPATCH();
 		}
-		rerr("Referenced value is not a container instance!");
+		rerr("Dereferenced value is not a container instance!");
 	}
 	DO_MAKE_ARRAY : {
-		Data size, id;
-		dpop(id);
-		dpopv(size, callFrame);
+		Data size;
+		dpop(size);
+		uint32_t slot = ins_get_val(++ip);
+		ip += 3;
 		if(isint(size)) {
-			if(isidentifer(id)) {
-				if(!isnone(env_get(tstrk(id), &callFrame.env, 1))) {
-					rerr("Variable '%s' is already defined!",
-					     str_get(tstrk(id)));
-				}
-				if(tint(size) > 0) {
-					env_put(tstrk(id), new_array(tint(size)), &callFrame.env);
-					DISPATCH();
-				}
-
-				rerr("Array size must be positive!");
+			if(tint(size) > 0) {
+				Data array      = new_array(tint(size));
+				baseStack[slot] = array;
+				DISPATCH();
 			}
-
-			rerr("Expected array identifer!");
+			rerr("Array size must be > 0!");
 		}
 
-		rerr("Array size must be integer!");
+		rerr("Array size must be an integer!");
 	}
 	DO_NOOP : { DISPATCH(); }
 	DO_NEW_CONTAINER : {
-		uint32_t name;
-		dpopsk(name);
-		dpush(new_ins(&callFrame.env, name));
-		ip        = callFrame.returnAddress;
-		callFrame = cf_pop();
-		DISPATCH_WINC();
+		uint32_t name = ins_get_val(++ip);
+		ip += 3;
+		// Retrieve the Routine
+		Routine2 *r = routine_get(name);
+		// Create the instance
+		Data ins = new_ins(baseStack, r);
+		// dbg("refcount at creation %u", tins(ins)->obj.refCount);
+		// Pop all the slots
+		sp -= r->slots;
+		// Push the instance
+		dpush(ins);
+		// Finally, return from the
+		// initializer
+		goto DO_RETURN;
 	}
 	DO_MEMSET : {
-		Data in, mem, data;
-		dpopv(data, callFrame);
-		dpop(mem);
-		dpopv(in, callFrame);
-		if(isins(in)) {
-			if(isidentifer(mem)) {
-				env_put(tstrk(mem), data, tenv(in));
-				DISPATCH();
-			}
-			rerr("Bad member reference!");
+		Data     ins, data;
+		uint32_t mem;
+		// ip += 3;
+		dpop(data);
+		dpopi(mem);
+		dpop(ins);
+		if(isins(ins)) {
+			set_member(tins(ins), mem, data);
+			DISPATCH();
 		}
 		rerr("Referenced value is not a container instance!");
 	}
-	DO_ARRAYREF : {
-		Data index, iden, cont;
-		dpop(iden);
-		dpopv(index, callFrame);
-		dpopv(cont, callFrame);
-		if(isint(index)) {
-			if(isins(cont)) {
-				if(isidentifer(iden)) {
-					Data arr = env_get(tstrk(iden), tenv(cont), 0);
-					if(isarray(arr)) {
-						if(tint(index) > 0 &&
-						   tint(index) <= arr_size(tarr(arr))) {
-							dpush(arr_elements(tarr(arr))[tint(index) - 1]);
-							DISPATCH();
-						}
-						rerr("Array index out of range : %" PRId32,
-						     tint(index));
-					}
-					if(isstr(arr)) {
-						if(tint(index) < 1 ||
-						   (size_t)tint(index) > (str_len(tstrk(arr)) + 1)) {
-							rerr("String index out of range : %" PRId32
-							     " [Expected <= %" PRIu32 "]",
-							     tint(index), str_len(tstrk(arr)));
-						}
+		/*
+DO_ARRAYREF : {
+Data index, iden, cont;
+dpop(iden);
+dpopv(index, callFrame);
+dpopv(cont, callFrame);
+if(isint(index)) {
+if(isins(cont)) {
+if(isidentifer(iden)) {
+Data arr = env_get(tstrk(iden), tenv(cont), 0);
+if(isarray(arr)) {
+if(tint(index) > 0 &&
+tint(index) <= arr_size(tarr(arr))) {
+dpush(arr_elements(tarr(arr))[tint(index) - 1]);
+DISPATCH();
+}
+rerr("Array index out of range : %" PRId32,
+tint(index));
+}
+if(isstr(arr)) {
+if(tint(index) < 1 ||
+(size_t)tint(index) > (str_len(tstrk(arr)) + 1)) {
+rerr("String index out of range : %" PRId32
+" [Expected <= %" PRIu32 "]",
+tint(index), str_len(tstrk(arr)));
+}
 
-						if((size_t)tint(index) == str_len(tstrk(arr)) + 1) {
-							dpushn();
-							DISPATCH();
-						}
-						char *c = (char *)mallocate(sizeof(char) * 2);
-						c[0]    = tstr(arr)[tint(index) - 1];
-						c[1]    = 0;
-						dpushs(c);
-						DISPATCH();
-					}
+if((size_t)tint(index) == str_len(tstrk(arr)) + 1) {
+dpushn();
+DISPATCH();
+}
+char *c = (char *)mallocate(sizeof(char) * 2);
+c[0]    = tstr(arr)[tint(index) - 1];
+c[1]    = 0;
+dpushs(c);
+DISPATCH();
+}
 
-					rerr("Referenced item '%s' is not an array!", tstr(iden));
-				}
-				rerr("Bad identifer");
-			}
-			rerr("Referenced value is not a container instance");
-		}
-		rerr("Array index must be an integer!");
-	}
+rerr("Referenced item '%s' is not an array!", tstr(iden));
+}
+rerr("Bad identifer");
+}
+rerr("Referenced value is not a container instance");
+}
+rerr("Array index must be an integer!");
+}
+*/
 	DO_ARRAYSET : {
-		Data index, iden, cont, value;
-		dpopv(value, callFrame);
-		dpop(iden);
-		dpopv(index, callFrame);
-		dpopv(cont, callFrame);
+		Data index, arr, value;
+		dpop(value);
+		dpop(index);
+		dpop(arr);
 		if(isint(index)) {
-			if(isins(cont)) {
-				if(isidentifer(iden)) {
-					Data arr = env_get(tstrk(iden), tenv(cont), 0);
-					if(isarray(arr)) {
-						if(tint(index) > 0 &&
-						   tint(index) <= arr_size(tarr(arr))) {
-							arr_elements(tarr(arr))[tint(index) - 1] = value;
-							DISPATCH();
-						}
-						rerr("Array index out of range : %" PRId32,
-						     tint(index));
+			if(isarray(arr)) {
+				if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))) {
+					Data *pos = &arr_elements(tarr(arr))[tint(index) - 1];
+					if(*pos != value) {
+						ref_decr(*pos);
+						ref_incr(value);
+						*pos = value;
 					}
-					if(isstr(arr)) {
-						if(tint(index) < 1 ||
-						   (size_t)tint(index) > str_len(tstrk(arr))) {
-							rerr("String index out of range : %" PRId32,
-							     tint(index));
-						}
-						if(!isstr(value)) {
-							rerr("Bad assignment to string!");
-						}
-						if(str_len(tstrk(value)) > 1) {
-							rwarn("Ignoring extra characters!");
-						}
-						char *s            = strdup(tstr(arr));
-						s[tint(index) - 1] = tstr(value)[0];
-						env_put(tstrk(iden), new_str(s), tenv(cont));
-						DISPATCH();
-					}
-
-					rerr("Referenced item '%s' is not an array!", tstr(iden));
-				}
-				rerr("Bad identifer");
-			}
-			rerr("Referenced value is not a container instance");
-		}
-		rerr("Array index must be an integer!");
-	}
-	DO_ARRAYWRITE : {
-		Data index, iden, value;
-		dpopv(value, callFrame);
-		dpop(iden);
-		dpopv(index, callFrame);
-		if(isint(index)) {
-			if(isidentifer(iden)) {
-				Data arr = env_get(tstrk(iden), &callFrame.env, 0);
-				if(isarray(arr)) {
-					if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))) {
-						arr_elements(tarr(arr))[tint(index) - 1] = value;
-						DISPATCH();
-					}
-					rerr("Array index out of range : %" PRId32, tint(index));
-				}
-				if(isstr(arr)) {
-					if(tint(index) < 1 ||
-					   (size_t)tint(index) > str_len(tstrk(arr))) {
-						rerr("String index out of range : %" PRId32,
-						     tint(index));
-					}
-					if(!isstr(value)) {
-						rerr("Bad assignment to string!");
-					}
-					if(str_len(tstrk(value)) > 1) {
-						rwarn("Ignoring extra characters!");
-					}
-					char *s            = strdup(tstr(arr));
-					s[tint(index) - 1] = tstr(value)[0];
-					env_put(tstrk(iden), new_str(s), &callFrame.env);
 					DISPATCH();
 				}
-				rerr("Referenced item '%s' is not an array!"), tstr(iden);
+				rerr("Array index out of range : %" PRId32, tint(index));
 			}
-			rerr("Bad identifer");
+			rerr("Subscripted item is not an array!");
 		}
-		rerr("Array index must be an integer![%s]", tstr(iden));
+		rerr("Array index must be an integer!");
+	}
+	/*
+	DO_ARRAYWRITE : {
+	Data index, iden, value;
+	dpopv(value, callFrame);
+	dpop(iden);
+	dpopv(index, callFrame);
+	if(isint(index)) {
+	if(isidentifer(iden)) {
+	Data arr = env_get(tstrk(iden), &callFrame.env, 0);
+	if(isarray(arr)) {
+	if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))) {
+	arr_elements(tarr(arr))[tint(index) - 1] = value;
+	DISPATCH();
+	}
+	rerr("Array index out of range : %" PRId32, tint(index));
+	}
+	if(isstr(arr)) {
+	if(tint(index) < 1 ||
+	(size_t)tint(index) > str_len(tstrk(arr))) {
+	rerr("String index out of range : %" PRId32,
+	tint(index));
+	}
+	if(!isstr(value)) {
+	rerr("Bad assignment to string!");
+	}
+	if(str_len(tstrk(value)) > 1) {
+	rwarn("Ignoring extra characters!");
+	}
+	char *s            = strdup(tstr(arr));
+	s[tint(index) - 1] = tstr(value)[0];
+	env_put(tstrk(iden), new_str(s), &callFrame.env);
+	DISPATCH();
+	}
+	rerr("Referenced item '%s' is not an array!"), tstr(iden);
+	}
+	rerr("Bad identifer");
+	}
+	rerr("Array index must be an integer![%s]", tstr(iden));
+	}*/
+	DO_STORE_SLOT : { // Set slot to a value
+		Data value;
+		dpop(value);
+		// slot += baseptr;
+		size_t store_slot = pop_store_slot();
+		Data   oldvalue   = baseStack[store_slot];
+		if(oldvalue != value) {
+			// dbg("Incrementing newvalue local");
+			// print_op_type(value);
+			ref_incr(value);
+			// dbg("Decrementing oldvalue local\n");
+			// print_op_type(oldvalue);
+			ref_decr(oldvalue);
+			baseStack[store_slot] = value;
+		}
+		DISPATCH();
+	}
+	DO_LOAD_SLOT : { // Load value from slot
+		uint32_t slot = ins_get_val(++ip);
+		ip += 3;
+		dpush(baseStack[slot]);
+		// printf("\nslotnum : %d pointer : %p", baseptr + slot,
+		// &dataStack[baseptr + slot]); print_value("value", dpeek());
+		DISPATCH();
+	}
+	DO_RESERVE_SLOT : { // Reserve slot for local variables
+		uint32_t count = ins_get_val(++ip);
+		ip += 3;
+		while(count-- > 0) dpushn();
+		DISPATCH();
+	}
+	DO_STORE_SLOT_GLOBAL : {
+		Data value;
+		dpop(value);
+		size_t store_slot = pop_store_slot();
+		Data   oldValue   = dataStack[store_slot];
+		if(oldValue != value) {
+			// print_value("any", value);
+			// dbg("Incrementing newvalue global");
+			ref_incr(value);
+			// dbg("Decrementing oldvalue global");
+			ref_decr(oldValue);
+			dataStack[store_slot] = value;
+		}
+		DISPATCH();
+	}
+	DO_LOAD_SLOT_GLOBAL : { // Load value from global slot
+		uint32_t slot = ins_get_val(++ip);
+		ip += 3;
+		dpush(dataStack[slot]);
+		DISPATCH();
+	}
+	DO_SAVE_STORE_SLOT : { // Store the store_slot for the next STORE_ call
+		push_store_slot(ins_get_val(++ip));
+		ip += 3;
+		DISPATCH();
 	}
 	}
 }

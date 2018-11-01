@@ -1,0 +1,6 @@
+Routine Main()
+    Print "Int(2) : ", Int(2), "\n"
+    Print "Int(5.763223) : ", Int(5.763223), "\n"
+    Print "Int(\"324232\") : ", Int("324232"), "\n"
+    Print "Int(\"324.324\") (this should fail) : ", Int("324.324"), "\n"
+EndRoutine

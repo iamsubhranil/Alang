@@ -1,8 +1,10 @@
 Routine Foreign NativeFibonacci(x)
-Routine Foreign LoadLibrary(x)
 Routine Main()
-    Call LoadLibrary("./nfibo.so")
-    Print "\nTerm number : "
-    Input x:Int
-    Print "\nNativeFibonacci(", x, ") : ", NativeFibonacci(x)
+    If(LoadLibrary("./libnfibo.so"))
+        Print "\nTerm number : "
+        Input x:Int
+        Print "\nNativeFibonacci(", x, ") : ", NativeFibonacci(x)
+    Else
+        Print "\n[Error] Unable to load the required library!"
+    EndIf
 EndRoutine

@@ -1,18 +1,20 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "allocator.h"
 #include "display.h"
+#include "object.h"
 #include "strings.h"
 
 typedef struct {
-	const char *value;
-	uint32_t    hash;
-	uint32_t    refCount;
-	size_t      length;
+	Object   obj;
+	char *   value;
+	size_t   length;
+	uint32_t hash;
 } String;
 
 static String **strarray    = NULL;
-uint32_t        stringCount = 0;
+size_t          stringCount = 0;
 size_t          c           = 0;
 
 static uint32_t hash(const char *str) {
@@ -25,32 +27,33 @@ static uint32_t hash(const char *str) {
 	return hash;
 }
 
-uint32_t str_insert(const char *str) {
+size_t str_insert(char *str, uint8_t isConstant) {
 	uint32_t has = hash(str);
-	uint32_t i   = 0;
+	size_t   i   = 0;
 	while(i < stringCount) {
 		if(strarray[i]->hash == has) {
-			strarray[i]->refCount++;
+			obj_ref_incr(strarray[i]);
 			//            printf(debug("[Strings] Match found for [%s] at
 			//            %lu[%s]"), str, i, strarray[i]->value);
-			memfree((void *)str);
+			memfree(str);
 			return i;
 		}
 		i++;
 	}
 	strarray =
 	    (String **)reallocate(strarray, sizeof(String *) * ++stringCount);
-	strarray[stringCount - 1] = (String *)reallocate(NULL, sizeof(String));
-	strarray[stringCount - 1]->hash     = has;
-	strarray[stringCount - 1]->value    = str;
-	strarray[stringCount - 1]->refCount = 1;
-	strarray[stringCount - 1]->length   = c;
+	strarray[stringCount - 1] = (String *)obj_alloc(sizeof(String), OBJ_STRING);
+	strarray[stringCount - 1]->hash   = has;
+	strarray[stringCount - 1]->value  = str;
+	strarray[stringCount - 1]->length = c;
+	if(isConstant)
+		obj_ref_incr(strarray[stringCount - 1]);
 	//    printf(debug("[Strings] Adding [%s]"), str);
 	return stringCount - 1;
 }
 
 void str_ref_incr(uint32_t index) {
-	strarray[index]->refCount++;
+	obj_ref_incr(strarray[index]);
 }
 
 size_t str_len(uint32_t index) {
@@ -60,28 +63,24 @@ size_t str_len(uint32_t index) {
 void str_ref_decr(uint32_t index) {
 	// if(stringCount == 0 || index > (stringCount - 1))
 	//    return;
-	strarray[index]->refCount--;
-	if(strarray[index]->refCount == 0) {
-		String *s       = strarray[index];
-		strarray[index] = strarray[stringCount - 1];
-		strarray =
-		    (String **)reallocate(strarray, sizeof(String *) * --stringCount);
-		//        printf(debug("[Strings] Freeing [%s]"), s->value);
-		memfree((void *)s->value);
-		memfree(s);
-	}
+	obj_ref_decr(strarray[index]);
 }
 
 const char *str_get(uint32_t index) {
+	if(index >= stringCount) {
+		// printf("\n%u\n", index);
+		return "BadIndex";
+	}
 	return strarray[index]->value;
 }
 
 void str_free() {
-	uint64_t i = 0;
-	while(i < stringCount) {
-		memfree((void *)strarray[i]->value);
-		memfree(strarray[i++]);
-	}
 	memfree(strarray);
 	stringCount = 0;
+}
+
+size_t str_release(void *s) {
+	String *str = (String *)s;
+	free(str->value);
+	return sizeof(String);
 }

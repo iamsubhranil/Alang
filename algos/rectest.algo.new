@@ -1,0 +1,15 @@
+Set out = 0
+
+Routine Rec(i)
+    If(i < 2)
+        Return 1
+    Else
+        Return Rec(i - 1) + Rec(i - 2)
+    EndIf
+EndRoutine
+
+Set in = 1
+
+Routine Main()
+    Set i = Rec(30)
+EndRoutine

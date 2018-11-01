@@ -1,15 +1,23 @@
 #pragma once
 
 #include "allocator.h"
-#include "env.h"
 #include "values.h"
 
-static Data *   dataStack = NULL;
-static uint32_t sp = 0, stackSize = 0;
+#ifdef DYNAMIC_STACK
+static Data *   dataStack            = NULL;
+static uint32_t stackSize            = 0;
 static int32_t  stackLastIncremented = 0;
+#else
+#define STACK_SIZE 65532
+static Data     dataStack[STACK_SIZE] = {0};
+static uint32_t stackSize             = STACK_SIZE;
+#endif
+static uint64_t sp = 0;
 
 #define STACK_INC_CACHE \
 	-10 // Preven stack decrement if it was incremented recently
+
+#ifdef DYNAMIC_STACK
 
 #define dStackInit()                                             \
 	{                                                            \
@@ -25,6 +33,14 @@ static int32_t  stackLastIncremented = 0;
 		stackLastIncremented = 0;                                            \
 		dataStack = (Data *)reallocate(dataStack, sizeof(Data) * stackSize); \
 	}
+
+#else
+#define dStackInit() stackSize = STACK_SIZE;
+#define dStackFree()
+#define incr()          \
+	if(sp == stackSize) \
+		rerr("Stack overflow ! %u", sp);
+#endif
 
 #define dpush(x)             \
 	{                        \
@@ -76,17 +92,17 @@ static int32_t  stackLastIncremented = 0;
 		incr();                       \
 		dataStack[sp++] = new_null(); \
 	}
+#define dpushptr(x)                   \
+	{                                 \
+		incr();                       \
+		dataStack[sp++] = new_ptr(x); \
+	}
 
 #define binpopv() (Data d1, d2; dpopv(d1, env); dpopv(d2, env);)
 
 #define dpeek() dataStack[sp - 1]
 #define dpop(x) \
 	{ x = dataStack[--sp]; }
-#define dpopv(x, frame)                                              \
-	{                                                                \
-		x = dataStack[--sp];                                         \
-		x = isidentifer(x) ? env_get(tstrk(x), &(frame.env), 0) : x; \
-	}
 #define dpopi(x) \
 	{ x = tint(dataStack[--sp]); }
 #define dpopf(x) \
@@ -97,3 +113,5 @@ static int32_t  stackLastIncremented = 0;
 	{ x = tstrk(dataStack[--sp]); }
 #define dpopins(x) \
 	{ x = tins(dataStack[--sp]); }
+#define dpopptr(x) \
+	{ x = tptr(dataStack[--sp]); }
