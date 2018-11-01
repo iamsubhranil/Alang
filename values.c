@@ -1,76 +1,73 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <inttypes.h>
 #include "values.h"
 #include "allocator.h"
 #include "env.h"
+#include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
 
 static uint32_t id = 0;
 
 double isInt_IntPart = 0;
 
-Data new_array(int32_t size){
-    Array *arr = (Array *)mallocate(sizeof(Array));
-    arr->numElements = size;
-    arr->arr = (Data *)mallocate(sizeof(Data) * size);
-    int32_t i = 0;
-    while(i < size)
-        arr->arr[i++] = new_null();
-    return ARR | (uintptr_t)arr;
+Data new_array(int32_t size) {
+	Array *arr       = (Array *)mallocate(sizeof(Array));
+	arr->numElements = size;
+	arr->arr         = (Data *)mallocate(sizeof(Data) * size);
+	int32_t i        = 0;
+	while(i < size) arr->arr[i++] = new_null();
+	return ARR | (uintptr_t)arr;
 }
 
-Data new_ins(void *env, uint32_t key){
-    Instance *ins = ins_new();
-    ins->container_key = key;
-    ins->env = ienv_new();
-    Environment *n = (Environment *)ins->env;
-    Environment *o = (Environment *)env;
-    n->parent = o->parent;
-    n->records = o->records;
-    ins->refCount = 0;
-    ins->id = id++;
-    return INSTANCE | (uintptr_t)ins;
+Data new_ins(void *env, uint32_t key) {
+	Instance *ins      = ins_new();
+	ins->container_key = key;
+	ins->env           = ienv_new();
+	Environment *n     = (Environment *)ins->env;
+	Environment *o     = (Environment *)env;
+	n->parent          = o->parent;
+	n->records         = o->records;
+	ins->refCount      = 0;
+	ins->id            = id++;
+	return INSTANCE | (uintptr_t)ins;
 }
 
-void print_bit(Data d){
-    uint8_t *bits = (uint8_t *)&d;
-    size_t i = sizeof(d);
-    printf("\tBytes : ");
-    while(i > 0)
-        printf("%x", bits[--i]);
+void print_bit(Data d) {
+	uint8_t *bits = (uint8_t *)&d;
+	size_t   i    = sizeof(d);
+	printf("\tBytes : ");
+	while(i > 0) printf("%x", bits[--i]);
 }
 
-void print_type(const char *expected, Data d){
-    printf("\nExpected : %s", expected);
-    printf("\nReceived : ");
-    if(isfloat(d)){
-        printf("Float\tValue : %F", tfloat(d));
-        //printf("\t&QNAN : ");
-        //print_bit(d & QNAN);
-    }
-    else if(isint(d))
-        printf("Integer\tValue : %" PRId32, tint(d));
-    else if(islogical(d))
-        printf("Logical\tValue : %" PRId32, tlogical(d));
-    else if(isstr(d))
-        printf("String\tKey : %" PRId32 "\tValue : %s", tstrk(d), tstr(d));
-    else if(isidentifer(d))
-        printf("Identifier\tKey : %" PRId32 "\tValue : %s", tstrk(d), tstr(d));
-    else if(isnull(d))
-        printf("Null");
-    else if(isnone(d))
-        printf("None");
-    else if(isins(d))
-        printf("Instance");
-    else if(isarray(d)){
-        printf("Array");
-        Array *arr = tarr(d);
-        printf("\tSize : %" PRId32, arr_size(arr));
-    }
-    
-    print_bit(d);
+void print_type(const char *expected, Data d) {
+	printf("\nExpected : %s", expected);
+	printf("\nReceived : ");
+	if(isfloat(d)) {
+		printf("Float\tValue : %F", tfloat(d));
+		// printf("\t&QNAN : ");
+		// print_bit(d & QNAN);
+	} else if(isint(d))
+		printf("Integer\tValue : %" PRId32, tint(d));
+	else if(islogical(d))
+		printf("Logical\tValue : %" PRId32, tlogical(d));
+	else if(isstr(d))
+		printf("String\tKey : %" PRId32 "\tValue : %s", tstrk(d), tstr(d));
+	else if(isidentifer(d))
+		printf("Identifier\tKey : %" PRId32 "\tValue : %s", tstrk(d), tstr(d));
+	else if(isnull(d))
+		printf("Null");
+	else if(isnone(d))
+		printf("None");
+	else if(isins(d))
+		printf("Instance");
+	else if(isarray(d)) {
+		printf("Array");
+		Array *arr = tarr(d);
+		printf("\tSize : %" PRId32, arr_size(arr));
+	}
 
-    printf("\n");
+	print_bit(d);
+
+	printf("\n");
 }
 
 /*

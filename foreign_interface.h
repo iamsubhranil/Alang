@@ -3,12 +3,12 @@
 
 #include <stdint.h>
 
+#include "display.h"
 #include "env.h"
 #include "values.h"
-#include "display.h"
 
-double get_double(const char *identifer, Environment *env);
+double  get_double(const char *identifer, Environment *env);
 int32_t get_int(const char *identifer, Environment *env);
-char* get_string(const char *identifer, Environment *env);
+char *  get_string(const char *identifer, Environment *env);
 
 #endif

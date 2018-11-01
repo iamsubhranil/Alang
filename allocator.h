@@ -6,7 +6,8 @@
 #define mallocate(x) malloc(x)
 #define reallocate(x, y) realloc(x, y)
 #define memfree(x) free(x)
-#define memfree_all() {}
+#define memfree_all() \
+	{}
 
 /*
 void* mallocate(size_t size);
