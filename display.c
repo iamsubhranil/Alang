@@ -13,6 +13,7 @@ void dbg(const char *msg, ...) {
 	va_start(args, msg);
 	vprintf(msg, args);
 	printf(ANSI_COLOR_RESET);
+	va_end(args);
 }
 
 void info(const char *msg, ...) {
@@ -21,6 +22,7 @@ void info(const char *msg, ...) {
 	va_start(args, msg);
 	vprintf(msg, args);
 	printf(ANSI_COLOR_RESET);
+	va_end(args);
 }
 
 void err(const char *msg, ...) {
@@ -29,6 +31,7 @@ void err(const char *msg, ...) {
 	va_start(args, msg);
 	vprintf(msg, args);
 	printf(ANSI_COLOR_RESET);
+	va_end(args);
 }
 
 void warn(const char *msg, ...) {
@@ -37,6 +40,7 @@ void warn(const char *msg, ...) {
 	va_start(args, msg);
 	vprintf(msg, args);
 	printf("\n" ANSI_COLOR_RESET);
+	va_end(args);
 }
 
 void lnerr(const char *msg, Token t, ...) {
@@ -45,6 +49,7 @@ void lnerr(const char *msg, Token t, ...) {
 	va_start(args, t);
 	vprintf(msg, args);
 	printf(ANSI_COLOR_RESET);
+	va_end(args);
 }
 
 void lnwarn(const char *msg, Token t, ...) {
@@ -53,6 +58,7 @@ void lnwarn(const char *msg, Token t, ...) {
 	va_start(args, t);
 	vprintf(msg, args);
 	printf("\n" ANSI_COLOR_RESET);
+	va_end(args);
 }
 
 void lninfo(const char *msg, Token t, ...) {
@@ -61,6 +67,7 @@ void lninfo(const char *msg, Token t, ...) {
 	va_start(args, t);
 	vprintf(msg, args);
 	printf("\n" ANSI_COLOR_RESET);
+	va_end(args);
 }
 
 void rerr(const char *msg, ...) {
@@ -71,6 +78,7 @@ void rerr(const char *msg, ...) {
 	va_start(args, msg);
 	vprintf(msg, args);
 	printf("\n" ANSI_COLOR_RESET);
+	va_end(args);
 	stop();
 }
 
@@ -82,4 +90,5 @@ void rwarn(const char *msg, ...) {
 	va_start(args, msg);
 	vprintf(msg, args);
 	printf("\n" ANSI_COLOR_RESET);
+	va_end(args);
 }
