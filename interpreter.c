@@ -61,7 +61,7 @@ uint32_t ins_add_val(uint32_t store) {
 	instructions = (uint8_t *)reallocate(instructions, 8 * (ip + 4));
 	uint32_t i   = 0;
 	while(i < 4) {
-		instructions[ip + i] = (store >> ((3 - i) * 8)) & 0xff;
+		instructions[ip + i] = (store >> (i * 8)) & 0xff;
 		//        printf("%x", instructions[ip + i]);
 		i++;
 	}
@@ -90,32 +90,20 @@ void ins_set_val(uint32_t mem, uint32_t store) {
 	//    printf("\nReStoring %lu at %lu : 0x", store, mem);
 	uint8_t i = 0;
 	while(i < 4) {
-		instructions[mem + i] = (store >> ((3 - i) * 8)) & 0xff;
+		instructions[mem + i] = (store >> (i * 8)) & 0xff;
 		//        printf("%x", instructions[mem + i]);
 		i++;
 	}
 }
 
 static inline uint32_t ins_get_val(uint32_t mem) {
-	uint32_t ret = instructions[mem];
-	ret          = (ret << 8) | instructions[mem + 1];
-	ret          = (ret << 8) | instructions[mem + 2];
-	ret          = (ret << 8) | instructions[mem + 3];
-	return ret;
+	uint32_t *ret = (uint32_t *)&instructions[mem];
+	return *ret;
 }
 
 static inline double ins_get_double(uint32_t mem) {
-	double   ret;
-	uint8_t *bytes = (uint8_t *)&ret;
-	bytes[0]       = instructions[mem];
-	bytes[1]       = instructions[mem + 1];
-	bytes[2]       = instructions[mem + 2];
-	bytes[3]       = instructions[mem + 3];
-	bytes[4]       = instructions[mem + 4];
-	bytes[5]       = instructions[mem + 5];
-	bytes[6]       = instructions[mem + 6];
-	bytes[7]       = instructions[mem + 7];
-	return ret;
+	double *ret = (double *)&instructions[mem];
+	return *ret;
 }
 
 uint8_t ins_get(uint32_t mem) {
