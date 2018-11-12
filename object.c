@@ -1,10 +1,9 @@
 #include "object.h"
 #include "values.h"
 #include <assert.h>
-// The object queue
-static Object  root  = {0, NULL, OBJ_ROOT};
-static Object *front = &root, *end = &root;
-static size_t  allocated = 0;
+
+#define GC_INSTANT
+static size_t allocated = 0;
 
 #ifndef GC_THRESHOLD_BYTES
 #define GC_THRESHOLD_BYTES 1024 * 100 // Number of bytes of data to be
@@ -32,6 +31,12 @@ static void collect(Object *obj) {
 	}
 }
 
+#ifndef GC_INSTANT
+
+// The object queue
+static Object  root  = {0, NULL, OBJ_ROOT};
+static Object *front = &root, *end = &root;
+
 static void obj_gc() {
 	Object *parent = front;
 	for(Object *obj = front->next; obj != NULL; parent = obj, obj = obj->next) {
@@ -56,38 +61,33 @@ static void obj_gc() {
 	end->next = NULL;
 }
 
+#endif
+
 void *obj_alloc(size_t size, ObjectType type) {
-	if(allocated > GC_THRESHOLD_BYTES)
-		obj_gc();
+	// if(allocated > GC_THRESHOLD_BYTES)
+	//	obj_gc();
 	Object *obj   = (Object *)malloc(size);
 	obj->next     = NULL;
 	obj->type     = type;
 	obj->refCount = 0;
+#ifndef GC_INSTANT
 	// Add it to the queue
 	end->next = obj;
 	end       = obj;
 
 	allocated += size;
+#endif
 	return obj;
 }
 
 void obj_ref_decr(void *obj) {
-	// uint32_t oldref = ((Object *)obj)->refCount;
-	/*dbg("%u\n", ((Object*)obj)->type);
-	if(((Object*)obj)->type == OBJ_INSTANCE){
-	    dbg("Instance\n");
-	    Instance *ins = (Instance*)obj;
-	   for(uint32_t i = 0;i < ins->memberCount;i++)
-	       print_value("any", ins->values[i]);
-	} */
-	// assert(oldref > 0);
-	// dbg("ref_decr : %p oldref %u newrref %u\n", obj, oldref, oldref - 1);
-	//		dbg("Decrementing ref %p\n", obj);
 	((Object *)obj)->refCount--;
-	// if(((Object*)obj)->refCount == 0) {
-	//    collect((Object*)obj);
-	//    free(obj);
-	//}
+#ifdef GC_INSTANT
+	if(((Object *)obj)->refCount == 0) {
+		collect((Object *)obj);
+		free(obj);
+	}
+#endif
 }
 
 void obj_ref_incr(void *obj) {
@@ -99,10 +99,12 @@ void obj_ref_incr(void *obj) {
 static uint8_t isfree = 0;
 
 void obj_free() {
+#ifndef GC_INSTANT
 	isfree = 1;
 	for(Object *f = front->next; f != NULL; f = f->next) f->refCount = 0;
 	obj_gc();
 	isfree = 0;
+#endif
 }
 
 uint8_t obj_isfree() {
