@@ -1,0 +1,84 @@
+Routine Fannkuch(n)
+    Array p[n], q[n], s[n]
+    Set sign = 1, maxflips = 0, sum = 0
+    Set i = 1
+    While(i <= n)
+        Set p[i] = i
+        Set q[i] = i
+        Set s[i] = i
+        Set i = i + 1
+    EndWhile
+
+    While(True)
+        Set i = 2
+        Set q1 = p[1]
+        If(q1 != 1)
+            Set i = 1
+            While(i <= n)
+                Set q[i] = p[i]
+                Set i = i + 1
+            EndWhile
+            Set flips = 1
+            While(True)
+                Set qq = q[q1]
+                If(qq == 1)
+                    Set sum = sum + sign*flips
+                    If(flips > maxflips)
+                        Set maxflips = flips
+                    EndIf
+                    Break
+                EndIf
+                Set q[q1] = q1
+                If(q1 >= 4)
+                    Set i = 2, j = q1 - 1
+                    While(i < j)
+                        Set temp = q[i]
+                        Set q[i] = q[j]
+                        Set q[j] = temp
+                        Set i = i + 1
+                        Set j = j - 1
+                    EndWhile
+                EndIf
+                Set q1 = qq, flips = flips + 1
+            EndWhile
+        EndIf
+
+        If(sign == 1)
+            Set temp = p[2]
+            Set p[2] = p[1]
+            Set p[1] = temp
+            Set sign = 0-1
+        Else
+            Set temp = p[2]
+            Set p[2] = p[3]
+            Set p[3] = temp
+            Set sign = 1
+            Set i = 3
+            While(i <= n)
+                Set sx = s[i]
+                If(sx != 1)
+                    Set s[i] = sx - 1
+                    Break
+                EndIf
+                If(i == n)
+                    Return maxflips
+                EndIf
+                Set s[i] = i
+                Set t = p[1]
+                Set j = 1
+                While(j <= i)
+                    Set p[j] = p[j + 1]
+                    Set j = j + 1
+                EndWhile
+                Set p[i + 1] = t
+                Set i = i + 1
+            EndWhile
+        EndIf
+    EndWhile
+EndRoutine
+
+Routine Main()
+    Set n = 12
+    Set flips = Fannkuch(n)
+    Print "\nFannkuch(", n, ") : ", flips, "\n"
+EndRoutine

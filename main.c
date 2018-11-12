@@ -42,8 +42,9 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 	freeList(tokens);
-
-	// ins_print();
+#ifdef COUNT_INS
+	ins_print();
+#endif
 	printf("\n");
 	interpret();
 

@@ -1,0 +1,36 @@
+Routine Main()
+    Set count = 0
+    While (count < 1000000)
+        If ("abc" == "abc")
+            Set count = count + 1
+        EndIf
+        If ("a slightly longer string" == "a slightly longer string")
+            Set count = count + 1
+        EndIf
+        If ("a significantly longer string but still not overwhelmingly long string" == "a significantly longer string but still not overwhelmingly long string")
+            Set count = count + 1
+        EndIf
+        If ("" == "abc")
+            Set count = count + 1
+        EndIf
+        If ("abc" == "abcd")
+            Set count = count + 1
+        EndIf
+        If ("changed one character" == "changed !ne character")
+            Set count = count + 1
+        EndIf
+        If ("123" == "123")
+            Set count = count + 1
+        EndIf
+        If ("a slightly longer string" == "a slightly longer string!")
+            Set count = count + 1
+        EndIf
+        If ("a slightly longer string" == "a slightly longer strinh")
+            Set count = count + 1
+        EndIf
+        If ("a significantly longer string but still not overwhelmingly long string" == "another")
+            Set count = count + 1
+        EndIf
+    EndWhile
+    Print count, "\n"
+EndRoutine

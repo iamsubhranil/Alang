@@ -1,0 +1,14 @@
+Routine Fib(n)
+    If(n < 2)
+        Return n
+    EndIf
+    Return Fib(n - 1) + Fib(n - 2)
+EndRoutine
+
+Routine Main()
+    Set i = 0
+    While(i < 4)
+        Print Fib(28), "\n"
+        Set i = i + 1
+    EndWhile
+EndRoutine

@@ -1,0 +1,14 @@
+Array list[10000]
+
+Routine Main()
+    Set i = 1
+    While(i < 10000)
+        Set list[i] = i
+        Set i = i + 1
+    EndWhile
+    Set sum = 0, i = 1
+    While(i < 10000)
+        Set sum = sum + list[i]
+        Set i = i + 1
+    EndWhile
+EndRoutine
