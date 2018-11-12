@@ -125,55 +125,11 @@ size_t ip_get() {
 	return ip;
 }
 
-static const char *opString[] = {"pushf",
-                                 "pushi",
-                                 "pushl",
-                                 "pushs",
-                                 "pushid",
-                                 "pushn",
-                                 "add",
-                                 "sub",
-                                 "mul",
-                                 "div",
-                                 "pow",
-                                 "mod",
-                                 "gt",
-                                 "gte",
-                                 "lt",
-                                 "lte",
-                                 "eq",
-                                 "neq",
-                                 "and",
-                                 "or",
-                                 "set",
-                                 "inputi",
-                                 "inputs",
-                                 "inputf",
-                                 "print",
-                                 "halt",
-                                 "jump",
-                                 "jift",
-                                 "jiff",
-                                 "call",
-                                 "return",
-                                 "arrayref",
-                                 "memref",
-                                 "narray",
-                                 "noop",
-                                 "ncont",
-                                 "memset",
-                                 "aref",
-                                 "aset",
-                                 "awrite",
-                                 "calln",
-                                 "seti",
-                                 "pushidv",
-                                 "store_slot",
-                                 "load_slot",
-                                 "reserve_slot",
-                                 "store_slot_global",
-                                 "load_slot_global",
-                                 "save_store_slot"};
+static const char *opString[] = {
+#define INSTRUCTION(X) #X,
+#include "instruction.h"
+#undef INSTRUCTION
+};
 
 void print_stack_trace() {
 	size_t bakptr = baseptr;
@@ -253,14 +209,16 @@ void ins_print() {
 	}
 }
 
-static clock_t  tmStart, tmEnd;
-static uint64_t insExec = 0, counter[49] = {0};
+static clock_t tmStart, tmEnd;
+#ifdef COUNT_INS
+#define LAST_OP SAVE_STORE_SLOT
+static uint64_t insExec = 0, counter[LAST_OP] = {0};
 
 void print_stat() {
 	uint8_t i = 0;
 	printf("\n     Instruction        Execution Count");
 	printf("\n====================    ===============");
-	while(i < 49) {
+	while(i < LAST_OP) {
 		if(counter[i] > 0) {
 			printf("\n%20s", opString[i]);
 			printf("\t%" PRIu64, counter[i]);
@@ -269,7 +227,7 @@ void print_stat() {
 	}
 	printf("\n");
 }
-
+#endif
 // static CallFrame callFrame;
 
 void stop() {
@@ -278,10 +236,12 @@ void stop() {
 	// printf("\nRealloc called : %d times\n", get_realloc_count());
 	printf("\n");
 	dbg("[Interpreter] Execution time : %gs", tm);
+#ifdef COUNT_INS
 	dbg("[Interpreter] Instructions executed : %" PRIu64, insExec);
 	dbg("[Interpreter] Average execution speed : %gs", tm / insExec);
 	print_stat();
 	printf("\n");
+#endif
 
 	dStackFree();
 	obj_free();
@@ -398,57 +358,13 @@ void interpret() {
 	baseptr         = 0; // The base pointer for slot referencing
 	Data *baseStack = &dataStack[0];
 	// uint32_t           store_slot = 0;
-	static const void *dispatchTable[] = {&&DO_PUSHF,
-	                                      &&DO_PUSHI,
-	                                      &&DO_PUSHL,
-	                                      &&DO_PUSHS,
-	                                      &&DO_PUSHID,
-	                                      &&DO_PUSHN,
-	                                      &&DO_ADD,
-	                                      &&DO_SUB,
-	                                      &&DO_MUL,
-	                                      &&DO_DIV,
-	                                      &&DO_POW,
-	                                      &&DO_MOD,
-	                                      &&DO_GT,
-	                                      &&DO_GTE,
-	                                      &&DO_LT,
-	                                      &&DO_LTE,
-	                                      &&DO_EQ,
-	                                      &&DO_NEQ,
-	                                      &&DO_AND,
-	                                      &&DO_OR,
-	                                      &&DO_NOOP, //&&DO_SET,
-	                                      &&DO_INPUTI,
-	                                      &&DO_INPUTS,
-	                                      &&DO_INPUTF,
-	                                      &&DO_PRINT,
-	                                      &&DO_HALT,
-	                                      &&DO_JUMP,
-	                                      &&DO_JUMP_IF_TRUE,
-	                                      &&DO_JUMP_IF_FALSE,
-	                                      &&DO_CALL,
-	                                      &&DO_RETURN,
-	                                      &&DO_ARRAYREF,
-	                                      &&DO_MEMREF,
-	                                      &&DO_MAKE_ARRAY,
-	                                      &&DO_NOOP,
-	                                      &&DO_NEW_CONTAINER,
-	                                      &&DO_MEMSET,
-	                                      &&DO_NOOP, //&&DO_ARRAYREF,
-	                                      &&DO_ARRAYSET,
-	                                      &&DO_NOOP, //&&DO_ARRAYWRITE,
-	                                      &&DO_CALLNATIVE,
-	                                      &&DO_NOOP, //&&DO_SETI,
-	                                      &&DO_NOOP, //&&DO_PUSHIDV
-	                                      &&DO_STORE_SLOT,
-	                                      &&DO_LOAD_SLOT,
-	                                      &&DO_RESERVE_SLOT,
-	                                      &&DO_STORE_SLOT_GLOBAL,
-	                                      &&DO_LOAD_SLOT_GLOBAL,
-	                                      &&DO_SAVE_STORE_SLOT};
+	static const void *dispatchTable[] = {
+#define INSTRUCTION(x) &&DO_##x,
+#include "instruction.h"
+#undef INSTRUCTION
+	};
 
-#define COUNT_INS
+//#define COUNT_INS
 #ifdef COUNT_INS
 #define INC_COUNTER()                    \
 	{                                    \
@@ -540,13 +456,6 @@ void interpret() {
 		dpushidk(ins_get_val(++ip));
 		ip += 3;
 		DISPATCH();
-		/*
-	DO_PUSHIDV:
-
-		dpush(env_get(ins_get_val(++ip), &callFrame.env, 0));
-		ip += 3;
-		DISPATCH();
-*/
 	DO_PUSHN:
 		dpushn();
 		DISPATCH();
@@ -627,6 +536,28 @@ void interpret() {
 		}
 		rerr("Bad operands for operator '%%'");
 	}
+
+#define STORE_SLOT_X(N)                            \
+	DO_STORE_SLOT_##N : {                          \
+		Data value;                                \
+		dpop(value);                               \
+		size_t store_slot = N;                     \
+		Data   oldvalue   = baseStack[store_slot]; \
+		ref_incr(value);                           \
+		ref_decr(oldvalue);                        \
+		baseStack[store_slot] = value;             \
+		DISPATCH();                                \
+	}
+
+		STORE_SLOT_X(0)
+		STORE_SLOT_X(1)
+		STORE_SLOT_X(2)
+		STORE_SLOT_X(3)
+		STORE_SLOT_X(4)
+		STORE_SLOT_X(5)
+		STORE_SLOT_X(6)
+		STORE_SLOT_X(7)
+
 	DO_GT : {
 		Data d1, d2;
 		dpop(d1);
@@ -754,25 +685,6 @@ void interpret() {
 
 		rerr("Bad operands for operator 'Or'!");
 	}
-		/*
-DO_SET : {
-	Data id, value;
-	dpop(value);
-	dpop(id);
-	if(isidentifer(id)) {
-		env_put(tstrk(id), value, &callFrame.env);
-		DISPATCH();
-	}
-	rerr("Bad assignment target!");
-}
-	DO_SETI : {
-		Data value;
-		dpop(value);
-		env_implicit_put(ins_get_val(++ip), value, &callFrame.env);
-		ip += 3;
-		DISPATCH();
-	}
-	*/
 	DO_INPUTI : {
 		dpush(getInt());
 		DISPATCH();
@@ -816,10 +728,21 @@ DO_SET : {
 	}
 	DO_HALT:
 		stop();
-	DO_JUMP : {
+	DO_JUMP_IF_FALSE : {
+		Data     c;
 		uint32_t ja = ins_get_val(++ip);
-		ip          = ja;
-		DISPATCH_WINC();
+		dpop(c);
+		if(islogical(c)) {
+			if(!tlogical(c)) {
+				ip = ja;
+				DISPATCH_WINC();
+			}
+			ip += 3;
+			//        printf("\nCond is true!");
+			DISPATCH();
+		}
+
+		rerr("Illogical jump!");
 	}
 	DO_JUMP_IF_TRUE : {
 		Data     c;
@@ -836,21 +759,10 @@ DO_SET : {
 
 		rerr("Illogical jump!");
 	}
-	DO_JUMP_IF_FALSE : {
-		Data     c;
+	DO_JUMP : {
 		uint32_t ja = ins_get_val(++ip);
-		dpop(c);
-		if(islogical(c)) {
-			if(!tlogical(c)) {
-				ip = ja;
-				DISPATCH_WINC();
-			}
-			ip += 3;
-			//        printf("\nCond is true!");
-			DISPATCH();
-		}
-
-		rerr("Illogical jump!");
+		ip          = ja;
+		DISPATCH_WINC();
 	}
 	DO_CALL : {
 		// uint32_t numArg;
@@ -901,6 +813,26 @@ DO_SET : {
 		ip = ja;
 		DISPATCH_WINC();
 	}
+	DO_RESERVE_SLOT : { // Reserve slot for local variables
+		uint32_t count = ins_get_val(++ip);
+		ip += 3;
+		while(count-- > 0) dpushn();
+		DISPATCH();
+	}
+#define LOAD_SLOT_X(N)       \
+	DO_LOAD_SLOT_##N : {     \
+		dpush(baseStack[N]); \
+		DISPATCH();          \
+	}
+
+		LOAD_SLOT_X(0)
+		LOAD_SLOT_X(1)
+		LOAD_SLOT_X(2)
+		LOAD_SLOT_X(3)
+		LOAD_SLOT_X(4)
+		LOAD_SLOT_X(5)
+		LOAD_SLOT_X(6)
+		LOAD_SLOT_X(7)
 	DO_CALLNATIVE : {
 		uint32_t name = ins_get_val(++ip);
 		ip += 3;
@@ -1077,53 +1009,6 @@ DO_SET : {
 		}
 		rerr("Referenced value is not a container instance!");
 	}
-		/*
-DO_ARRAYREF : {
-Data index, iden, cont;
-dpop(iden);
-dpopv(index, callFrame);
-dpopv(cont, callFrame);
-if(isint(index)) {
-if(isins(cont)) {
-if(isidentifer(iden)) {
-Data arr = env_get(tstrk(iden), tenv(cont), 0);
-if(isarray(arr)) {
-if(tint(index) > 0 &&
-tint(index) <= arr_size(tarr(arr))) {
-dpush(arr_elements(tarr(arr))[tint(index) - 1]);
-DISPATCH();
-}
-rerr("Array index out of range : %" PRId32,
-tint(index));
-}
-if(isstr(arr)) {
-if(tint(index) < 1 ||
-(size_t)tint(index) > (str_len(tstrk(arr)) + 1)) {
-rerr("String index out of range : %" PRId32
-" [Expected <= %" PRIu32 "]",
-tint(index), str_len(tstrk(arr)));
-}
-
-if((size_t)tint(index) == str_len(tstrk(arr)) + 1) {
-dpushn();
-DISPATCH();
-}
-char *c = (char *)mallocate(sizeof(char) * 2);
-c[0]    = tstr(arr)[tint(index) - 1];
-c[1]    = 0;
-dpushs(c);
-DISPATCH();
-}
-
-rerr("Referenced item '%s' is not an array!", tstr(iden));
-}
-rerr("Bad identifer");
-}
-rerr("Referenced value is not a container instance");
-}
-rerr("Array index must be an integer!");
-}
-*/
 	DO_ARRAYSET : {
 		Data index, arr, value;
 		dpop(value);
@@ -1146,45 +1031,6 @@ rerr("Array index must be an integer!");
 		}
 		rerr("Array index must be an integer!");
 	}
-	/*
-	DO_ARRAYWRITE : {
-	Data index, iden, value;
-	dpopv(value, callFrame);
-	dpop(iden);
-	dpopv(index, callFrame);
-	if(isint(index)) {
-	if(isidentifer(iden)) {
-	Data arr = env_get(tstrk(iden), &callFrame.env, 0);
-	if(isarray(arr)) {
-	if(tint(index) > 0 && tint(index) <= arr_size(tarr(arr))) {
-	arr_elements(tarr(arr))[tint(index) - 1] = value;
-	DISPATCH();
-	}
-	rerr("Array index out of range : %" PRId32, tint(index));
-	}
-	if(isstr(arr)) {
-	if(tint(index) < 1 ||
-	(size_t)tint(index) > str_len(tstrk(arr))) {
-	rerr("String index out of range : %" PRId32,
-	tint(index));
-	}
-	if(!isstr(value)) {
-	rerr("Bad assignment to string!");
-	}
-	if(str_len(tstrk(value)) > 1) {
-	rwarn("Ignoring extra characters!");
-	}
-	char *s            = strdup(tstr(arr));
-	s[tint(index) - 1] = tstr(value)[0];
-	env_put(tstrk(iden), new_str(s), &callFrame.env);
-	DISPATCH();
-	}
-	rerr("Referenced item '%s' is not an array!"), tstr(iden);
-	}
-	rerr("Bad identifer");
-	}
-	rerr("Array index must be an integer![%s]", tstr(iden));
-	}*/
 	DO_STORE_SLOT : { // Set slot to a value
 		Data value;
 		dpop(value);
@@ -1208,12 +1054,6 @@ rerr("Array index must be an integer!");
 		dpush(baseStack[slot]);
 		// printf("\nslotnum : %d pointer : %p", baseptr + slot,
 		// &dataStack[baseptr + slot]); print_value("value", dpeek());
-		DISPATCH();
-	}
-	DO_RESERVE_SLOT : { // Reserve slot for local variables
-		uint32_t count = ins_get_val(++ip);
-		ip += 3;
-		while(count-- > 0) dpushn();
 		DISPATCH();
 	}
 	DO_STORE_SLOT_GLOBAL : {

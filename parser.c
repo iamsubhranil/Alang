@@ -310,24 +310,42 @@ static uint32_t getCall() {
 }
 
 static void compiler_resolve_variable(Compiler *compiler, uint32_t st) {
+	uint8_t specific = 0; // denotes whether to declare specific LOAD
+	                      // instruction or not
 	if(compiler_has_variable(compiler,
 	                         st)) { // Check whether the variable
-		// is declared locally
-		ins_add(compiler->blockName == BLOCK_NONE ? LOAD_SLOT_GLOBAL
-		                                          : LOAD_SLOT);
-		ins_add_val(compiler_get_variable(compiler, st));
+		                            // is declared locally
+		uint32_t varid = compiler_get_variable(compiler, st);
+		if(compiler->blockName == BLOCK_NONE) {
+			ins_add(LOAD_SLOT_GLOBAL);
+			ins_add_val(varid);
+		} else {
+			if(varid < 8) {
+				ins_add(LOAD_SLOT_0 + varid);
+				specific = 1;
+			} else {
+				ins_add(LOAD_SLOT);
+				ins_add_val(varid);
+			}
+		}
 	} else { // Local variable not found, let's try globally
 		uint32_t slot = compiler_get_global(compiler, st, canDeclare);
 		if(slot == 256) { // Even globally the variable not found
 			slot = 0;
 			if(canDeclare) { // Let's check if we can declare it now
 				slot = compiler_declare_variable(compiler, st);
-				ins_add(compiler->blockName == BLOCK_NONE ? LOAD_SLOT_GLOBAL
-				                                          : LOAD_SLOT);
+				if(compiler->blockName == BLOCK_NONE) {
+					ins_add(LOAD_SLOT_GLOBAL);
+				} else if(slot < 8) {
+					ins_add(LOAD_SLOT_0 + slot);
+					specific = 1;
+				} else
+					ins_add(LOAD_SLOT);
 			}
 		} else // Variable found globally
 			ins_add(LOAD_SLOT_GLOBAL);
-		ins_add_val(slot);
+		if(!specific)
+			ins_add_val(slot);
 	}
 }
 
@@ -665,6 +683,17 @@ static uint8_t generate_store() {
 		case LOAD_SLOT:
 			ins_set(ip_get() - 5, SAVE_STORE_SLOT);
 			replace_ins = STORE_SLOT;
+			break;
+		case LOAD_SLOT_0:
+		case LOAD_SLOT_1:
+		case LOAD_SLOT_2:
+		case LOAD_SLOT_3:
+		case LOAD_SLOT_4:
+		case LOAD_SLOT_5:
+		case LOAD_SLOT_6:
+		case LOAD_SLOT_7:
+			ins_set(ip_get() - 1, NOOP);
+			replace_ins = STORE_SLOT_0 + (ins - LOAD_SLOT_0);
 			break;
 		case LOAD_SLOT_GLOBAL:
 			ins_set(ip_get() - 5, SAVE_STORE_SLOT);
