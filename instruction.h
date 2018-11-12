@@ -5,7 +5,13 @@ INSTRUCTION(PUSHL)  // Int => push constant
 INSTRUCTION(PUSHS)  // Float => push constant
 INSTRUCTION(PUSHID) // Logical => push 0/1
 INSTRUCTION(PUSHN)  // Null => pushN, usually followed by return
+// NEW_CONTAINER calls return, in turn
+INSTRUCTION(NEW_CONTAINER) // Takes container name to resolve
 INSTRUCTION(RETURN)
+// Pop the top of the stack,
+// decr the ref if needed,
+// and simply discard it
+INSTRUCTION(POP)
 // Arithmetic, almost always followed by a store or another arithmetic
 INSTRUCTION(ADD)
 INSTRUCTION(SUB)
@@ -50,9 +56,7 @@ INSTRUCTION(MAKE_ARRAY) // Takes the slot number to store
 // Noop
 INSTRUCTION(NOOP)
 // Container
-// NEW_CONTAINER almost always followed by a STORE
-INSTRUCTION(NEW_CONTAINER) // Takes container name to resolve
-INSTRUCTION(MEMSET)        // top <- value, top - 1 <- member id, top - 2 <- ins
+INSTRUCTION(MEMSET) // top <- value, top - 1 <- member id, top - 2 <- ins
 INSTRUCTION(ARRAYSET)
 // Native Calls
 INSTRUCTION(CALLNATIVE)

@@ -874,6 +874,22 @@ void interpret() {
 		sp += bak;
 
 		dpush(handle_native(name, bak, baseStack));
+		goto DO_RETURN;
+	}
+	DO_NEW_CONTAINER : {
+		uint32_t name = ins_get_val(++ip);
+		ip += 3;
+		// Retrieve the Routine
+		Routine2 *r = routine_get(name);
+		// Create the instance
+		Data ins = new_ins(baseStack, r);
+		// dbg("refcount at creation %u", tins(ins)->obj.refCount);
+		// Pop all the slots
+		sp -= r->slots;
+		// Push the instance
+		dpush(ins);
+		// Finally, return from the
+		// initializer
 		// goto DO_RETURN;
 	}
 	DO_RETURN : {
@@ -912,6 +928,14 @@ void interpret() {
 		// dbg("ReStoring address : %lu", callFrame.returnAddress);
 		*/
 		DISPATCH_WINC();
+	}
+	DO_POP : {
+		Data d;
+		dpop(d);
+		// It doesn't need to decr the ref, since it has already
+		// been done by ref or such
+		// ref_decr(d);
+		DISPATCH();
 	}
 	DO_ARRAYREF : {
 		Data index;
@@ -980,22 +1004,6 @@ void interpret() {
 		rerr("Array size must be an integer!");
 	}
 	DO_NOOP : { DISPATCH(); }
-	DO_NEW_CONTAINER : {
-		uint32_t name = ins_get_val(++ip);
-		ip += 3;
-		// Retrieve the Routine
-		Routine2 *r = routine_get(name);
-		// Create the instance
-		Data ins = new_ins(baseStack, r);
-		// dbg("refcount at creation %u", tins(ins)->obj.refCount);
-		// Pop all the slots
-		sp -= r->slots;
-		// Push the instance
-		dpush(ins);
-		// Finally, return from the
-		// initializer
-		goto DO_RETURN;
-	}
 	DO_MEMSET : {
 		Data     ins, data;
 		uint32_t mem;

@@ -895,6 +895,9 @@ static void routineStatement(Compiler *compiler) {
 
 static void callStatement() {
 	call();
+	// Since the return value's gonna go to waste,
+	// pop it off from the stack
+	ins_add(POP);
 	consume(TOKEN_NEWLINE, "Expected newline after routine call!");
 }
 
