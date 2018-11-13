@@ -81,6 +81,6 @@ void str_free() {
 
 size_t str_release(void *s) {
 	String *str = (String *)s;
-	free(str->value);
+	memfree(str->value);
 	return sizeof(String);
 }

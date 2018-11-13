@@ -1,3 +1,5 @@
+#include "allocator.h"
+
 #include "object.h"
 #include "values.h"
 #include <assert.h>
@@ -46,7 +48,7 @@ static void obj_gc() {
 			parent->next = obj->next;
 			// Free the object
 			// dbg("Freeing %p\n", obj);
-			free(obj);
+			memfree(obj);
 			// Repoint obj to the previous object
 			// since it is going to be updated
 			// in the loop
@@ -66,7 +68,7 @@ static void obj_gc() {
 void *obj_alloc(size_t size, ObjectType type) {
 	// if(allocated > GC_THRESHOLD_BYTES)
 	//	obj_gc();
-	Object *obj   = (Object *)malloc(size);
+	Object *obj   = (Object *)mallocate(size);
 	obj->next     = NULL;
 	obj->type     = type;
 	obj->refCount = 0;
@@ -85,7 +87,7 @@ void obj_ref_decr(void *obj) {
 #ifdef GC_INSTANT
 	if(((Object *)obj)->refCount == 0) {
 		collect((Object *)obj);
-		free(obj);
+		memfree(obj);
 	}
 #endif
 }

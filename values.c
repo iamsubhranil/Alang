@@ -12,7 +12,7 @@ double isInt_IntPart = 0;
 Data new_array(uint32_t size) {
 	Array *arr  = (Array *)obj_alloc(sizeof(Array), OBJ_ARRAY);
 	arr->size   = size;
-	arr->values = (Data *)malloc(sizeof(Data) * size);
+	arr->values = (Data *)mallocate(sizeof(Data) * size);
 	for(uint32_t i = 0; i < size; i++) arr->values[i] = new_null();
 	return ARR | (uintptr_t)arr;
 }
@@ -23,7 +23,7 @@ Data new_ins(Data *baseStack, Routine2 *r) {
 	ins->memberCount = r->slots;
 	ins->name        = r->name;
 	// Copy the values
-	ins->values = (Data *)malloc(sizeof(Data) * ins->memberCount);
+	ins->values = (Data *)mallocate(sizeof(Data) * ins->memberCount);
 	memcpy(ins->values, baseStack, sizeof(Data) * ins->memberCount);
 	// dbg("Creating instance %p", ins);
 	// for(uint32_t i = 0;i < ins->memberCount;i++)
@@ -126,7 +126,7 @@ size_t arr_release(void *arr) {
 		}
 	}
 	// Release the array
-	free(a->values);
+	memfree(a->values);
 	return sizeof(Array);
 }
 
@@ -137,7 +137,7 @@ size_t ins_release(void *ins) {
 			ref_decr(i->values[j]);
 		}
 	}
-	free(i->values);
+	memfree(i->values);
 	return sizeof(Instance);
 }
 
