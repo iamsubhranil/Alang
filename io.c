@@ -59,7 +59,7 @@ static int isInt(char *s) {
 			return 0;
 		i++;
 	}
-	if(isSign(s[0]) && i == 1)
+	if(i == 0 || (isSign(s[0]) && i == 1))
 		return 0;
 	return 1;
 }
@@ -67,7 +67,7 @@ static int isInt(char *s) {
 Data getInt() {
 	char *s = readString();
 	while(!isInt(s)) {
-		rwarn("[Input Error] Not an integer : %s!", s);
+		rwarn("[Input Error] Not an integer : '%s'!", s);
 	int_retake:
 		memfree(s);
 		info("[Re-input] ");
@@ -102,7 +102,7 @@ static int isNumber(char *s) {
 			return 0;
 		i++;
 	}
-	if(isSign(s[0]) && i == 1)
+	if(i == 0 || (isSign(s[0]) && i == 1))
 		return 0;
 	return 1;
 }
@@ -110,7 +110,7 @@ static int isNumber(char *s) {
 Data getFloat() {
 	char *s = readString();
 	while(!isNumber(s)) {
-		rwarn("[Input Error] Not a number : %s!", s);
+		rwarn("[Input Error] Not a number : '%s'!", s);
 		memfree(s);
 		info("[Re-input] ");
 		s = readString();
