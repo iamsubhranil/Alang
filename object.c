@@ -71,7 +71,7 @@ void *obj_alloc(size_t size, ObjectType type) {
 	Object *obj   = (Object *)mallocate(size);
 	obj->next     = NULL;
 	obj->type     = type;
-	obj->refCount = 0;
+	obj->refCount = type == OBJ_ARRAY;
 #ifndef GC_INSTANT
 	// Add it to the queue
 	end->next = obj;
