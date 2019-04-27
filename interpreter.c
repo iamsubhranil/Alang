@@ -191,8 +191,11 @@ void ins_print() {
 				printf("%" PRIu32, ins_get_val(++i));
 				i += 3;
 				break;
+			case CALLVAR:
 			case CALL:
 				printf("%" PRIu32, ins_get_val(++i));
+				i += 3;
+				printf(" numarg=%" PRIu32, ins_get_val(++i));
 				i += 3;
 				printf(" arity=%" PRIu32, ins_get_val(++i));
 				i += 3;
@@ -764,6 +767,75 @@ void interpret() {
 		ip          = ja;
 		DISPATCH_WINC();
 	}
+	DO_CALLVAR : {
+		// uint32_t numArg;
+		uint32_t ja;
+		ja = ins_get_val(++ip);
+		ip += 3;
+		uint32_t numArg = ins_get_val(++ip), bak = numArg;
+		ip += 3;
+		uint32_t arity = ins_get_val(++ip);
+		ip += 3;
+		// printf("\nsp previously %lu numarg %d", sp, numArg);
+
+		// Add two more slots to the top of the stack
+		dpushn();
+		dpushn();
+
+		// sp points to the next slot, so decrement it
+		// to point to the first empty slot
+		--sp;
+
+		// Move all arguments to two three slot top
+		while(numArg--) {
+			dataStack[sp] = dataStack[sp - 2];
+			// Since they are now stored in a new slot,
+			// increment their reference count
+			ref_incr(dataStack[sp]);
+			--sp;
+		}
+
+		numArg = bak;
+
+		// sp now points to the first empty slot from top
+		// point it to the second
+		--sp;
+
+		// Push return address and baseptr to the newly created
+		// two slots
+
+		dpushi(ip + 1);  // Push the return address
+		dpushi(baseptr); // Push the base pointer
+
+		// dpushn();
+		baseptr   = sp; // Assign the new base pointer
+		baseStack = &dataStack[baseptr];
+
+		// Move the stack pointer to the top of arguments
+		sp += numArg;
+
+		// Find the number of extra arguments
+		uint32_t extra = numArg - (arity - 2);
+		// Now create the array which will store the
+		// variadic arguments
+		Data array = new_array(extra);
+		// Increment refCount of the array
+		obj_ref_incr(tarr(array));
+		// Now pop all 'extra' arguments from the stack,
+		// and assign them to the array
+		while(extra > 0) {
+			dpop(arr_elements(tarr(array))[extra - 1]);
+			extra--;
+		}
+		// Finally, push the array and the count as the last
+		// arguments
+		dpush(array);
+		dpushi(numArg - (arity - 2));
+
+		// Now complete the call
+		ip = ja;
+		DISPATCH_WINC();
+	}
 	DO_CALL : {
 		// uint32_t numArg;
 		uint32_t ja;
@@ -771,7 +843,10 @@ void interpret() {
 		ip += 3;
 		uint32_t numArg = ins_get_val(++ip), bak = numArg;
 		ip += 3;
-
+		// Ignore the third int, which is used only for
+		// variadic calls
+		ins_get_val(++ip);
+		ip += 3;
 		// printf("\nsp previously %lu numarg %d", sp, numArg);
 
 		// Add two more slots to the top of the stack
@@ -838,6 +913,8 @@ void interpret() {
 		ip += 3;
 		uint32_t numArg = ins_get_val(++ip), bak = numArg;
 		ip += 3;
+		uint32_t arity = ins_get_val(++ip);
+		ip += 3;
 
 		// Add two more slots to the top of the stack
 		dpushn();
@@ -873,6 +950,26 @@ void interpret() {
 		// Move the stack pointer to the top of arguments
 		sp += bak;
 
+		// it is a variadic call
+		if(arity > 0) {
+			// Find the number of extra arguments
+			uint32_t extra = bak - (arity - 2);
+			// Now create the array which will store the
+			// variadic arguments
+			Data array = new_array(extra);
+			// Increment refCount of the array
+			obj_ref_incr(tarr(array));
+			// Now pop all 'extra' arguments from the stack,
+			// and assign them to the array
+			while(extra > 0) {
+				dpop(arr_elements(tarr(array))[extra - 1]);
+				extra--;
+			}
+			// Finally, push the array and the count as the last
+			// arguments
+			dpush(array);
+			dpushi(bak - (arity - 2));
+		}
 		dpush(handle_native(name, bak, baseStack));
 		goto DO_RETURN;
 	}

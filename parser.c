@@ -396,8 +396,13 @@ static void primary() {
 
 			ins_add_val(arity);
 
+			// Store another byte to store the number of arguments
+			// in case of a variadic call
+			ins_add_val(0);
+
 			calls[tmp - 1].arity       = arity;
 			calls[tmp - 1].routineName = st;
+
 		} else {
 			if(keepID == 0) {
 				compiler_resolve_variable(presentCompiler, st);
@@ -827,6 +832,28 @@ static void routineStatement(Compiler *compiler) {
 	    initCompiler(compiler, compiler->indentLevel + 1, BLOCK_FUNC, 1);
 	if(peek() != TOKEN_RIGHT_PAREN) {
 		do {
+			if(match(TOKEN_VARARG)) {
+				if(peek() != TOKEN_RIGHT_PAREN) {
+					lnerr("Vararg should be the last argument!",
+					      presentToken());
+					he++;
+				}
+				if(routine.isNative) {
+					routine_add_slot(&routine, str_insert(strdup("Vargs"), 1));
+					routine_add_slot(&routine,
+					                 str_insert(strdup("Vlength"), 1));
+				}
+				compiler_declare_variable(comp, str_insert(strdup("Vargs"), 1));
+				compiler_declare_variable(comp,
+				                          str_insert(strdup("Vlength"), 1));
+				// The array containing the variadic arguments
+				// and the count are definitely not local
+				// variables, hence they should increase the
+				// arity of the function by 2
+				routine.arity += 2;
+				routine.isVararg = 1;
+				break;
+			}
 			args = (uint32_t *)reallocate(args, sizeof(uint32_t) * ++argp);
 			args[argp - 1] =
 			    str_insert(stringOf(consume(TOKEN_IDENTIFIER,
@@ -1073,10 +1100,12 @@ static void patchRoutines() {
 		// PRIu32,
 		//        i, c.callAddress, str_get(c.routineName), c.arity);
 		Routine2 *r = routine_get(c.routineName);
-		if(r->arity != c.arity) {
+		if((r->isVararg && (r->arity - 2) > c.arity) ||
+		   (!r->isVararg && r->arity != c.arity)) {
 			lnerr("Arity mismatch for routine '%s' : Expected %" PRIu32
 			      " Received %" PRIu32,
-			      c.t, str_get(r->name), r->arity, c.arity);
+			      c.t, str_get(r->name), r->arity - (r->isVararg ? 2 : 0),
+			      c.arity);
 			he++;
 			i++;
 			continue;
@@ -1084,8 +1113,15 @@ static void patchRoutines() {
 		if(r->isNative) {
 			ins_set(c.callAddress - 1, CALLNATIVE);
 			ins_set_val(c.callAddress, r->name);
-		} else
+		} else {
+			if(r->isVararg) {
+				ins_set(c.callAddress - 1, CALLVAR);
+			}
 			ins_set_val(c.callAddress, r->startAddress);
+		}
+		if(r->isVararg) {
+			ins_set_val(c.callAddress + 8, r->arity);
+		}
 		i++;
 	}
 	memfree(calls);
@@ -1121,7 +1157,7 @@ void parse(TokenList *list) {
 	uint32_t callMain = ins_add(CALL);
 	ins_add_val(r->startAddress);
 	ins_add_val(0);
-
+	ins_add_val(0);
 	ins_set_val(lastjump, callMain); // After all globals statements are
 	// executed, jump to the routine 'Main'
 	ins_add(HALT); // After Main returns, halt the machine

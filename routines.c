@@ -16,13 +16,14 @@ Routine2 routine_new() {
 	r.isNative     = 0;
 	r.variables    = NULL;
 	r.slots        = 0;
+	r.isVararg     = 0;
 	return r;
 }
 
 void routine_add_slot(Routine2 *r, uint32_t var) {
 	r->variables =
 	    (uint32_t *)reallocate(r->variables, sizeof(var) * ++r->slots);
-	r->variables[r->arity - 1] = var;
+	r->variables[r->slots - 1] = var;
 }
 
 uint8_t routine_get_slot(Routine2 *r, uint32_t var) {

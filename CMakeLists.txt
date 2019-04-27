@@ -21,3 +21,6 @@ target_link_libraries(alang_math lalang)
 
 add_library(nfibo SHARED algos/nativefibonacci.c)
 target_link_libraries(nfibo lalang)
+
+add_library(vantest SHARED algos/varargnative.c)
+target_link_libraries(vantest lalang)

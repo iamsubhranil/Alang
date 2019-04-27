@@ -182,7 +182,7 @@ static Routine2 get_routine(uint32_t name, int arity) {
 	r.name      = name;
 	r.arity     = arity;
 	r.variables = NULL;
-
+	r.isVararg  = 0;
 	return r;
 }
 

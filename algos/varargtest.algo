@@ -1,0 +1,30 @@
+Routine VarRoutine(a, ...)
+    Print "Routine called with ", Vlength, " variadic arguments"
+    If(Vlength > 0)
+        Print "\nThey are : "
+        Set i = 1
+        While(i <= Vlength)
+            Print Vargs[i]
+            Set i = i + 1
+        EndWhile
+    EndIf
+    Print "\n"
+EndRoutine
+
+Routine Main()
+    Call VarRoutine(1, 2, 3, 4, 5, 6)
+    Call PureVarRoutine()
+EndRoutine
+
+Routine PureVarRoutine(...)
+    Print "Routine called with ", Vlength, " variadic arguments"
+    If(Vlength > 0)
+        Print "\nThey are : "
+        Set i = 1
+        While(i <= Vlength)
+            Print Vargs[i]
+            Set i = i + 1
+        EndWhile
+    EndIf
+    Print "\n"
+EndRoutine 

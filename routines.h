@@ -10,6 +10,7 @@ typedef struct {
 	uint32_t  startAddress;
 	uint8_t   isNative;
 	uint8_t   slots;
+	uint8_t   isVararg;
 } Routine2;
 
 extern Routine2 *routines;

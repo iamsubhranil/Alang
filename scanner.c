@@ -372,7 +372,13 @@ static Token scanToken() {
 		case ';': return makeToken(TOKEN_SEMICOLON);
 		case ':': return makeToken(TOKEN_COLON);
 		case ',': return makeToken(TOKEN_COMMA);
-		case '.': return makeToken(TOKEN_DOT);
+		case '.':
+			if(peek() == '.' && peekNext() == '.') {
+				advance();
+				advance();
+				return makeToken(TOKEN_VARARG);
+			} else
+				return makeToken(TOKEN_DOT);
 		case '-': return makeToken(TOKEN_MINUS);
 		case '+': return makeToken(TOKEN_PLUS);
 		case '/':

@@ -60,6 +60,14 @@ INSTRUCTION(MEMSET) // top <- value, top - 1 <- member id, top - 2 <- ins
 INSTRUCTION(ARRAYSET)
 // Native Calls
 INSTRUCTION(CALLNATIVE)
+// Variadic Call
+// A separate instruction will reduce
+// an 'if' inside the original CALL
+// instruction to check for an compact
+// variadic arguments, thereby costing
+// nothing for the routines that do not
+// require it.
+INSTRUCTION(CALLVAR)
 // Call is always followed by a reserve slot,
 // which in turn is followed by LOAD_
 INSTRUCTION(CALL)

@@ -14,6 +14,7 @@ typedef enum {
 	TOKEN_BANG_EQUAL,
 	TOKEN_COMMA,
 	TOKEN_DOT,
+	TOKEN_VARARG,
 	TOKEN_COLON,
 
 	TOKEN_EQUAL,
@@ -88,7 +89,7 @@ static const char *tokenNames[] = {"TOKEN_LEFT_PAREN",  "TOKEN_RIGHT_PAREN",
 
                                    "TOKEN_BANG",        "TOKEN_BANG_EQUAL",
                                    "TOKEN_COMMA",       "TOKEN_DOT",
-                                   "TOKEN_COLON",
+                                   "TOKEN_VARARG",      "TOKEN_COLON",
 
                                    "TOKEN_EQUAL",       "TOKEN_EQUAL_EQUAL",
                                    "TOKEN_GREATER",     "TOKEN_GREATER_EQUAL",

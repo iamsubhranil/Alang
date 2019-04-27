@@ -53,7 +53,7 @@ Example:
 Each Alang program can be subdivided into several routines. Routines are the temporary store of reusuable instructions, and can be "called" from anywhere in the code, even from within the routine itself. One absolutely necessary routine of an Alang program is Main, which is the entrypoint of the program. Unlike Main, each routine can have multiple arguments, and may return a value to the caller. Routines can be freely called from anywhere where writing an expression is permitted. Every routine shares the global environment, but each of them also has their own environment too, which stays alive while the routine performs, and gets automatically garbage collected when the routine exits. Routines should be defined like the following :
 
 ```
-Routine MyRoutine(argument1, argument2, argument3, ...)
+Routine MyRoutine(argument1, argument2, argument3, .. , argumentN)
     Statement1
     .
     .
@@ -67,7 +67,7 @@ Every routine must be declared on the outermost indentation level, i.e. nested r
 It is not necessary for a routine to return a value. If a routine doesn't return something, it is assumed that the return value is `Null`. Since all routines share the global environment, any changes to the state of global variables can be tracked by other routines. To call a routine, one can either use the explicit `Call` statement, or call the routine as :
 
 ```
-    Set i = MyRoutine(parameter1, parameter2, ...)
+    Set i = MyRoutine(parameter1, parameter2, .. , parameterN)
 ```
 
 #### Containers
@@ -154,14 +154,14 @@ An Alang program is a collection of statements, each of which starts with one of
 
 10. Routine : Defines a routine.
 ```
-    Routine ARoutine(arg1, arg2, arg3, ...)
+    Routine ARoutine(arg1, arg2, arg3, .. , argN)
         Block
     EndRoutine
 ```
 
 11. Call : Calls a routine.
 ```
-    Call MyRoutine(arg1, arg2, arg3, ...)
+    Call MyRoutine(arg1, arg2, arg3, .. , argN)
 ```
 
 #### Native Functions
@@ -218,6 +218,16 @@ Some predefined constants :
 * `Math_Pi` : `acos(-1.0)` in `<math.h>`.
 * `Math_E` : `M_E` in glibc.
 * `ClocksPerSecond` : `CLOCKS_PER_SEC` in `<time.h>`.
+
+#### Variadic arguments
+
+Routines can also take variable number of arguments using the following syntax : 
+```
+Routine ARoutine(a, ...)
+```
+The variadic argument identifier `...` must be either the last or the only argument of the routine. The variadic arguments passed while calling the routine will be stored inside an array named `Vargs`, which will be locally accessible inside the declared routine, and the number of variadic arguments will be stored in variable `Vlength`, also local to the declared routine('ARoutine' in this case). 
+
+Native variadic routines can access the variadic arguments by first casting the penultimate argument to arr using `native_expect_arr`, which will contain the actual passed arguments, and then casting the last argument to int using `native_expect_int`, which will contain the number of such variadic arguments passed to the routine. See algos/varargnative.c for more information.
 
 #### Examples
 
