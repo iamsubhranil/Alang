@@ -1,2 +1,8 @@
 build/*
 *.out
+.gitignore
+alang
+counter
+thought.md
+.gdb_history
+.vscode/
