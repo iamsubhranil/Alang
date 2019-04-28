@@ -15,7 +15,7 @@ Routine insertAtEnd(x)
         EndWhile
         Set bak.next = x
     EndIf
-    Print "\nInsertion complete! "
+    Call Print("\nInsertion complete! ")
 EndRoutine
 
 Routine insertAtFront(x)
@@ -24,17 +24,17 @@ EndRoutine
 
 Routine deleteFromFront()
     If(front == Null)
-        Print "\nList is empty! Unable to delete!"
+        Call Print("\nList is empty! Unable to delete!")
     Else
         Set front = front.next
-        Print "\nDeletion succeeded!"
+        Call Print("\nDeletion succeeded!")
     EndIf
 EndRoutine
 
 Routine deleteValue(x)
     Set bak = front
     If(front == Null)
-        Print "\nList is empty! Unable to delete!"
+        Call Print("\nList is empty! Unable to delete!")
         Return
     Else If(front.value == x)
         Call deleteFromFront()
@@ -43,17 +43,17 @@ Routine deleteValue(x)
     While(bak.next != Null)
         If(bak.next.value == x)
             Set bak.next = bak.next.next
-            Print "\nDeletion succeeded!"
+            Call Print("\nDeletion succeeded!")
             Return
         EndIf
         Set bak = bak.next
     EndWhile
-    Print "\nDeletion failed!"
+    Call Print("\nDeletion failed!")
 EndRoutine
 
 Routine deleteFromEnd()
     If(front == Null)
-        Print "\nList is empty! Unable to delete!"
+        Call Print("\nList is empty! Unable to delete!")
     Else If(front.next == Null)
         Call deleteFromFront()
     Else
@@ -62,7 +62,7 @@ Routine deleteFromEnd()
             Set bak = bak.next
         EndWhile
         Set bak.next = bak.next.next
-        Print "\nDeletion succeeded!"
+        Call Print("\nDeletion succeeded!")
     EndIf
 EndRoutine
 
@@ -77,27 +77,27 @@ Routine insertAtPos(x, pos)
         Set i = i+1
     EndWhile
     If(bak == Null)
-        Print "\nInvalid position specified : ", pos
+        Call Print("\nInvalid position specified : ", pos)
     Else
         Set x.next = bak.next, bak.next = x
-        Print "\nInsertion complete! "
+        Call Print("\nInsertion complete! ")
     EndIf
 EndRoutine
 
 Routine PrintList(x)
     If(x == Null)
-        Print "\nEmpty list!"
+        Call Print("\nEmpty list!")
         Return
     EndIf
     Set bak = x, i = 1
     While(bak != Null)
-        Print "\nNode : ",i,"\tValue : ",bak.value
+        Call Print("\nNode : ",i,"\tValue : ",bak.value)
         Set bak = bak.next, i = i+1
     EndWhile
 EndRoutine
 
 Routine NewNode()
-    Print "\nEnter the value of the node : "
+    Call Print("\nEnter the value of the node : ")
     Input x:Int
     Return Node(x)
 EndRoutine

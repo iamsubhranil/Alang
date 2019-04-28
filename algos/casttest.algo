@@ -1,6 +1,6 @@
 Routine Main()
     Set i = 20
     Set j = 30.234
-    Print "\n i is ", i, " and j is ", j,"\n"
-    Print "i%10 is ", i%10, " and j%10 is ", j%10
+    Call Print("\n i is ", i, " and j is ", j,"\n")
+    Call Print("i%10 is ", i%10, " and j%10 is ", j%10)
 EndRoutine

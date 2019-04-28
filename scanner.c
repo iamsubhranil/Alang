@@ -43,8 +43,6 @@ static Keyword keywords[] = {{"Begin", 5, TOKEN_BEGIN},
                              {"Do", 2, TOKEN_DO},
                              {"EndDo", 5, TOKEN_ENDDO},
 
-                             {"Print", 5, TOKEN_PRINT},
-
                              {"Routine", 7, TOKEN_ROUTINE},
                              {"EndRoutine", 10, TOKEN_ENDROUTINE},
                              {"Call", 4, TOKEN_CALL},

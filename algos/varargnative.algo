@@ -3,11 +3,11 @@ Routine Foreign PureVargsNative(...)
 
 Routine Main()
     If(LoadLibrary("./libvantest.so"))
-        Print "Calling native vargs routine with 1 + 4 args..\n"
+        Call Print("Calling native vargs routine with 1 + 4 args..\n")
         Call VargsNative(1, 2, 3, 4, 5)
-        Print "Calling native pure vargs routine with 5 args..\n"
+        Call Print("Calling native pure vargs routine with 5 args..\n")
         Call PureVargsNative(1, 2, 3, 4, 5)
     Else
-        Print "\n[Error] Unable to load the required library!"
+        Call Print("\n[Error] Unable to load the required library!")
     EndIf
 EndRoutine

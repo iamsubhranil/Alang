@@ -6,5 +6,5 @@ Routine Main()
         Set b = c
         Set n = n + 1
     EndWhile
-    Print "Fibonacci(35) : ", c
+    Call Print("Fibonacci(35) : ", c)
 EndRoutine

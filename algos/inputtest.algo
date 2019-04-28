@@ -3,33 +3,33 @@ Container Storage()
 EndContainer
 
 Routine Main()
-    Print "\nTesting inputs"
-    Print "\nGive me an integer : "
+    Call Print("\nTesting inputs")
+    Call Print("\nGive me an integer : ")
     Input i:Int
-    Print "I read : ",i
-    Print "\nGive me a float : "
+    Call Print("I read : ",i)
+    Call Print("\nGive me a float : ")
     Input i:Float
-    Print "I read : ",i
-    Print "\nGive me a string : "
+    Call Print("I read : ",i)
+    Call Print("\nGive me a string : ")
     Input i
-    Print "I read : ",i
-    Print "\nStoring into container"
+    Call Print("I read : ",i)
+    Call Print("\nStoring into container")
     Set s = Storage()
-    Print "\nEnter int in s.x : "
+    Call Print("\nEnter int in s.x : ")
     Input s.x:Int
-    Print "s.x : ", s.x
-    Print "\nEnter float in s.y : "
+    Call Print("s.x : ", s.x)
+    Call Print("\nEnter float in s.y : ")
     Input s.y:Float
-    Print "s.y : ", s.y
-    Print "\nStoring into an array"
+    Call Print("s.y : ", s.y)
+    Call Print("\nStoring into an array")
     Array a[10]
-    Print "\nEnter int in a[5] : "
+    Call Print("\nEnter int in a[5] : ")
     Input a[5]:Int
-    Print "\na[5] : ", a[5]
-    Print "\nEnter float in a[1] : "
+    Call Print("\na[5] : ", a[5])
+    Call Print("\nEnter float in a[1] : ")
     Input a[1]:Float
-    Print "\na[1] : ", a[1]
-    Print "\nEnter string in a[10] : "
+    Call Print("\na[1] : ", a[1])
+    Call Print("\nEnter string in a[10] : ")
     Input a[10]
-    Print "\na[10] : ", a[10]
+    Call Print("\na[10] : ", a[10])
 EndRoutine

@@ -1,11 +1,11 @@
 Routine LongArgs(w, x, y, z)
-    Print "\nArg1 : ", w
-    Print "\nArg2 : ", x
-    Print "\nArg3 : ", y
-    Print "\nArg4 : ", z
+    Call Print("\nArg1 : ", w)
+    Call Print("\nArg2 : ", x)
+    Call Print("\nArg3 : ", y)
+    Call Print("\nArg4 : ", z)
 EndRoutine
 
 Routine Main()
-    Print "\nCalling LongArgs with 1,2,3,4 : "
+    Call Print("\nCalling LongArgs with 1,2,3,4 : ")
     Call LongArgs(0+1, 2, 3, 4)
 EndRoutine

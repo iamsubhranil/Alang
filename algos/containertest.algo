@@ -15,27 +15,27 @@ Routine insertAtEnd(x)
         EndWhile
         Set bak.next = x
     EndIf
-    Print "\nInsertion complete! "
+    Call Print("\nInsertion complete! ")
 EndRoutine
 
 Routine insertAtFront(x)
     Set x.next = front, front = x
-    Print "\nInsertion complete! "
+    Call Print("\nInsertion complete! ")
 EndRoutine
 
 Routine deleteFromFront()
     If(front == Null)
-        Print "\nList is empty! Unable to delete!"
+        Call Print("\nList is empty! Unable to delete!")
     Else
         Set front = front.next
-        Print "\nDeletion succeeded!"
+        Call Print("\nDeletion succeeded!")
     EndIf
 EndRoutine
 
 Routine deleteValue(x)
     Set bak = front
     If(front == Null)
-        Print "\nList is empty! Unable to delete!"
+        Call Print("\nList is empty! Unable to delete!")
         Return
     Else If(front.value == x)
         Call deleteFromFront()
@@ -44,17 +44,17 @@ Routine deleteValue(x)
     While(bak.next != Null)
         If(bak.next.value == x)
             Set bak.next = bak.next.next
-            Print "\nDeletion succeeded!"
+            Call Print("\nDeletion succeeded!")
             Return
         EndIf
         Set bak = bak.next
     EndWhile
-    Print "\nDeletion failed!"
+    Call Print("\nDeletion failed!")
 EndRoutine
 
 Routine deleteFromEnd()
     If(front == Null)
-        Print "\nList is empty! Unable to delete!"
+        Call Print("\nList is empty! Unable to delete!")
     Else If(front.next == Null)
         Call deleteFromFront()
     Else
@@ -63,7 +63,7 @@ Routine deleteFromEnd()
             Set bak = bak.next
         EndWhile
         Set bak.next = bak.next.next
-        Print "\nDeletion succeeded!"
+        Call Print("\nDeletion succeeded!")
     EndIf
 EndRoutine
 
@@ -78,27 +78,27 @@ Routine insertAtPos(x, pos)
         Set i = i+1
     EndWhile
     If(bak == Null)
-        Print "\nInvalid position specified : ", pos
+        Call Print("\nInvalid position specified : ", pos)
     Else
         Set x.next = bak.next, bak.next = x
-        Print "\nInsertion complete! "
+        Call Print("\nInsertion complete! ")
     EndIf
 EndRoutine
 
 Routine PrintList(x)
     If(x == Null)
-        Print "\nEmpty list!"
+        Call Print("\nEmpty list!")
         Return
     EndIf
     Set bak = x, i = 1
     While(bak != Null)
-        Print "\nNode : ",i,"\tValue : ",bak.value
+        Call Print("\nNode : ",i,"\tValue : ",bak.value)
         Set bak = bak.next, i = i+1
     EndWhile
 EndRoutine
 
 Routine NewNode()
-    Print "\nEnter the value of the node : "
+    Call Print("\nEnter the value of the node : ")
     Input x:Int
     Return Node(x)
 EndRoutine
@@ -108,17 +108,17 @@ Routine Main()
     //Call NewNode(6)
     //Set i = 0
     While(True)
-        Print "\nSelect an operation : "
-        Print "\n1. Insert at front"
-        Print "\n2. Insert at end"
-        Print "\n3. Insert at position"
-        Print "\n4. Print list"
-        Print "\n5. Delete from front"
-        Print "\n6. Delete from end"
-        Print "\n7. Delete value : "
+        Call Print("\nSelect an operation : ")
+        Call Print("\n1. Insert at front")
+        Call Print("\n2. Insert at end")
+        Call Print("\n3. Insert at position")
+        Call Print("\n4. Print list")
+        Call Print("\n5. Delete from front")
+        Call Print("\n6. Delete from end")
+        Call Print("\n7. Delete value : ")
         Input choice:Int
         If(choice < 1 Or choice > 7)
-            Print "\nBad choice!\n"
+            Call Print("\nBad choice!\n")
             Break
         Else
             If(choice < 4)
@@ -129,7 +129,7 @@ Routine Main()
             Else If(choice == 2)
                 Call insertAtEnd(node)
             Else If(choice == 3)
-                Print "\nEnter position to insert : "
+                Call Print("\nEnter position to insert : ")
                 Input pos:Int
                 Call insertAtPos(node,pos)
             Else If(choice == 4)
@@ -139,11 +139,11 @@ Routine Main()
             Else If(choice == 6)
                 Call deleteFromEnd()
             Else If(choice == 7)
-                Print "\nEnter the value to delete : "
+                Call Print("\nEnter the value to delete : ")
                 Input val:Int
                 Call deleteValue(val)
             EndIf
-            Print "\n"
+            Call Print("\n")
         EndIf
     EndWhile
     //Set front = node, node = front

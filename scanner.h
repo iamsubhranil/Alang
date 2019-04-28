@@ -68,8 +68,6 @@ typedef enum {
 	TOKEN_BREAK,
 	TOKEN_ENDWHILE,
 
-	TOKEN_PRINT,
-
 	TOKEN_ROUTINE,
 	TOKEN_ENDROUTINE,
 	TOKEN_CALL,
@@ -122,8 +120,6 @@ static const char *tokenNames[] = {"TOKEN_LEFT_PAREN",  "TOKEN_RIGHT_PAREN",
 
                                    "TOKEN_WHILE",       "TOKEN_BREAK",
                                    "TOKEN_ENDWHILE",
-
-                                   "TOKEN_PRINT",
 
                                    "TOKEN_ROUTINE",     "TOKEN_ENDROUTINE",
                                    "TOKEN_CALL",        "TOKEN_RETURN",

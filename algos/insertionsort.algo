@@ -1,38 +1,38 @@
 Routine PrintArray(arr, n)
-    Print "{ ", arr[1] 
+    Call Print("{ ", arr[1] )
     Set i = 2
     While (i <= n)
-        Print ", ", arr[i]
+        Call Print(", ", arr[i])
         Set i = i + 1
     EndWhile
-    Print "}\n"
+    Call Print("}\n")
 EndRoutine
 
 Routine Main()
-    Print "Enter the number of elements : "
+    Call Print("Enter the number of elements : ")
     Input num:Int
     Set i = 1
     Array elements[num]
     While (i <= num)
-        Print "Enter element ", i, " : "
+        Call Print("Enter element ", i, " : ")
         Input elements[i]:Float
         Set i = i + 1
     EndWhile
-    Print "Input taken : "
+    Call Print("Input taken : ")
     Call PrintArray(elements, num)
-    //Print elements[1], " at 1 \n"
+    //Call Print(elements[1], " at 1 \n")
     Set i = 2
     Set baki = i - 1
     While (i <= num)
         Set baki = i - 1
         Set val1 = elements[i]
-        //Print val1, " at ", i, " \n"
+        //Call Print(val1, " at ", i, " \n")
         While (baki >= 1)
             Set val2 = elements[baki]
-            //Print "\t", val2, " at ", baki, " \n"
+            //Call Print("\t", val2, " at ", baki, " \n")
             Set tgt = baki + 1
             If (val1 < val2)
-                //Print "\t\t", val2, " at ", tgt, " \n"
+                //Call Print("\t\t", val2, " at ", tgt, " \n")
                 Set elements[tgt] = val2
             Else
                 Break
@@ -43,6 +43,6 @@ Routine Main()
         Set elements[tgt] = val1
         Set i = i + 1
     EndWhile
-    Print "Elements after sort : "
+    Call Print("Elements after sort : ")
     Call PrintArray(elements, num)
 EndRoutine

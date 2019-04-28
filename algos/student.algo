@@ -9,14 +9,14 @@ Array students[20]
 Set n = 0, i = 1
 
 Routine Entry(x)
-    Print "\nEnter details of student ", i, " : "
-    Print "\nRoll : "
+    Call Print("\nEnter details of student ", i, " : ")
+    Call Print("\nRoll : ")
     Input roll:Int
-    Print "\nName : "
+    Call Print("\nName : ")
     Input name
-    Print "\nMarks in subject 1 : "
+    Call Print("\nMarks in subject 1 : ")
     Input m1:Float
-    Print "\nMarks in subject 2 : "
+    Call Print("\nMarks in subject 2 : ")
     Input m2:Float
     Set students[x] = Student(name, roll, m1, m2)
 EndRoutine
@@ -25,18 +25,18 @@ Routine Display(roll)
     Set i = 1
     While(i <= n)
         If(students[i].roll == roll)
-            Print "\nDetails of student"
-            Print "\n=================="
-            Print "\nRoll : ", students[i].roll
-            Print "\nName : ", students[i].name
-            Print "\nMarks in =>"
-            Print "\nSubject 1 : ", students[i].mar1
-            Print "\nSubject 2 : ", students[i].mar2
+            Call Print("\nDetails of student")
+            Call Print("\n==================")
+            Call Print("\nRoll : ", students[i].roll)
+            Call Print("\nName : ", students[i].name)
+            Call Print("\nMarks in =>")
+            Call Print("\nSubject 1 : ", students[i].mar1)
+            Call Print("\nSubject 2 : ", students[i].mar2)
             Return
         EndIf
         Set i = i + 1
     EndWhile
-    Print "\nRecord does not exist for roll ", roll
+    Call Print("\nRecord does not exist for roll ", roll)
 EndRoutine
 
 Routine Average()
@@ -47,8 +47,8 @@ Routine Average()
         Set i = i + 1
     EndWhile
     Set avg1 = t1/n, avg2 = t2/n
-    Print "\nAverage marks in subject 1 : ", avg1
-    Print "\nAverage marks in subject 2 : ", avg2
+    Call Print("\nAverage marks in subject 1 : ", avg1)
+    Call Print("\nAverage marks in subject 2 : ", avg2)
 EndRoutine
 
 Routine Highest()
@@ -66,22 +66,22 @@ Routine Highest()
         Set i = i + 1
     EndWhile
     If(c1 == c2)
-        Print "\nName : ", students[c1].name
-        Print "\nRoll : ", students[c1].roll
-        Print "\nHas scored highest marks in both subjects!"
+        Call Print("\nName : ", students[c1].name)
+        Call Print("\nRoll : ", students[c1].roll)
+        Call Print("\nHas scored highest marks in both subjects!")
     Else
-        Print "\nDetails of students who scored the highest marks"
-        Print "\nName : ", students[c1].name
-        Print "\nRoll : ", students[c1].roll
-        Print "\nScored highest marks in subject 1"
-        Print "\nName : ", students[c2].name
-        Print "\nRoll : ", students[c2].roll
-        Print "\nScored highest marks in subject 2"
+        Call Print("\nDetails of students who scored the highest marks")
+        Call Print("\nName : ", students[c1].name)
+        Call Print("\nRoll : ", students[c1].roll)
+        Call Print("\nScored highest marks in subject 1")
+        Call Print("\nName : ", students[c2].name)
+        Call Print("\nRoll : ", students[c2].roll)
+        Call Print("\nScored highest marks in subject 2")
     EndIf
 EndRoutine
 
 Routine Main()
-    Print "\nEnter number of students : "
+    Call Print("\nEnter number of students : ")
     Input n:Int
     While(i <= n)
         Call Entry(i)
@@ -89,11 +89,11 @@ Routine Main()
     EndWhile
     Set ch = 1
     While(ch != 4)
-        Print "\n1. Details of student\n2. Average marks\n3. Highest marks\n4. Exit"
-        Print "\nEnter your choice : "
+        Call Print("\n1. Details of student\n2. Average marks\n3. Highest marks\n4. Exit")
+        Call Print("\nEnter your choice : ")
         Input ch:Int
         If(ch == 1)
-            Print "\nEnter the roll no : "
+            Call Print("\nEnter the roll no : ")
             Input roll:Int
             Call Display(roll)
         Else If(ch == 2)
@@ -101,7 +101,7 @@ Routine Main()
         Else If(ch == 3)
             Call Highest()
         Else If(ch!=4)
-            Print "\nWrong choice!"
+            Call Print("\nWrong choice!")
         EndIf
     EndWhile
 EndRoutine

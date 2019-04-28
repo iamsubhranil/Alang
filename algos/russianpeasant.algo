@@ -2,22 +2,22 @@ Routine Main()
     Set loop = True
     Array n[20]
     While(loop)
-        Print "\nEnter two integers : "
+        Call Print("\nEnter two integers : ")
         Input a:Int, b:Int
         If(a < 1 Or b < 1)
-            Print "Invalid input!\n"
+            Call Print("Invalid input!\n")
             End
         EndIf
-        Print "Peasant Multiplication Method as follows"
-        Print "\n======================================="
+        Call Print("Peasant Multiplication Method as follows")
+        Call Print("\n=======================================")
         Set i = 1
         Set d = a
         Set e = b
         While(d > 0)
             If(d % 2 == 0)
-                Print "\n\n", d, "\t",e," x(struck of)"
+                Call Print("\n\n", d, "\t",e," x(struck of)")
             Else
-                Print "\n\n", d, "\t",e
+                Call Print("\n\n", d, "\t",e)
                 Set n[i] = e
                 Set i = i + 1
             EndIf
@@ -25,16 +25,16 @@ Routine Main()
             Set e = e*2
         EndWhile
         Set s = n[1]
-        Print "\n\n", s
+        Call Print("\n\n", s)
         Set d = 2
         While(d < i)
-            Print " + ", n[d]
+            Call Print(" + ", n[d])
             Set s = s+n[d]
             Set d = d+1
         EndWhile
-        Print " = ",s
-        Print " which is equal to ",a," * ",b," = ",a*b
-        Print "\nDo you want to continue (y/n) ? "
+        Call Print(" = ",s)
+        Call Print(" which is equal to ",a," * ",b," = ",a*b)
+        Call Print("\nDo you want to continue (y/n) ? ")
         Input choice
         If(choice != "Y" And choice != "y")
             Set loop = False

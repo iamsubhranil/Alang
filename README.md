@@ -106,7 +106,7 @@ An Alang program is a collection of statements, each of which starts with one of
 
 3. Print : Prints a string, a variable, or an expression to the standard output.
 ```
-    Print variable1 [, expression1 [...]]
+    Call Print(variable1 [, expression1 [...]])
 ```
 
 4. Array : Declares an array. Array dimension needs to be specified using square braces while declaration, and it can be changed later. Though the dimension can be an arithmetic expression, but it *must* be an integer. An array can be resized by redefining it.

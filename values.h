@@ -164,6 +164,7 @@ Data new_ins(Data *baseStack, Routine2 *r);
 #define ttype(value) (value & 0xffff800000000000)
 
 void data_free(Data d);
+void data_print(Data d);
 void print_value(const char *expected, Data d);
 
 #define ref_incr(value)                 \

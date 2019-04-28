@@ -2,29 +2,29 @@ Set i = 0
 Set j = 1
 Array arr[5]
 Routine Main()
-    Print "[Main] Global i is : ", i
-    Print "\n[Main] Global j is : ", j
+    Call Print("[Main] Global i is : ", i)
+    Call Print("\n[Main] Global j is : ", j)
     Call IncI()
-    Print "\n[Main] Global i is : ", i
+    Call Print("\n[Main] Global i is : ", i)
     Call IncJ()
-    Print "\n[Main] Global j is : ", j
-    Print "\n[Main] Setting local k to 30"
+    Call Print("\n[Main] Global j is : ", j)
+    Call Print("\n[Main] Setting local k to 30")
     Set k = 30
     Call IncK()
-    Print "\n[Main] Local k is : ", k
+    Call Print("\n[Main] Local k is : ", k)
     Set arr[5] = 3
-    Print "\narr[5] : ", arr[5]
+    Call Print("\narr[5] : ", arr[5])
 EndRoutine
 Routine IncI()
-    Print "\n[IncI] Setting global i to 10"
+    Call Print("\n[IncI] Setting global i to 10")
     Set i = 10
 EndRoutine
 Routine IncJ()
-    Print "\n[IncJ] Setting global j to 20"
+    Call Print("\n[IncJ] Setting global j to 20")
     Set j = 20
 EndRoutine
 Routine IncK()
-    Print "\n[IncK] Setting local k to 25"
+    Call Print("\n[IncK] Setting local k to 25")
     Set k = 25
-    Print "\n[IncK] Local k is : ", k
+    Call Print("\n[IncK] Local k is : ", k)
 EndRoutine

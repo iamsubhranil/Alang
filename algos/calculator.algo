@@ -1,10 +1,10 @@
 Routine Main()
-    Print "\nEnter first number : "
+    Call Print("\nEnter first number : ")
     Input n1:Int
-    Print "\nEnter second number : "
+    Call Print("\nEnter second number : ")
     Input n2:Int
-    Print "\n",n1," + ",n2," : ", n1 + n2
-    Print "\n",n1," - ",n2," : ", n1 - n2
-    Print "\n",n1," * ",n2," : ", n1 * n2
-    Print "\n",n1," / ",n2," : ", n1 / n2
+    Call Print("\n",n1," + ",n2," : ", n1 + n2)
+    Call Print("\n",n1," - ",n2," : ", n1 - n2)
+    Call Print("\n",n1," * ",n2," : ", n1 * n2)
+    Call Print("\n",n1," / ",n2," : ", n1 / n2)
 EndRoutine

@@ -1,8 +1,8 @@
 Routine Main()
-    Print "Give an integer to search prime factors for : "
+    Call Print("Give an integer to search prime factors for : ")
     Input N:Int
     If(N < 1)
-        Print "[Error] Input must be >= 2"
+        Call Print("[Error] Input must be >= 2")
         End
     EndIf
     Set i = Int(N/2), count = 0
@@ -18,13 +18,13 @@ Routine Main()
                 Set temp = temp + 1
             EndWhile
             If(isPrime)
-                Print i, " is a prime factor of ", N, "\n"
+                Call Print(i, " is a prime factor of ", N, "\n")
             EndIf
             Set count = count + 1
         EndIf
         Set i = i - 1
     EndWhile
     If(count == 0)
-        Print N, " is a prime number!\n"
+        Call Print(N, " is a prime number!\n")
     EndIf
 EndRoutine

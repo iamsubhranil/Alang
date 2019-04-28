@@ -1,30 +1,30 @@
 Set front = Null
 Container Node(x)
-    Print "\n[Node] Creating a node with value ", x
+    Call Print("\n[Node] Creating a node with value ", x)
     Set value = x
     Set next = Null
-    Print "\n[Node] Node creation complete!"
+    Call Print("\n[Node] Node creation complete!")
 EndContainer
 Routine InsertAtEnd(x)
     If(front == Null)
         Set front = x
-        Print "\nAssigning front to value : ", front.value
+        Call Print("\nAssigning front to value : ", front.value)
     Else
-        Print "\nFront.value : ", front.value
-        Print "\nLooping.."
+        Call Print("\nFront.value : ", front.value)
+        Call Print("\nLooping..")
         Set y = front
         While(y.next != Null)
-            Print "\ny.value : ", y.value
+            Call Print("\ny.value : ", y.value)
             Set y = y.next
         EndWhile
-        Print "\nSetting next of ", y.value, " to ", x.value
+        Call Print("\nSetting next of ", y.value, " to ", x.value)
         Set y.next = x
     EndIf
 EndRoutine
 Routine PrintList()
     Set y = front, i = 1
     While(y != Null)
-        Print "Node : ", i, " Value : ", y.value, "\n"
+        Call Print("Node : ", i, " Value : ", y.value, "\n")
         Set y = y.next, i = i + 1
     EndWhile
 EndRoutine
@@ -32,6 +32,6 @@ Routine Main()
     Call InsertAtEnd(Node(5))
     Call InsertAtEnd(Node(6))
     Call InsertAtEnd(Node(7))
-    //Print "\nFront.value : ", front.value
+    //Call Print("\nFront.value : ", front.value)
     Call PrintList()
 EndRoutine

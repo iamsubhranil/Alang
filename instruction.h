@@ -46,7 +46,6 @@ INSTRUCTION(
     INPUTI) // Just reads an integer from stdin and pushes it to the stack
 INSTRUCTION(INPUTS) //               string
 INSTRUCTION(INPUTF) //               float
-INSTRUCTION(PRINT)
 // Control flow and branching
 INSTRUCTION(HALT)
 // Data structures

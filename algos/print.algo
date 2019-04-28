@@ -1,10 +1,10 @@
 Routine Main()
-    Print "Hello World!"
+    Call Print("Hello World!")
     Set i = 2
-    Print i
+    Call Print(i)
     If(i > 2)
-        Print "i is greater than 2!"
+        Call Print("i is greater than 2!")
     Else
-        Print "i is equal to 2!"
+        Call Print("i is equal to 2!")
     EndIf
 EndRoutine

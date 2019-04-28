@@ -116,6 +116,55 @@ void data_free(Data d) {
 	}
 }
 
+static void printString(const char *s) {
+	int i = 0, len = strlen(s);
+	// printf("\nPrinting : %s", s);
+	while(i < len) {
+		if(s[i] == '\\' && i < (len - 1)) {
+			if(s[i + 1] == 'n') {
+				putchar('\n');
+				i++;
+			} else if(s[i + 1] == 't') {
+				putchar('\t');
+				i++;
+			} else if(s[i + 1] == '"') {
+				putchar('"');
+				i++;
+			} else
+				putchar('\\');
+		} else
+			putchar(s[i]);
+		i++;
+	}
+}
+
+void data_print(Data value) {
+		if(isfloat(value)) {
+			printf("%g", tfloat(value));
+			return;
+		}
+		switch(ttype(value)) {
+			// case INT:
+			//     printf("%" PRId32, tint(value));
+			//     break;
+			case LOGICAL:
+				printf("%s", tint(value) == 0 ? "False" : "True");
+				break;
+			case NIL: printf("Null"); break;
+			case STRING: printString(str_get(tstrk(value))); break;
+			case INSTANCE:
+				printf("<instance of %s>", str_get(tins(value)->name));
+				break;
+			case IDENTIFIER:
+				printf("<identifer %s>", str_get(tstrk(value)));
+				break;
+			case ARR:
+				printf("<array of %zu>", arr_size(tarr(value)));
+				break;
+			case NONE: printf("<none>"); break;
+		}
+}
+
 size_t arr_release(void *arr) {
 	Array *a = (Array *)arr;
 	if(!obj_isfree()) {

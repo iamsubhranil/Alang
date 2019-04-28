@@ -7,5 +7,5 @@ Routine Fibonacci(x)
 EndRoutine
 
 Routine Main()
-    Print "Fibonacci(28) : ", Fibonacci(28)
+    Call Print("Fibonacci(28) : ", Fibonacci(28))
 EndRoutine

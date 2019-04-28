@@ -1,14 +1,14 @@
 Routine VarRoutine(a, ...)
-    Print "Routine called with ", Vlength, " variadic arguments"
+    Call Print("Routine called with ", Vlength, " variadic arguments")
     If(Vlength > 0)
-        Print "\nThey are : "
+        Call Print("\nThey are : ")
         Set i = 1
         While(i <= Vlength)
-            Print Vargs[i]
+            Call Print(Vargs[i])
             Set i = i + 1
         EndWhile
     EndIf
-    Print "\n"
+    Call Print("\n")
 EndRoutine
 
 Routine Main()
@@ -17,14 +17,14 @@ Routine Main()
 EndRoutine
 
 Routine PureVarRoutine(...)
-    Print "Routine called with ", Vlength, " variadic arguments"
+    Call Print("Routine called with ", Vlength, " variadic arguments")
     If(Vlength > 0)
-        Print "\nThey are : "
+        Call Print("\nThey are : ")
         Set i = 1
         While(i <= Vlength)
-            Print Vargs[i]
+            Call Print(Vargs[i])
             Set i = i + 1
         EndWhile
     EndIf
-    Print "\n"
+    Call Print("\n")
 EndRoutine 

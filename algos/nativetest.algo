@@ -1,21 +1,21 @@
 Include ../native/Math.al
 
 Routine Main()
-    Print "\nEnter the degree : "
+    Call Print("\nEnter the degree : ")
     Input x:Float
     Set y = Radian(x)
-    Print "\n", x, " degree is ", y, " radian!"
-    Print "\nCalling math functions : "
-    Print "\nSin(",y,") is ", Sin(y)
-    Print "\nCos(",y,") is ", Cos(y)
-    Print "\nTan(",y,") is ", Tan(y)
-    Print "\nASin(",y,") is ", ASin(y)
-    Print "\nACos(",y,") is ", ACos(y)
-    Print "\nATan(",y,") is ", ATan(y)
-    Print "\nSinh(",y,") is ", Sinh(y)
-    Print "\nCosh(",y,") is ", Cosh(y)
-    Print "\nTanh(",y,") is ", Tanh(y)
-    Print "\nLog(",y,") is ", Log(y)
-    Print "\nLog10(",y,") is ", Log10(y)
-    Print "\nExp(",y,") is ", Exp(y)
+    Call Print("\n", x, " degree is ", y, " radian!")
+    Call Print("\nCalling math functions : ")
+    Call Print("\nSin(",y,") is ", Sin(y))
+    Call Print("\nCos(",y,") is ", Cos(y))
+    Call Print("\nTan(",y,") is ", Tan(y))
+    Call Print("\nASin(",y,") is ", ASin(y))
+    Call Print("\nACos(",y,") is ", ACos(y))
+    Call Print("\nATan(",y,") is ", ATan(y))
+    Call Print("\nSinh(",y,") is ", Sinh(y))
+    Call Print("\nCosh(",y,") is ", Cosh(y))
+    Call Print("\nTanh(",y,") is ", Tanh(y))
+    Call Print("\nLog(",y,") is ", Log(y))
+    Call Print("\nLog10(",y,") is ", Log10(y))
+    Call Print("\nExp(",y,") is ", Exp(y))
 EndRoutine

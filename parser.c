@@ -786,16 +786,6 @@ static void inputStatement() {
 	consume(TOKEN_NEWLINE, "Expected newline after Input!");
 }
 
-static void printStatement() {
-	// debug("Parsing print statement");
-	do {
-		expression();
-		ins_add(PRINT);
-	} while(match(TOKEN_COMMA));
-	consume(TOKEN_NEWLINE, "Expected newline after Print!");
-	// debug("Print statement parsed");
-}
-
 static void beginStatement() {
 	// debug("Parsing begin statement");
 	consume(TOKEN_NEWLINE, "Expected newline after Begin!");
@@ -1046,8 +1036,6 @@ static void statement(Compiler *compiler) {
 		return whileStatement(compiler);
 	// else if(match(TOKEN_DO))
 	//     return doStatement(compiler);
-	else if(match(TOKEN_PRINT))
-		return printStatement();
 	else if(match(TOKEN_BREAK))
 		return breakStatement();
 	else if(match(TOKEN_ROUTINE))

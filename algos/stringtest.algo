@@ -2,27 +2,27 @@ Routine Main()
 /*
 * Multiline comment
 */
-    Print "\nHello world!\n"
+    Call Print("\nHello world!\n")
     Set i = "Welcome"
     
-// Print Something
+// Call Print(Something)
 
-    Print i, " to ", "Alang!"
+    Call Print(i, " to ", "Alang!")
     Set j = " to Alang"
-    Print "\ni contains '",i,"' and j contains '",j,"'"
-    Print "\ni + j becomes : ",i + j
-    Print "\ni == j : ", i==j
-    Print "\ni < j : ", i < j
-    Print "\ni > j : ", i > j
-    Print "\ni != j : ", i != j
-    Print "\nj[5] : ", j[5]
-    Print "\nSetting j[5] to k.."
+    Call Print("\ni contains '",i,"' and j contains '",j,"'")
+    Call Print("\ni + j becomes : ",i + j)
+    Call Print("\ni == j : ", i==j)
+    Call Print("\ni < j : ", i < j)
+    Call Print("\ni > j : ", i > j)
+    Call Print("\ni != j : ", i != j)
+    Call Print("\nj[5] : ", j[5])
+    Call Print("\nSetting j[5] to k..")
     Set j[5] = "k"
-    Print "\nNew j : ", j
-    Print "\nAccessing just next to the size of a string returns : ", i[8]
-    Print "\nAlang should warn about some extra assignments now ;)"
+    Call Print("\nNew j : ", j)
+    Call Print("\nAccessing just next to the size of a string returns : ", i[8])
+    Call Print("\nAlang should warn about some extra assignments now ;)")
     Set j[5] = "kaa"
-    Print "\ni contains a string, and we're gonna add 5 to it.\nThe result should be awesome ;)\n"
-    Print "i+5 = ", i+5
+    Call Print("\ni contains a string, and we're gonna add 5 to it.\nThe result should be awesome ;)\n")
+    Call Print("i+5 = ", i+5)
     
 EndRoutine

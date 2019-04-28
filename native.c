@@ -120,6 +120,16 @@ static Data Int(Data *stack) {
 	return new_null();
 }
 
+static Data Print(Data *stack) {
+    Data vararg = stack[0];
+    int argc = native_expect_int(stack[1]), i = 0;
+    while(argc--) {
+        data_print(arr_elements(tarr(vararg))[i]);
+        i++;
+    }
+    return new_null();
+}
+
 void unload_all() {
 	// uint32_t i   = 0;
 	// char *   err = NULL;
@@ -161,7 +171,7 @@ static Data RunNative(uint32_t name, uint32_t numargs, Data *stack) {
 	return fhandle(arr);
 }
 
-static uint32_t loadLibrary = 0, unloadLibrary = 0, Clock = 0, toInt = 0;
+static uint32_t loadLibrary = 0, unloadLibrary = 0, Clock = 0, toInt = 0, print = 0;
 
 Data handle_native(uint32_t name, uint32_t numargs, Data *stack) {
 	if(name == toInt)
@@ -172,17 +182,19 @@ Data handle_native(uint32_t name, uint32_t numargs, Data *stack) {
 		return UnloadLibrary(stack);
 	if(name == Clock)
 		return new_int((int32_t)clock());
+	if(name == print)
+	    return Print(stack);
 
 	return RunNative(name, numargs, stack);
 }
 
-static Routine2 get_routine(uint32_t name, int arity) {
+static Routine2 get_routine(uint32_t name, int arity, int isVararg) {
 	Routine2 r;
 	r.isNative  = 1;
 	r.name      = name;
 	r.arity     = arity;
 	r.variables = NULL;
-	r.isVararg  = 0;
+	r.isVararg  = isVararg;
 	return r;
 }
 
@@ -193,13 +205,13 @@ static void add_argument(Routine2 *r, uint32_t argName) {
 }
 
 static Routine2 getSingleArgRoutine(uint32_t name) {
-	Routine2 r = get_routine(name, 0);
+	Routine2 r = get_routine(name, 0, 0);
 	add_argument(&r, str_insert(strdup("x"), 1));
 	return r;
 }
 
-static Routine2 getZeroArgRoutine(uint32_t name) {
-	return get_routine(name, 0);
+static Routine2 getZeroArgRoutine(uint32_t name, int isVararg) {
+	return get_routine(name, 0 + (isVararg * 2), isVararg);
 }
 
 typedef struct {
@@ -227,10 +239,12 @@ void register_native_routines() {
 	unloadLibrary = str_insert(strdup("UnloadLibrary"), 1);
 	Clock         = str_insert(strdup("Clock"), 1);
 	toInt         = str_insert(strdup("Int"), 1);
+	print         = str_insert(strdup("Print"), 1);
 	routine_add(getSingleArgRoutine(loadLibrary));
 	routine_add(getSingleArgRoutine(unloadLibrary));
-	routine_add(getZeroArgRoutine(Clock));
+	routine_add(getZeroArgRoutine(Clock, 0));
 	routine_add(getSingleArgRoutine(toInt));
+	routine_add(getZeroArgRoutine(print, 1));
 }
 
 void register_natives() {
