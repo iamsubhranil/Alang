@@ -808,8 +808,6 @@ void interpret() {
 		// Now create the array which will store the
 		// variadic arguments
 		Data array = new_array(extra);
-		// Increment refCount of the array
-		obj_ref_incr(tarr(array));
 		// Now pop all 'extra' arguments from the stack,
 		// and assign them to the array
 		while(extra > 0) {
@@ -862,8 +860,6 @@ void interpret() {
 			// Now create the array which will store the
 			// variadic arguments
 			Data array = new_array(extra);
-			// Increment refCount of the array
-			obj_ref_incr(tarr(array));
 			// Now pop all 'extra' arguments from the stack,
 			// and assign them to the array
 			while(extra > 0) {
