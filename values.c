@@ -141,6 +141,57 @@ size_t ins_release(void *ins) {
 	return sizeof(Instance);
 }
 
+static void printString(const char *s) {
+	int i = 0, len = strlen(s);
+	// printf("\nPrinting : %s", s);
+	while(i < len) {
+		if(s[i] == '\\' && i < (len - 1)) {
+			if(s[i + 1] == 'n') {
+				putchar('\n');
+				i++;
+			} else if(s[i + 1] == 't') {
+				putchar('\t');
+				i++;
+			} else if(s[i + 1] == '"') {
+				putchar('"');
+				i++;
+			} else
+				putchar('\\');
+		} else
+			putchar(s[i]);
+		i++;
+	}
+}
+
+void data_print(Data value) {
+
+		// dbg("Value : %lx", value);
+		if(isfloat(value)) {
+			printf("%g", tfloat(value));
+			return;
+		}
+		switch(ttype(value)) {
+			// case INT:
+			//     printf("%" PRId32, tint(value));
+			//     return;
+			case LOGICAL:
+				printf("%s", tint(value) == 0 ? "False" : "True");
+				return;
+			case NIL: printf("Null"); return;
+			case STRING: printString(str_get(tstrk(value))); return;
+			case INSTANCE:
+				printf("<instance of %s>", str_get(tins(value)->name));
+				return;
+			case IDENTIFIER:
+				printf("<identifer %s>", str_get(tstrk(value)));
+				return;
+			case ARR:
+				printf("<array of %zu>", arr_size(tarr(value)));
+				return;
+			case NONE: printf("<none>"); return;
+		}
+}
+
 /*
 
    int main(){

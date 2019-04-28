@@ -260,28 +260,6 @@ void stop() {
 	exit(0);
 }
 
-static void printString(const char *s) {
-	int i = 0, len = strlen(s);
-	// printf("\nPrinting : %s", s);
-	while(i < len) {
-		if(s[i] == '\\' && i < (len - 1)) {
-			if(s[i + 1] == 'n') {
-				putchar('\n');
-				i++;
-			} else if(s[i + 1] == 't') {
-				putchar('\t');
-				i++;
-			} else if(s[i + 1] == '"') {
-				putchar('"');
-				i++;
-			} else
-				putchar('\\');
-		} else
-			putchar(s[i]);
-		i++;
-	}
-}
-
 static uint8_t init = 0;
 
 void init_interpreter() {
@@ -703,31 +681,8 @@ void interpret() {
 	DO_PRINT : {
 		Data value;
 		dpop(value);
-		// dbg("Value : %lx", value);
-		if(isfloat(value)) {
-			printf("%g", tfloat(value));
-			DISPATCH();
-		}
-		switch(ttype(value)) {
-			// case INT:
-			//     printf("%" PRId32, tint(value));
-			//     DISPATCH();
-			case LOGICAL:
-				printf("%s", tint(value) == 0 ? "False" : "True");
-				DISPATCH();
-			case NIL: printf("Null"); DISPATCH();
-			case STRING: printString(str_get(tstrk(value))); DISPATCH();
-			case INSTANCE:
-				printf("<instance of %s>", str_get(tins(value)->name));
-				DISPATCH();
-			case IDENTIFIER:
-				printf("<identifer %s>", str_get(tstrk(value)));
-				DISPATCH();
-			case ARR:
-				printf("<array of %zu>", arr_size(tarr(value)));
-				DISPATCH();
-			case NONE: printf("<none>"); DISPATCH();
-		}
+		data_print(value);
+		DISPATCH();
 	}
 	DO_HALT:
 		stop();
