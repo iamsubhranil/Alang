@@ -103,7 +103,7 @@ Routine NewNode()
 EndRoutine
 Routine Main()
     Set i = 0
-    While(i < 10000)
+    While(i < 5000000)
         Call insertAtFront(Node(i))
         Set i = i + 1
     EndWhile

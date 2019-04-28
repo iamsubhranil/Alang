@@ -11,5 +11,5 @@ EndRoutine
 Set in = 1
 
 Routine Main()
-    Set i = Rec(30)
+    Set i = Rec(40)
 EndRoutine

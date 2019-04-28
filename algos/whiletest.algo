@@ -1,12 +1,13 @@
 Routine Main()
-    Array list[1000000]
+    Set size = 100000000
+    Array list[size]
     Set time = Clock()
     Set i = 0
-    While(i < 1000000)
+    While(i < size)
         Set list[i+1] = i, i = i + 1
     EndWhile
     Set sum = 0.0, i = 0
-    While(i < 1000000)
+    While(i < size)
         Set sum = sum + list[i+1], i = i + 1
     EndWhile
     Set time = 1.0 * (Clock() - time)/ClocksPerSecond

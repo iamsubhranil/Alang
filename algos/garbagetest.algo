@@ -3,7 +3,7 @@ Container Test(x)
 EndContainer
 Routine Main()
     Set i = 0
-    While(i < 10000000)
+    While(i < 100000000)
         Set t = Test(i)
         Set i = i + 1
     EndWhile

@@ -1,6 +1,6 @@
 Routine Main()
     Set i = 0
-    While(i < 100000000)
+    While(i < 500000000)
         Set i = i+1
     EndWhile
 EndRoutine
