@@ -201,3 +201,7 @@ NativeData native_ins_get_member(NativeData ins, const char *name) {
 	Data ret = get_member(tins(ins), str_insert(strdup(name), 0));
 	return ret;
 }
+
+void native_print(NativeData d) {
+	data_print(d);
+}

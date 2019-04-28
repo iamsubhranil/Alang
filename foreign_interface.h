@@ -66,4 +66,6 @@ void       native_arr_free(NativeData na);
 // NativeData native_ins_get_arg(size_t pos);
 void native_ins_set_member(NativeData ins, const char *name, NativeData value);
 NativeData native_ins_get_member(NativeData ins, const char *name);
+
+void native_print(NativeData nd);
 #endif
