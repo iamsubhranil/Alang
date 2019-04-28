@@ -767,53 +767,42 @@ void interpret() {
 		ip          = ja;
 		DISPATCH_WINC();
 	}
+#define PREPARE_CALL()                                       \
+	uint32_t ja;                                             \
+	ja = ins_get_val(++ip);                                  \
+	ip += 3;                                                 \
+	uint32_t numArg = ins_get_val(++ip), bak = numArg;       \
+	ip += 3;                                                 \
+	uint32_t arity = ins_get_val(++ip);                      \
+	ip += 3;                                                 \
+	/* Add two more slots to the top of the stack */         \
+	dpushn();                                                \
+	dpushn();                                                \
+	/*  sp points to the next slot, so decrement it          \
+	    to point to the first empty slot */                  \
+	--sp;                                                    \
+	/* Move all arguments to two two slot top */             \
+	while(numArg--) {                                        \
+		dataStack[sp] = dataStack[sp - 2];                   \
+		/*  Since they are now stored in a new slot,         \
+		    increment their reference count */               \
+		ref_incr(dataStack[sp]);                             \
+		--sp;                                                \
+	}                                                        \
+	numArg = bak;                                            \
+	/*  sp now points to the first empty slot from top       \
+	    point it to the second  */                           \
+	--sp;                                                    \
+	/*  Push return address and baseptr to the newly created \
+	    two slots */                                         \
+	dpushi(ip + 1);  /* Push the return address */           \
+	dpushi(baseptr); /* Push the base pointer */             \
+	baseptr   = sp;  /* Assign the new base pointer */       \
+	baseStack = &dataStack[baseptr];                         \
+	/* Move the stack pointer to the top of arguments */     \
+	sp += numArg;
 	DO_CALLVAR : {
-		// uint32_t numArg;
-		uint32_t ja;
-		ja = ins_get_val(++ip);
-		ip += 3;
-		uint32_t numArg = ins_get_val(++ip), bak = numArg;
-		ip += 3;
-		uint32_t arity = ins_get_val(++ip);
-		ip += 3;
-		// printf("\nsp previously %lu numarg %d", sp, numArg);
-
-		// Add two more slots to the top of the stack
-		dpushn();
-		dpushn();
-
-		// sp points to the next slot, so decrement it
-		// to point to the first empty slot
-		--sp;
-
-		// Move all arguments to two three slot top
-		while(numArg--) {
-			dataStack[sp] = dataStack[sp - 2];
-			// Since they are now stored in a new slot,
-			// increment their reference count
-			ref_incr(dataStack[sp]);
-			--sp;
-		}
-
-		numArg = bak;
-
-		// sp now points to the first empty slot from top
-		// point it to the second
-		--sp;
-
-		// Push return address and baseptr to the newly created
-		// two slots
-
-		dpushi(ip + 1);  // Push the return address
-		dpushi(baseptr); // Push the base pointer
-
-		// dpushn();
-		baseptr   = sp; // Assign the new base pointer
-		baseStack = &dataStack[baseptr];
-
-		// Move the stack pointer to the top of arguments
-		sp += numArg;
-
+		PREPARE_CALL()
 		// Find the number of extra arguments
 		uint32_t extra = numArg - (arity - 2);
 		// Now create the array which will store the
@@ -837,52 +826,7 @@ void interpret() {
 		DISPATCH_WINC();
 	}
 	DO_CALL : {
-		// uint32_t numArg;
-		uint32_t ja;
-		ja = ins_get_val(++ip);
-		ip += 3;
-		uint32_t numArg = ins_get_val(++ip), bak = numArg;
-		ip += 3;
-		// Ignore the third int, which is used only for
-		// variadic calls
-		ins_get_val(++ip);
-		ip += 3;
-		// printf("\nsp previously %lu numarg %d", sp, numArg);
-
-		// Add two more slots to the top of the stack
-		dpushn();
-		dpushn();
-
-		// sp points to the next slot, so decrement it
-		// to point to the first arg
-		--sp;
-
-		// Move all arguments to two slot top
-		while(numArg--) {
-			dataStack[sp] = dataStack[sp - 2];
-			// Since they are now stored in a new slot,
-			// increment their reference count
-			ref_incr(dataStack[sp]);
-			--sp;
-		}
-
-		// sp now points to the first empty slot
-		// point it to the second
-		--sp;
-
-		// Push return address and baseptr to the newly created
-		// two slots
-
-		dpushi(ip + 1);  // Push the return address
-		dpushi(baseptr); // Push the base pointer
-
-		// dpushn();
-		baseptr   = sp; // Assign the new base pointer
-		baseStack = &dataStack[baseptr];
-
-		// Move the stack pointer to the top of arguments
-		sp += bak;
-
+		PREPARE_CALL()
 		// printf("\nbaseptr now %d", baseptr);
 
 		ip = ja;
@@ -909,48 +853,9 @@ void interpret() {
 		LOAD_SLOT_X(6)
 		LOAD_SLOT_X(7)
 	DO_CALLNATIVE : {
-		uint32_t name = ins_get_val(++ip);
-		ip += 3;
-		uint32_t numArg = ins_get_val(++ip), bak = numArg;
-		ip += 3;
-		uint32_t arity = ins_get_val(++ip);
-		ip += 3;
+		PREPARE_CALL()
 
-		// Add two more slots to the top of the stack
-		dpushn();
-		dpushn();
-
-		// sp points to the next slot, so decrement it
-		// to point to the first arg
-		--sp;
-
-		// Move all arguments to two slot top
-		while(numArg--) {
-			dataStack[sp] = dataStack[sp - 2];
-			// Since they are now stored in a new slot,
-			// increment their reference count
-			ref_incr(dataStack[sp]);
-			--sp;
-		}
-
-		// sp now points to the first empty slot
-		// point it to the second
-		--sp;
-
-		// Push return address and baseptr to the newly created
-		// two slots
-
-		dpushi(ip + 1);  // Push the return address
-		dpushi(baseptr); // Push the base pointer
-
-		// dpushn();
-		baseptr   = sp; // Assign the new base pointer
-		baseStack = &dataStack[baseptr];
-
-		// Move the stack pointer to the top of arguments
-		sp += bak;
-
-		// it is a variadic call
+		// check if it is a variadic call
 		if(arity > 0) {
 			// Find the number of extra arguments
 			uint32_t extra = bak - (arity - 2);
@@ -970,7 +875,7 @@ void interpret() {
 			dpush(array);
 			dpushi(bak - (arity - 2));
 		}
-		dpush(handle_native(name, bak, baseStack));
+		dpush(handle_native(ja, bak, baseStack));
 		goto DO_RETURN;
 	}
 	DO_NEW_CONTAINER : {
