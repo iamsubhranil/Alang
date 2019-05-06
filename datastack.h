@@ -42,6 +42,18 @@ static uint64_t sp = 0;
 		rerr("Stack overflow ! %u", sp);
 #endif
 
+#define dtop() dataStack[sp - 1]
+#define dtoppi(x) dataStack[sp - 1] = new_int(x);
+#define dtoppf(x) dataStack[sp - 1] = new_float(x);
+#define dtopps(x) dataStack[sp - 1] = new_str(x);
+#define dtoppsk(x) dataStack[sp - 1] = new_strk(x);
+#define dtoppl(x) dataStack[sp - 1] = new_logical(x);
+#define dtoppid(x) dataStack[sp - 1] = new_identifer(x);
+#define dtoppidk(x) dataStack[sp - 1] = new_identiferk(x);
+#define dtoppins(x) dataStack[sp - 1] = new_ins(x);
+#define dtoppn() dataStack[sp - 1] = new_null();
+#define dtoppptr(x) dataStack[sp - 1] = new_ptr(x);
+
 #define dpush(x)             \
 	{                        \
 		incr();              \

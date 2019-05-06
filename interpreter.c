@@ -443,10 +443,10 @@ void interpret() {
 	DO_ADD : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(isfloat(d1) && isfloat(d2)) {
 			double res = tfloat(d1) + tfloat(d2);
-			dpushf(res);
+			dtoppf(res);
 			DISPATCH();
 		}
 		if(isstr(d1) && isstr(d2)) {
@@ -456,7 +456,7 @@ void interpret() {
 			strcat(res, str_get(tstrk(d2)));
 			strcat(res, str_get(tstrk(d1)));
 			res[s1 + s2] = '\0';
-			dpushs(res);
+			dtopps(res);
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '+'!");
@@ -464,10 +464,10 @@ void interpret() {
 	DO_SUB : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(isfloat(d1) && isfloat(d2)) {
 			double res = tfloat(d2) - tfloat(d1);
-			dpushf(res);
+			dtoppf(res);
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '-'!");
@@ -475,10 +475,10 @@ void interpret() {
 	DO_MUL : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(isfloat(d1) && isfloat(d2)) {
 			double res = tfloat(d2) * tfloat(d1);
-			dpushf(res);
+			dtoppf(res);
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '-'!");
@@ -486,13 +486,13 @@ void interpret() {
 	DO_DIV : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(isfloat(d1) || isfloat(d2)) {
 			if(fabs(tfloat(d1)) <= DBL_EPSILON) {
 				rerr("Division by zero!");
 			}
 			double res = tfloat(d2) / tfloat(d1);
-			dpushf(res);
+			dtoppf(res);
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '-'!");
@@ -500,9 +500,9 @@ void interpret() {
 	DO_POW : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(isfloat(d1) && isfloat(d2)) {
-			dpushf(pow(tfloat(d2), tfloat(d1)));
+			dtoppf(pow(tfloat(d2), tfloat(d1)));
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '^'!");
@@ -510,9 +510,9 @@ void interpret() {
 	DO_MOD : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(isfloat(d1) && isfloat(d2)) {
-			dpushi(fmod(tfloat(d2), tfloat(d1)));
+			dtoppi(fmod(tfloat(d2), tfloat(d1)));
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '%%'");
@@ -542,13 +542,13 @@ void interpret() {
 	DO_GT : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(isfloat(d1) && isfloat(d2)) {
-			dpushl(tfloat(d2) > tfloat(d1));
+			dtoppl(tfloat(d2) > tfloat(d1));
 			DISPATCH();
 		}
 		if(isstr(d1) && isstr(d2)) {
-			dpushl(str_len(tstrk(d2)) > str_len(tstrk(d1)));
+			dtoppl(str_len(tstrk(d2)) > str_len(tstrk(d1)));
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '>'!");
@@ -556,14 +556,14 @@ void interpret() {
 	DO_GTE : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(isfloat(d1) && isfloat(d2)) {
-			dpushl(tfloat(d2) >= tfloat(d1));
+			dtoppl(tfloat(d2) >= tfloat(d1));
 			DISPATCH();
 		}
 
 		if(isstr(d1) && isstr(d2)) {
-			dpushl(str_len(tstrk(d2)) >= str_len(tstrk(d1)));
+			dtoppl(str_len(tstrk(d2)) >= str_len(tstrk(d1)));
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '>='!");
@@ -571,15 +571,15 @@ void interpret() {
 	DO_LT : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 
 		if(isfloat(d1) && isfloat(d2)) {
-			dpushl(tfloat(d2) < tfloat(d1));
+			dtoppl(tfloat(d2) < tfloat(d1));
 			DISPATCH();
 		}
 
 		if(isstr(d1) && isstr(d2)) {
-			dpushl(str_len(tstrk(d2)) < str_len(tstrk(d1)));
+			dtoppl(str_len(tstrk(d2)) < str_len(tstrk(d1)));
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '<'!");
@@ -587,15 +587,15 @@ void interpret() {
 	DO_LTE : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 
 		if(isfloat(d1) && isfloat(d2)) {
-			dpushl(tfloat(d2) <= tfloat(d1));
+			dtoppl(tfloat(d2) <= tfloat(d1));
 			DISPATCH();
 		}
 
 		if(isstr(d1) && isstr(d2)) {
-			dpushl(str_len(tstrk(d2)) <= str_len(tstrk(d1)));
+			dtoppl(str_len(tstrk(d2)) <= str_len(tstrk(d1)));
 			DISPATCH();
 		}
 
@@ -604,20 +604,20 @@ void interpret() {
 	DO_EQ : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 
 		if(isfloat(d1) && isfloat(d2)) {
-			dpushl(fabs(tfloat(d2) - tfloat(d1)) <= DBL_EPSILON);
+			dtoppl(fabs(tfloat(d2) - tfloat(d1)) <= DBL_EPSILON);
 			DISPATCH();
 		}
 
 		if(isnull(d1) || isnull(d2)) {
-			dpushl(isnull(d1) && isnull(d2));
+			dtoppl(isnull(d1) && isnull(d2));
 			DISPATCH();
 		}
 
 		if(isstr(d1) && isstr(d2)) {
-			dpushl(tstrk(d2) == tstrk(d1));
+			dtoppl(tstrk(d2) == tstrk(d1));
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '=='!");
@@ -626,20 +626,20 @@ void interpret() {
 
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 
 		if(isfloat(d1) && isfloat(d2)) {
-			dpushl(fabs(tfloat(d2) - tfloat(d1)) > DBL_EPSILON);
+			dtoppl(fabs(tfloat(d2) - tfloat(d1)) > DBL_EPSILON);
 			DISPATCH();
 		}
 
 		if(isnull(d1) || isnull(d2)) {
-			dpushl(!(isnull(d1) && isnull(d2)));
+			dtoppl(!(isnull(d1) && isnull(d2)));
 			DISPATCH();
 		}
 
 		if(isstr(d1) && isstr(d2)) {
-			dpushl(tstrk(d1) != tstrk(d2));
+			dtoppl(tstrk(d1) != tstrk(d2));
 			DISPATCH();
 		}
 		rerr("Bad operands for operator '!='!");
@@ -647,9 +647,9 @@ void interpret() {
 	DO_AND : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(islogical(d1) && islogical(d2)) {
-			dpushl(tlogical(d1) && tlogical(d2));
+			dtoppl(tlogical(d1) && tlogical(d2));
 			DISPATCH();
 		}
 
@@ -658,9 +658,9 @@ void interpret() {
 	DO_OR : {
 		Data d1, d2;
 		dpop(d1);
-		dpop(d2);
+		d2 = dtop();
 		if(islogical(d1) && islogical(d2)) {
-			dpushl(tlogical(d1) || tlogical(d2));
+			dtoppl(tlogical(d1) || tlogical(d2));
 			DISPATCH();
 		}
 
@@ -894,7 +894,7 @@ void interpret() {
 		Data index;
 		Data arr;
 		dpop(index);
-		dpop(arr);
+		arr = dtop();
 		if(!isarray(arr) && !isstr(arr)) {
 			rerr("Subscripted element is not an array or string!");
 		}
@@ -904,7 +904,7 @@ void interpret() {
 					rerr("Array index out of range : %" PRId32, tint(index));
 				}
 
-				dpush(arr_elements(tarr(arr))[tint(index) - 1]);
+				dtop() = (arr_elements(tarr(arr))[tint(index) - 1]);
 				DISPATCH();
 			}
 
@@ -916,14 +916,14 @@ void interpret() {
 			}
 
 			if((size_t)tint(index) == str_len(tstrk(arr)) + 1) {
-				dpushn();
+				dtoppn();
 				DISPATCH();
 			}
 
 			char *c = (char *)mallocate(sizeof(char) * 2);
 			c[0]    = tstr(arr)[tint(index) - 1];
 			c[1]    = 0;
-			dpushs(c);
+			dtopps(c);
 			DISPATCH();
 		}
 
@@ -933,9 +933,9 @@ void interpret() {
 		Data     ins;
 		uint32_t mem = ins_get_val(++ip);
 		ip += 3;
-		dpop(ins);
+		ins = dtop();
 		if(isins(ins)) {
-			dpush(get_member(tins(ins), mem));
+			dtop() = (get_member(tins(ins), mem));
 			DISPATCH();
 		}
 		rerr("Dereferenced value is not a container instance!");

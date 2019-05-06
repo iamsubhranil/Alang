@@ -164,7 +164,6 @@ static void printString(const char *s) {
 }
 
 void data_print(Data value) {
-
 	// dbg("Value : %lx", value);
 	if(isfloat(value)) {
 		printf("%g", tfloat(value));
